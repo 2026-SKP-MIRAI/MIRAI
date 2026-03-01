@@ -6,6 +6,7 @@
 ## 구조
 ```
 specs/
+├── MirAI_MVP_dev_spec.md             MVP 기술 명세 (자소서 업로드 → 맞춤 질문 생성)
 └── (기능별 명세 파일 — Week 1 내 작성 예정)
     예: feature_02_followup_questions.md
         feature_03_persona_simulation.md
