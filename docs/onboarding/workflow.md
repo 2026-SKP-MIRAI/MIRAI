@@ -66,10 +66,11 @@ git checkout -b docs/31-interface-doc # 문서 작업
 이슈를 시작하면 `docs/work/active/`에 폴더를 만든다.
 
 ```bash
-mkdir docs/work/active/15-pdf-upload
+mkdir docs/work/active/000015-pdf-upload
 ```
 
-규칙: `이슈번호-짧은설명` (브랜치 이름과 동일하게)
+규칙: `이슈번호(6자리 0패딩)-짧은설명`
+예시: 이슈 #15 → `000015-pdf-upload`, 이슈 #123 → `000123-parser-error`
 
 이 폴더에 작업 중 생성되는 문서(분석 결과, 설계 메모, 산출물 등)를 담는다.
 PR이 머지되면 `docs/work/done/`으로 자동 이동된다.

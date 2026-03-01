@@ -105,8 +105,9 @@ jobs:
 
           MOVED=0
           for ISSUE_NUM in $ISSUE_NUMS; do
-            # active/ 에서 이슈번호로 시작하는 폴더 찾기
-            FOLDER=$(find docs/work/active -maxdepth 1 -type d -name "${ISSUE_NUM}-*" 2>/dev/null | head -1)
+            # 6자리 0패딩으로 폴더 검색 (예: 15 → 000015-*)
+            PADDED=$(printf "%06d" "$ISSUE_NUM")
+            FOLDER=$(find docs/work/active -maxdepth 1 -type d -name "${PADDED}-*" 2>/dev/null | head -1)
 
             if [ -n "$FOLDER" ]; then
               FOLDER_NAME=$(basename "$FOLDER")
