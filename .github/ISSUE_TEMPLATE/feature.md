@@ -1,7 +1,7 @@
 ---
 name: 기능 구현
 about: 새 기능 또는 기능 개선
-title: '[FEAT] 사용자가 ___ 하면 ___ 할 수 있다'
+title: '[FEAT] '
 labels: feature
 ---
 
