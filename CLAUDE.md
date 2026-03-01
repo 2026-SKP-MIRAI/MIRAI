@@ -3,10 +3,11 @@
 > 세션 시작 시 이 파일을 먼저 읽는다. 지도(map)다. 백과사전이 아니다.
 
 ## 시작 전 필수 확인 순서
-1. `AGENTS.md` — 레포 전체 목차·불변식·규칙
-2. 작업 대상 디렉토리의 `.ai.md` — 목적·구조·역할
-3. `engine/docs/INTERFACE.md` — 엔진 API 계약 (엔진/서비스 작업 시)
-4. `docs/exec-plans/active/` — 현재 진행 중인 실행 계획
+1. `gh issue list --assignee @me` — 내 담당 이슈 확인
+2. `AGENTS.md` — 레포 전체 목차·불변식·규칙
+3. 작업 대상 디렉토리의 `.ai.md` — 목적·구조·역할
+4. `engine/docs/INTERFACE.md` — 엔진 API 계약 (엔진/서비스 작업 시)
+5. `docs/exec-plans/active/` — 현재 진행 중인 실행 계획 (있는 경우)
 
 ## 불변식 (위반 시 pre-commit 자동 차단)
 ```
