@@ -1,0 +1,41 @@
+name: Project Board Automation
+
+on:
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  automate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add to project & set status
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          EVENT="${{ github.event.action }}"
+
+          # 프로젝트에 이슈 추가 (이미 있어도 중복 안 됨)
+          ITEM_ID=$(gh project item-add 2 \
+            --owner 2026-SKP-MIRAI \
+            --url "$ISSUE_URL" \
+            --format json | jq -r '.id')
+
+          if [ "$EVENT" = "opened" ]; then
+            # 이슈 생성 → Backlog
+            gh project item-edit \
+              --project-id PVT_kwDOD6xar84BQesf \
+              --id "$ITEM_ID" \
+              --field-id PVTSSF_lADOD6xar84BQesfzg-liLk \
+              --single-select-option-id f75ad846
+            echo "→ Backlog"
+
+          elif [ "$EVENT" = "assigned" ]; then
+            # 이슈 Assign → In Progress
+            gh project item-edit \
+              --project-id PVT_kwDOD6xar84BQesf \
+              --id "$ITEM_ID" \
+              --field-id PVTSSF_lADOD6xar84BQesfzg-liLk \
+              --single-select-option-id 47fc9ee4
+            echo "→ In Progress"
+          fi
