@@ -1,0 +1,29 @@
+temp/
+.envrc
+
+# 업로드 파일 (레포에 커밋 금지)
+*.pdf
+*.csv
+*.pkl
+*.parquet
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 환경변수
+.env
+.env.*
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+
+# 도구 상태 (커밋 금지)
+.omc/
+.mcp.json

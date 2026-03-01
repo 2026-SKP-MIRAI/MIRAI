@@ -1,0 +1,23 @@
+# engine/services/
+
+## 목적
+LLM API 레이어. 모든 LLM 호출의 단일 진입점.
+
+## 구조
+```
+services/
+└── llm_service/   LLM API 호출 모듈 (Week 1 산출물)
+    ├── tests/     TDD: 테스트 먼저 작성
+    └── ...
+```
+
+## 역할
+- 엔진 불변식 1번: LLM 호출은 반드시 여기서만
+- 입력: 프롬프트 + 파라미터
+- 출력: LLM 응답 (파싱 전 raw 또는 구조화)
+- 모델 전환·토큰 관리·에러 처리를 여기서 중앙 관리
+- 서비스에서 직접 OpenAI/Anthropic API 호출 시 CI 차단
+
+## 작업 전 확인
+- `engine/docs/INTERFACE.md` — 함수 시그니처·타입 계약 확인
+- `engine/prompts/` — 사용할 프롬프트 버전 확인

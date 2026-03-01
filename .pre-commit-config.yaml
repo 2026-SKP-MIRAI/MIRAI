@@ -1,0 +1,27 @@
+repos:
+  # 불변식 검증 (엔진 경계 강제)
+  - repo: local
+    hooks:
+      - id: check-llm-invariant
+        name: "불변식 1 — LLM 호출 위치 검증"
+        entry: python scripts/check_invariants.py --check llm
+        language: python
+        types: [python]
+        pass_filenames: false
+
+      - id: check-pdf-invariant
+        name: "불변식 2 — PDF 파싱 위치 검증"
+        entry: python scripts/check_invariants.py --check pdf
+        language: python
+        types: [python]
+        pass_filenames: false
+
+  # 코드 품질 (기본)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=5120"]   # 5MB 초과 파일 커밋 차단 (레포 규칙 1번)

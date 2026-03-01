@@ -1,0 +1,28 @@
+# engine/
+
+## 목적
+전원 공동 설계·기여하는 공통 기술 레이어. TDD 적용.
+서비스들이 공유하는 파서·LLM·프롬프트 인프라를 제공.
+
+## 구조
+```
+engine/
+├── parsers/    PDF 파싱 레이어 — 자소서 텍스트 추출
+├── services/   LLM API 레이어 — 모든 LLM 호출의 단일 진입점
+├── prompts/    프롬프트 관리 + 버전 관리
+└── docs/       엔진 설계 문서 (INTERFACE.md 포함)
+```
+
+## 역할
+- 엔진 불변식 4개를 실제로 구현하는 레이어
+- 기여는 자율 — 특정 인원 지정 없음
+- 서비스 skeleton이 엔진의 API 계약을 먼저 정의 (outside-in)
+- 모든 구현은 테스트 먼저: Red → Green → Refactor
+
+## 엔진 불변식
+```
+1. LLM API 호출은 반드시 engine/services/ 에서만
+2. PDF 파싱은 반드시 engine/parsers/ 에서만
+3. 각 service는 engine을 호출만 — 내부 직접 접근 금지
+4. 테스트 없는 PR 머지 금지
+```
