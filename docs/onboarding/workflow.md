@@ -16,7 +16,7 @@ Projects 보드 자동화는 별도 설정 없이 알아서 동작한다.
 ## 한 줄 요약
 
 ```
-Ready 이슈 픽업 → 브랜치 생성 → 구현 (테스트 먼저) → PR → 멘토 리뷰 → 머지
+Ready 이슈 픽업 → 워크트리+브랜치 생성 → 구현 (테스트 먼저) → PR → 멘토 리뷰 → 머지 → 워크트리 삭제
 ```
 
 ---
@@ -49,15 +49,28 @@ gh issue list --assignee @me
 
 ---
 
-## 2단계: 브랜치 생성
+## 2단계: 워크트리 + 브랜치 생성
+
+워크트리를 쓰면 브랜치마다 독립된 디렉토리에서 작업할 수 있다.
+main을 건드리지 않고 여러 이슈를 동시에 진행할 때 유용하다.
 
 ```bash
-git checkout -b feat/15-pdf-upload    # 기능 구현
-git checkout -b fix/23-parser-error   # 버그 수정
-git checkout -b docs/31-interface-doc # 문서 작업
+# 형식: git worktree add <경로> -b <브랜치명>
+git worktree add ../MIRAI-feat-15 -b feat/15-pdf-upload    # 기능 구현
+git worktree add ../MIRAI-fix-23  -b fix/23-parser-error   # 버그 수정
+git worktree add ../MIRAI-docs-31 -b docs/31-interface-doc # 문서 작업
 ```
 
-규칙: `타입/이슈번호-짧은설명`
+워크트리 생성 후 해당 디렉토리로 이동해서 작업한다:
+
+```bash
+cd ../MIRAI-feat-15
+```
+
+브랜치 규칙: `타입/이슈번호-짧은설명`
+경로 규칙: `../MIRAI-<이슈번호>` (레포 루트 기준 형제 디렉토리)
+
+> 워크트리가 없던 시절엔 `git checkout -b`로 브랜치만 생성했다. 이제는 워크트리 방식을 사용한다.
 
 ---
 
@@ -126,6 +139,30 @@ Closes #15
 
 멘토 승인 후 멘토가 Squash merge.
 머지되면 브랜치 자동 삭제, 이슈 자동 Close, Projects 보드 Done 이동.
+
+---
+
+## 8단계: 워크트리 삭제
+
+머지 확인 후 로컬 워크트리를 정리한다.
+
+```bash
+# 레포 루트로 복귀
+cd ~/sharedfolder/260228_SKP_MIRAI/MIRAI   # 또는 본인 레포 경로
+
+# 워크트리 삭제
+git worktree remove ../MIRAI-feat-15
+
+# 로컬 브랜치 정리 (이미 머지됐으므로 -d로 안전 삭제)
+git branch -d feat/15-pdf-upload
+```
+
+워크트리 목록 확인:
+```bash
+git worktree list
+```
+
+> 머지 전에 워크트리를 지우면 작업 내용이 날아간다. **반드시 머지 확인 후** 삭제.
 
 ---
 
