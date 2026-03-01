@@ -7,9 +7,10 @@
 ## 구조
 ```
 background/
-├── dev_job_market_2026.md          채용시장 분석 (2026, 잡코리아·LinkedIn·Glassdoor)
-├── fullstack_builder_research.md   풀스택 빌더 리서치
-└── harness_engineering_analysis.md 하네스 엔지니어링 원문 분석 (OpenAI, Feb 2026)
+├── dev_job_market_2026.md               채용시장 분석 (2026, 잡코리아·LinkedIn·Glassdoor)
+├── fullstack_builder_research.md        풀스택 빌더 리서치
+├── harness_engineering_analysis.md      하네스 엔지니어링 원문 분석 (OpenAI, Feb 2026)
+└── MirAI_proposal_BRIEF_BACKGROUND.md  기획서 배경 섹션 상세 편집용 (출처 URL 포함)
 ```
 
 ## 역할
