@@ -8,11 +8,13 @@
 ## 구조
 ```
 docs/
-├── whitepaper/       화이트페이퍼·기획서·전략 문서
+├── whitepaper/       프로젝트 전략·운영 계획 문서
+├── background/       배경 자료·외부 분석·연구 문서
 ├── specs/            기능 상세 명세 (AC 포함)
 ├── meetings/         회의록 (날짜별)
 ├── decisions/        아키텍처·팀 의사결정 기록 (ADR)
 ├── retrospectives/   주간 회고 기록
+├── exec-plans/       실행 계획 (active/completed)
 └── onboarding/       환경 설정·기여 가이드
 ```
 

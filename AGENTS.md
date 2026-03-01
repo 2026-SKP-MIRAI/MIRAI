@@ -11,11 +11,13 @@
 mirai/
 ├── AGENTS.md               ← 지금 이 파일
 ├── docs/                   ← 프로젝트 문서 (SOT)
-│   ├── whitepaper/         화이트페이퍼·기획서
+│   ├── whitepaper/         프로젝트 전략·운영 계획 문서
+│   ├── background/         배경 자료·외부 분석·연구 문서
 │   ├── specs/              기능 명세 (기능 2~4 상세 설계)
 │   ├── meetings/           회의록
 │   ├── decisions/          아키텍처 의사결정 기록 (ADR)
 │   ├── retrospectives/     주간 회고 기록
+│   ├── exec-plans/         실행 계획 (active/completed)
 │   └── onboarding/         환경 설정·기여 가이드
 ├── engine/                 ← 전원 공동 (기술 레이어, TDD 적용)
 │   ├── parsers/            PDF 파싱 레이어
@@ -49,7 +51,7 @@ mirai/
 2. *.pdf, *.csv, *.pkl, *.parquet 파일은 커밋 금지 (.gitignore 적용)
 3. 모든 디렉토리에는 ai.md 포함 — 목적·구조·역할 기술
 4. 작업 전 해당 디렉토리의 ai.md 확인
-5. 작업 완료 후 ai.md 최신화 필수
+5. 작업 완료 후 ai.md 최신화 필수 — 이를 지키지 않으면 작업 미완료로 간주
 ```
 
 ---
