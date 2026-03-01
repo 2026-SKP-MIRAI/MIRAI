@@ -3,9 +3,12 @@ name: Project Board Automation
 on:
   issues:
     types: [opened, assigned]
+  pull_request:
+    types: [opened, ready_for_review]
 
 jobs:
-  automate:
+  issue-automate:
+    if: github.event_name == 'issues'
     runs-on: ubuntu-latest
     steps:
       - name: Add to project & set status
@@ -39,3 +42,41 @@ jobs:
               --single-select-option-id 47fc9ee4
             echo "→ In Progress"
           fi
+
+  pr-automate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Linked issues → In Review
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          REPO="${{ github.repository }}"
+
+          # PR 본문에서 연결된 이슈 번호 추출 (Closes/Fixes/Resolves #N)
+          ISSUE_NUMS=$(echo "$PR_BODY" | grep -oiE '(closes|fixes|resolves) #[0-9]+' | grep -oE '[0-9]+')
+
+          if [ -z "$ISSUE_NUMS" ]; then
+            echo "연결된 이슈 없음. 종료."
+            exit 0
+          fi
+
+          for ISSUE_NUM in $ISSUE_NUMS; do
+            ISSUE_URL="https://github.com/$REPO/issues/$ISSUE_NUM"
+            echo "이슈 #$ISSUE_NUM → In Review 시도"
+
+            # 프로젝트에 이슈 추가 (이미 있으면 기존 ID 반환)
+            ITEM_ID=$(gh project item-add 2 \
+              --owner 2026-SKP-MIRAI \
+              --url "$ISSUE_URL" \
+              --format json | jq -r '.id')
+
+            # In Review로 이동
+            gh project item-edit \
+              --project-id PVT_kwDOD6xar84BQesf \
+              --id "$ITEM_ID" \
+              --field-id PVTSSF_lADOD6xar84BQesfzg-liLk \
+              --single-select-option-id df73e18b
+            echo "→ In Review (#$ISSUE_NUM)"
+          done
