@@ -8,6 +8,7 @@
 ```
 background/
 ├── dev_job_market_2026.md               채용시장 분석 (2026, 잡코리아·LinkedIn·Glassdoor)
+├── ai_opportunity_landscape_2026.md     AI 시대 기회 지형 분석 (창업 시장, 1인 유니콘, 신규 직업)
 ├── fullstack_builder_research.md        풀스택 빌더 리서치
 ├── harness_engineering_analysis.md      하네스 엔지니어링 원문 분석 (OpenAI, Feb 2026)
 └── MirAI_proposal_BRIEF_BACKGROUND.md  기획서 배경 섹션 상세 편집용 (출처 URL 포함)
