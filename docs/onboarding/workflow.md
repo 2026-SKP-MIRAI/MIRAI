@@ -18,6 +18,8 @@ gh issue list --assignee @me
 
 또는 GitHub Projects 보드에서 **In Progress** 컬럼 확인.
 
+> **보드 컬럼:** Backlog → In Progress → In Review → Done / Drop
+
 이슈가 없으면 멘토에게 요청하거나, 본인이 이슈를 만들어 멘토에게 Assign 요청.
 
 ---
@@ -115,6 +117,17 @@ PDF 업로드 엔드포인트 구현
 
 AC는 "언제 이 이슈가 완료됐다고 볼 것인가"를 체크리스트로 만든 것.
 클로드 코드에게 이 이슈를 시키면 AC가 첫 번째 테스트가 된다.
+
+---
+
+## 이슈 Drop (안 하기로 결정)
+
+이슈를 구현하지 않기로 판단되면:
+1. 이슈에 이유를 코멘트로 남긴다
+2. Projects 보드에서 **Drop** 컬럼으로 이동
+3. 이슈는 Close (not planned)
+
+> Drop ≠ 실패. "이 시점에 이 이슈는 우선순위 밖"이라는 명시적 결정이다.
 
 ---
 
