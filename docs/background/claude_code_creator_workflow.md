@@ -103,7 +103,7 @@ Claude를 Slack, BigQuery, Sentry 등과 연결해 워크플로우 허브로 전
 테스트·CLI·브라우저 동작을 통해 Claude가 자신의 작업을 직접 검증할 수 있게 하면 품질이 극적으로 향상.
 
 **검증 사다리:**
-1. 단일 명령어 (예: `pnpm test --filter ...`)
+1. 단일 명령어 (예: `pnpm test --filter ..`)
 2. 작은 테스트 스위트
 3. 브라우저에서의 UI 확인
 4. 서브에이전트에 의한 "리뷰 패스"
@@ -137,7 +137,7 @@ Claude를 Slack, BigQuery, Sentry 등과 연결해 워크플로우 허브로 전
 
 | Boris 방법 | MirAI 적용 |
 |-----------|-----------|
-| CLAUDE.md = 살아있는 팀 메모리 | 이미 적용 — 작업 후 ai.md 업데이트 규칙 |
+| CLAUDE.md = 살아있는 팀 메모리 | 이미 적용 — 작업 후 .ai.md 업데이트 규칙 |
 | 슬래시 명령어로 반복 프롬프트 저장 | exec-plans/ 구조로 동일 목적 달성 |
 | 서브에이전트 승격 | 하네스 엔지니어링 — 에이전트 정의 설계 |
 | PostToolUse 훅 | pre-commit + CI 불변식 검증 |
