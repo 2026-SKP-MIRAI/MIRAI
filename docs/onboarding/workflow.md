@@ -184,3 +184,9 @@ test: 테스트만 변경
 1. 이슈에 코멘트로 질문 남기기 (멘토가 비동기로 확인)
 2. PR을 Draft로 열고 `[WIP]` 표시
 3. 진행 불가 시 이슈에 `blocked` 라벨 추가
+
+---
+
+## 참고
+
+- [GitHub Actions & 보드 자동화 설명](../background/github_actions_project_automation.md)
