@@ -27,6 +27,7 @@ node_modules/
 # 도구 상태 (커밋 금지)
 .omc/
 .mcp.json
+.worktree/
 
 # 개인정보 (커밋 금지)
 mentor_mentee_summary.md
