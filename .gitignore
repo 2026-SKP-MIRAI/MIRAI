@@ -28,6 +28,7 @@ node_modules/
 .omc/
 .mcp.json
 .worktree/
+.claude/
 
 # 개인정보 (커밋 금지)
 mentor_mentee_summary.md
