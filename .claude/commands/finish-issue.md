@@ -146,15 +146,30 @@ git commit -m "{커밋 메시지}"
 git push origin {BRANCH}
 ```
 
-### 9. docs/work 완료문서 확인
+### 9. work.md 작업 내역 작성
 
-작업 폴더에서 완료문서 내용을 수집한다:
+작업 폴더 존재 여부를 확인한다:
 ```
 ls {WORKFOLDER}/ 2>/dev/null
 ```
 
 **폴더가 존재하는 경우:**
-폴더 내 `.md` 파일을 읽어 PR 본문에 포함할 내용을 준비한다.
+
+`git diff HEAD~1..HEAD` (또는 전체 브랜치 diff) 와 변경된 파일 목록을 분석해,
+`{WORKFOLDER}/work.md` 에 `## 작업 내역` 섹션을 추가한다.
+
+작성 기준:
+- 변경된 파일별로 무엇을 왜 변경했는지 서술
+- 새로 추가된 기능·로직은 핵심 동작 위주로 설명
+- 삭제·리팩토링은 이유 포함
+- 기술적 결정 사항이 있으면 함께 기록
+
+작성 후 커밋한다:
+```
+git add {WORKFOLDER}/work.md
+git commit -m "docs: 작업 내역 정리 — {PADDED}-{짧은이름}"
+git push origin {BRANCH}
+```
 
 **폴더가 없는 경우:**
 ```
@@ -166,18 +181,13 @@ ls {WORKFOLDER}/ 2>/dev/null
 
 다음 명령을 실행한다:
 
-**완료문서가 있는 경우:**
+**완료문서가 있는 경우 (`work.md` 내용을 PR 본문으로 사용):**
 ```
 gh pr create \
   --title "{커밋 메시지}" \
-  --body "$(cat <<'EOF'
-## 작업 내용
+  --body "$(cat {WORKFOLDER}/work.md)
 
-{docs/work 완료문서 내용 — 파일이 여러 개면 첫 번째 .md 파일 내용 사용}
-
-Closes #{이슈번호}
-EOF
-)"
+Closes #{이슈번호}"
 ```
 
 **완료문서가 없는 경우:**
