@@ -7,7 +7,7 @@
 2. `AGENTS.md` — 레포 전체 목차·불변식·규칙
 3. 작업 대상 디렉토리의 `.ai.md` — 목적·구조·역할
 4. `engine/docs/INTERFACE.md` — 엔진 API 계약 (엔진/서비스 작업 시)
-5. `docs/exec-plans/active/` — 현재 진행 중인 실행 계획 (있는 경우)
+5. `docs/work/active/` — 현재 진행 중인 작업 내역 (있는 경우)
 
 ## 불변식 (위반 시 pre-commit 자동 차단)
 ```
@@ -37,5 +37,7 @@
 - 레포 구조·커리큘럼 → `docs/whitepaper/mirai_project_plan.md`
 - 엔진 API 계약 → `engine/docs/INTERFACE.md`
 - 기능 명세 + AC → `docs/specs/`
-- 실행 계획 → `docs/exec-plans/active/`
-- 의사결정 기록 → `docs/decisions/`
+- 배경 자료·리서치 → `docs/background/`
+- 회의록 → `docs/meetings/`
+- 온보딩·워크플로우 → `docs/onboarding/`
+- 작업 내역 → `docs/work/active/` · `docs/work/done/`
