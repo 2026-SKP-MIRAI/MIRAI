@@ -99,7 +99,18 @@ git worktree add {WORKTREE} -b {BRANCH}
 ### 6. Work 폴더 생성
 
 ```
-mkdir -p {WORKFOLDER}
+mkdir -p {WORKTREE}/{WORKFOLDER}
+cat > {WORKTREE}/{WORKFOLDER}/work.md << 'EOF'
+# {PADDED}-{짧은이름}
+
+## 작업 개요
+
+## 구현 내용
+
+## 참고 사항
+EOF
+git -C {WORKTREE} add {WORKFOLDER}/work.md
+git -C {WORKTREE} commit -m "chore: docs/work 폴더 초기화 — {PADDED}-{짧은이름}"
 ```
 
 ### 7. 이슈 Assign
