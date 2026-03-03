@@ -44,7 +44,29 @@ gh issue list --search "{제목}" --json number,title
 ```
 첫 번째 결과를 사용. 여러 개이면 목록 출력 후 선택 요청.
 
-### 2. 이름 확정
+### 2. 이슈 상태 검증
+
+이슈 상태를 확인한다:
+```
+gh issue view {이슈번호} --json state,projectItems
+```
+
+**이슈가 CLOSED 상태이면** 즉시 중단한다:
+```
+오류: 이슈 #{이슈번호}는 이미 완료된 이슈입니다 (CLOSED).
+```
+
+**프로젝트 보드 상태가 "Ready"가 아니면** 경고를 출력하고 사용자 확인을 받는다:
+```
+⚠️  이슈 #{이슈번호}가 Ready 상태가 아닙니다.
+현재 상태: {projectItems에서 추출한 상태, 조회 불가 시 "확인 불가"}
+Ready 상태의 이슈만 작업을 시작하는 것을 권장합니다.
+계속 진행하시겠습니까? (y/n)
+```
+
+projectItems 조회가 불가능하거나 프로젝트에 연결되지 않은 경우에는 경고 없이 진행한다.
+
+### 3. 이름 확정
 
 - PADDED = 이슈번호 6자리 zero-pad (15 → `000015`)
 - 짧은이름 = 제공값 또는 자동 생성값
@@ -59,7 +81,7 @@ gh issue list --search "{제목}" --json number,title
 워크트리: {WORKTREE}
 ```
 
-### 3. 중복 확인
+### 4. 중복 확인
 
 `git worktree list`를 실행해서 WORKTREE 경로가 이미 있는지 확인한다.
 이미 존재하면:
@@ -68,26 +90,26 @@ gh issue list --search "{제목}" --json number,title
 ```
 실행을 중단한다.
 
-### 4. Worktree + 브랜치 생성
+### 5. Worktree + 브랜치 생성
 
 ```
 git worktree add {WORKTREE} -b {BRANCH}
 ```
 
-### 5. Work 폴더 생성
+### 6. Work 폴더 생성
 
 ```
 mkdir -p {WORKFOLDER}
 ```
 
-### 6. 이슈 Assign
+### 7. 이슈 Assign
 
 ```
 gh issue edit {이슈번호} --add-assignee @me
 ```
 GitHub Actions가 자동으로 프로젝트 보드를 In Progress로 이동시킨다.
 
-### 7. 완료 안내
+### 8. 완료 안내
 
 ```
 ✓ 워크트리: {WORKTREE}
