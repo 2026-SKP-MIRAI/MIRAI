@@ -4,7 +4,7 @@ on:
   issues:
     types: [opened, assigned]
   pull_request:
-    types: [opened, ready_for_review, closed]
+    types: [opened, ready_for_review]
 
 jobs:
   issue-automate:
@@ -50,8 +50,8 @@ jobs:
       - name: Linked issues → In Review
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
           REPO="${{ github.repository }}"
 
           # PR 본문에서 연결된 이슈 번호 추출 (Closes/Fixes/Resolves #N)
@@ -81,50 +81,3 @@ jobs:
             echo "→ In Review (#$ISSUE_NUM)"
           done
 
-  work-folder-automate:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PROJECT_TOKEN }}
-
-      - name: Move active work folder → done
-        run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-          PR_NUM="${{ github.event.pull_request.number }}"
-
-          # PR 본문에서 연결된 이슈 번호 추출
-          ISSUE_NUMS=$(echo "$PR_BODY" | grep -oiE '(closes|fixes|resolves) #[0-9]+' | grep -oE '[0-9]+')
-
-          if [ -z "$ISSUE_NUMS" ]; then
-            echo "연결된 이슈 없음. 종료."
-            exit 0
-          fi
-
-          MOVED=0
-          for ISSUE_NUM in $ISSUE_NUMS; do
-            # 6자리 0패딩으로 폴더 검색 (예: 15 → 000015-*)
-            PADDED=$(printf "%06d" "$ISSUE_NUM")
-            FOLDER=$(find docs/work/active -maxdepth 1 -type d -name "${PADDED}-*" 2>/dev/null | head -1)
-
-            if [ -n "$FOLDER" ]; then
-              FOLDER_NAME=$(basename "$FOLDER")
-              mv "$FOLDER" "docs/work/done/$FOLDER_NAME"
-              echo "이동: $FOLDER_NAME → done/"
-              MOVED=$((MOVED + 1))
-            else
-              echo "이슈 #$ISSUE_NUM 폴더 없음 (active/에 없거나 폴더 미생성). 스킵."
-            fi
-          done
-
-          if [ "$MOVED" -gt 0 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "chore: work 폴더 done/으로 이동 (PR #${PR_NUM})"
-            git push
-          else
-            echo "이동할 폴더 없음."
-          fi

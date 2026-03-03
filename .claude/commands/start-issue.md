@@ -102,7 +102,9 @@ git worktree add {WORKTREE} -b {BRANCH}
 mkdir -p {WORKTREE}/{WORKFOLDER}
 ```
 
-이슈 내용을 `00_issue.md` 로 저장하고, 하단에 작업 내역 섹션을 추가한다:
+#### 6-1. `00_issue.md` 생성
+
+이슈 내용을 저장하고, 하단에 작업 내역 섹션을 추가한다:
 ```
 gh issue view {이슈번호} --json title,body \
   --jq '"# " + .title + "\n\n" + .body' \
@@ -115,7 +117,41 @@ cat >> {WORKTREE}/{WORKFOLDER}/00_issue.md << 'EOF'
 ## 작업 내역
 
 EOF
-git -C {WORKTREE} add {WORKFOLDER}/00_issue.md
+```
+
+#### 6-2. `01_plan.md` 생성 (AC 체크리스트 포함)
+
+이슈 body에서 AC 항목을 추출해 체크리스트로 변환한다:
+
+1. `gh issue view {이슈번호} --json body --jq '.body'` 로 이슈 body를 가져온다
+2. body에서 AC 섹션을 찾는다 (헤더 키워드: `## AC`, `## 완료 기준`, `## Acceptance Criteria`, `## 인수 조건`)
+3. AC 섹션의 항목들을 `- [ ] {항목}` 형태의 체크리스트로 변환한다
+4. AC 항목이 없으면 체크리스트 없이 플랜 템플릿만 생성한다
+
+`01_plan.md` 형식:
+```markdown
+# [#{이슈번호}] {제목} — 구현 계획
+
+> 작성: {오늘 날짜}
+
+---
+
+## 완료 기준
+
+- [ ] {AC 항목 1}
+- [ ] {AC 항목 2}
+...
+
+---
+
+## 구현 계획
+
+(작성 예정)
+```
+
+파일 생성 후 커밋한다:
+```
+git -C {WORKTREE} add {WORKFOLDER}/
 git -C {WORKTREE} commit -m "chore: docs/work 폴더 초기화 — {PADDED}-{짧은이름}"
 ```
 
