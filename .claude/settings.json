@@ -5,5 +5,17 @@
       "Bash(gh:*)",
       "Bash(mkdir:*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/secret-filter.sh"
+          }
+        ]
+      }
+    ]
   }
 }
