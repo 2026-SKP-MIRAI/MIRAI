@@ -88,9 +88,9 @@ git worktree remove {WORKTREE}
 git branch | grep {PADDED}-{짧은이름}
 ```
 
-찾은 브랜치를 삭제한다:
+찾은 브랜치를 강제 삭제한다 (squash merge 시 `-d`로는 삭제 불가):
 ```
-git branch -d {브랜치명}
+git branch -D {브랜치명}
 ```
 
 없으면:
