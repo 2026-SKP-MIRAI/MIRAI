@@ -50,8 +50,8 @@ jobs:
       - name: Linked issues → In Review
         env:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
           REPO="${{ github.repository }}"
 
           # PR 본문에서 연결된 이슈 번호 추출 (Closes/Fixes/Resolves #N)
@@ -91,8 +91,9 @@ jobs:
           token: ${{ secrets.PROJECT_TOKEN }}
 
       - name: Move active work folder → done
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
           PR_NUM="${{ github.event.pull_request.number }}"
 
           # PR 본문에서 연결된 이슈 번호 추출
