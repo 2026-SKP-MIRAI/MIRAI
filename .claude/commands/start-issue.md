@@ -102,25 +102,20 @@ git worktree add {WORKTREE} -b {BRANCH}
 mkdir -p {WORKTREE}/{WORKFOLDER}
 ```
 
-이슈 내용을 `00_issue.md` 로 저장한다:
+이슈 내용을 `00_issue.md` 로 저장하고, 하단에 작업 내역 섹션을 추가한다:
 ```
 gh issue view {이슈번호} --json title,body \
   --jq '"# " + .title + "\n\n" + .body' \
   > {WORKTREE}/{WORKFOLDER}/00_issue.md
-```
 
-작업 문서 템플릿을 생성한다:
-```
-cat > {WORKTREE}/{WORKFOLDER}/work.md << 'EOF'
-# {PADDED}-{짧은이름}
+cat >> {WORKTREE}/{WORKFOLDER}/00_issue.md << 'EOF'
 
-## 작업 개요
+---
 
-## 구현 내용
+## 작업 내역
 
-## 참고 사항
 EOF
-git -C {WORKTREE} add {WORKFOLDER}/
+git -C {WORKTREE} add {WORKFOLDER}/00_issue.md
 git -C {WORKTREE} commit -m "chore: docs/work 폴더 초기화 — {PADDED}-{짧은이름}"
 ```
 

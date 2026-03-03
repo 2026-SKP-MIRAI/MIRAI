@@ -168,7 +168,7 @@ git commit -m "{커밋 메시지}"
 git push origin {BRANCH}
 ```
 
-### 10. work.md 작업 내역 작성
+### 10. 00_issue.md 작업 내역 작성
 
 작업 폴더 존재 여부를 확인한다:
 ```
@@ -181,7 +181,7 @@ ls {WORKFOLDER}/ 2>/dev/null
 1. `{WORKFOLDER}/00_issue.md` — 이슈 배경·목적·완료 기준
 2. `git diff HEAD~1..HEAD` (또는 전체 브랜치 diff) — 실제 변경 내용
 
-분석 결과로 `{WORKFOLDER}/work.md` 에 `## 작업 내역` 섹션을 추가한다.
+분석 결과를 `{WORKFOLDER}/00_issue.md` 의 `## 작업 내역` 섹션 아래에 추가한다.
 
 작성 기준:
 - 이슈에서 요구한 것과 실제 구현한 것을 연결해 서술
@@ -192,7 +192,7 @@ ls {WORKFOLDER}/ 2>/dev/null
 
 작성 후 커밋한다:
 ```
-git add {WORKFOLDER}/work.md
+git add {WORKFOLDER}/00_issue.md
 git commit -m "docs: 작업 내역 정리 — {PADDED}-{짧은이름}"
 git push origin {BRANCH}
 ```
@@ -208,7 +208,7 @@ git push origin {BRANCH}
 **완료문서가 있는 경우:**
 
 `00_issue.md` 내용을 읽어 이슈 배경·목적을 2~3문장으로 요약하고,
-`work.md` 의 `## 작업 내역` 섹션, 그리고 단계 6에서 수행한 AC 체크 결과를 함께 PR 본문으로 구성한다:
+`00_issue.md` 의 `## 작업 내역` 섹션, 그리고 단계 6에서 수행한 AC 체크 결과를 함께 PR 본문으로 구성한다:
 
 ```
 gh pr create \
@@ -225,7 +225,7 @@ gh pr create \
 
 ## 작업 내역
 
-{work.md의 ## 작업 내역 섹션 내용}
+{00_issue.md의 ## 작업 내역 섹션 내용}
 
 Closes #{이슈번호}"
 ```
