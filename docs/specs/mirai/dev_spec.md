@@ -1,7 +1,7 @@
 # MirAI 개발 명세서
 
 > **기준 문서:** `MirAI_proposal.md` §2-2 서비스 7가지 핵심 기능
-> **최종 업데이트:** 2026-03-04
+> **최종 업데이트:** 2026-03-05
 
 ---
 
@@ -9,33 +9,91 @@
 
 | # | 기능 | Step | 구현 순위 |
 |---|------|------|---------|
-| 01 | PDF 구조화 및 자소서 기반 맞춤 질문 생성 | Step 1 — 서류 분석 | ⭐ MVP (Week 1) |
-| 02 | 이력서·자소서 피드백 및 서류 강점·약점 분석 | Step 1 — 서류 분석 | Week 2 |
-| 03 | 3인 1조 페르소나 패널 면접 시스템 | Step 2 — 실전 시뮬레이션 | Week 2 |
-| 04 | 실시간 꼬리질문 엔진 (Clarify · Challenge · Explore) | Step 2 — 실전 시뮬레이션 | Week 2 |
-| 05 | 연습 모드 및 즉각 피드백 시스템 | Step 3 — 몰입형 환경 | Week 3 |
-| 06 | 실시간 AI 아바타 및 TTS 기반 몰입형 면접 | Step 3 — 몰입형 환경 | Week 3 |
-| 07 | 8축 역량 평가 및 실행형 리포트 | Step 4 — 심층 피드백 | Week 3 |
+| 01 | PDF 구조화 및 자소서 기반 맞춤 질문 생성 | Step 1 — 서류 분석 | ⭐ MVP |
+| 02 | 이력서·자소서 피드백 및 서류 강점·약점 분석 | Step 1 — 서류 분석 | Phase 3 |
+| 03 | 3인 1조 페르소나 패널 면접 시스템 | Step 2 — 실전 시뮬레이션 | Phase 1 |
+| 04 | 실시간 꼬리질문 엔진 (Clarify · Challenge · Explore) | Step 2 — 실전 시뮬레이션 | Phase 1 |
+| 05 | 연습 모드 및 즉각 피드백 시스템 | Step 3 — 몰입형 환경 | Phase 3 |
+| 06 | 실시간 AI 아바타 및 TTS 기반 몰입형 면접 | Step 3 — 몰입형 환경 | Phase 4 |
+| 07 | 8축 역량 평가 및 실행형 리포트 | Step 4 — 심층 피드백 | Phase 2 |
 
 ---
 
 ## 2. 공통 기술 스택
+
+### 엔진 (engine/ — FastAPI, Python)
+
+| 구분 | 기술 | 용도 |
+|------|------|------|
+| **서버** | Python FastAPI | API 엔드포인트 |
+| **언어** | Python 3.12+ | — |
+| **타입 시스템** | Pydantic v2 (`schemas.py`) | 요청·응답 모델 |
+| **설정 관리** | pydantic-settings (`config.py`) | 환경변수 |
+| **AI** | `anthropic` Python SDK | LLM 호출 (`app/services/`에서만) |
+| **PDF 처리** | PyMuPDF (`fitz`) | 텍스트 추출 (`app/parsers/`에서만) |
+| **테스트** | pytest | 단위·통합 테스트 |
+
+### 서비스 (services/ — Next.js, TypeScript)
 
 | 구분 | 기술 | 용도 |
 |------|------|------|
 | **프론트엔드** | Next.js (App Router) | 라우트·UI·상태 관리 |
 | **스타일** | Tailwind CSS v4 | 레이아웃·컴포넌트 |
 | **언어** | TypeScript (strict) | 타입 안전성 |
-| **AI** | Anthropic Claude API | 질문 생성·꼬리질문·피드백·평가 |
-| **PDF 처리** | `pdf-parse` (Node.js) | 서버 측 텍스트 추출 |
-| **TTS** | (Week 3 확정 예정) | 음성 인터랙션 |
-| **스토리지 (1차 출시)** | 세션/메모리 | DB·회원 미도입 |
+| **인증** | Better Auth | 사용자 인증 (서비스에서만) |
+| **ORM / DB** | Prisma + PostgreSQL | 데이터 저장 (서비스가 소유) |
+| **TTS** | Phase 4 확정 예정 | 음성 인터랙션 |
+| **테스트** | Vitest | 단위 테스트 |
+| **E2E 테스트** | Playwright (Week 2 도입 예정) | 전체 흐름 통합 테스트 |
 
-> **엔진 불변식**: LLM 호출 → `engine/services/`, PDF 파싱 → `engine/parsers/`
+### 인프라 (AWS)
+
+| 구분 | 기술 | 용도 | 도입 시점 |
+|------|------|------|---------|
+| **컴퓨트** | EC2 + ALB | 서비스·엔진 호스팅, 트래픽 분산 | Week 1 |
+| **도메인** | Route53 | 도메인 연결 | Week 1 |
+| **보안** | WAF + HTTPS | 웹 방화벽, TLS 인증서 | Week 1 |
+| **파일 저장** | S3 | PDF 자소서 업로드 저장 | Week 2 |
+| **CDN** | CloudFront | 정적 에셋 배포 | Week 2 |
+| **컨테이너** | Docker + ECR | 이미지 빌드·레지스트리 | Week 2 |
+| **CI/CD** | GitHub Actions | 자동 테스트·배포 파이프라인 | Week 2 |
+| **스케일링** | ALB 오토 스케일링 | 트래픽 급증 대응 | Week 3 |
+
+> **1차 출시(Week 1) 최소 인프라:** EC2 + ALB + Route53 + WAF + HTTPS. S3·CloudFront·Docker는 Week 2 Beta 릴리스에 추가.
+
+### 통신
+
+```
+[유저] → [Next.js 서비스 (Better Auth 인증)] → HTTP REST → [FastAPI 엔진 (내부 전용)]
+```
+
+- `ENGINE_BASE_URL` 환경변수, 타임아웃 30초
+- 에러: FastAPI → JSON → 서비스에서 유저 메시지로 변환
+
+> **아키텍처 불변식 (위반 시 CI 차단):**
+> 1. 인증은 서비스(Next.js)에서만 — 엔진은 인증 로직 없이 내부 호출만 수신
+> 2. 외부 AI API 호출은 엔진에서만 — 서비스가 직접 LLM을 호출하지 않는다
+> 3. 서비스 간 직접 통신 금지 — 공유 로직은 엔진으로
+> 4. DB는 서비스가 소유 — 엔진은 stateless, 데이터 저장은 서비스 책임
+> 5. 테스트 없는 PR은 머지 금지
 
 ---
 
-## 3. 기능별 명세
+## 3. 개발 원칙
+
+| 레이어 | 원칙 | 설명 |
+|--------|------|------|
+| **엔진** | 기술 레이어 + TDD | 파서·LLM·프롬프트 레이어 명확 분리. AC = 첫 번째 테스트. Red → Green → Refactor |
+| **서비스** | DDD + TDD | 도메인 중심 설계 1순위, 구현 전 테스트 작성 2순위. AC = 첫 번째 테스트 |
+
+**Outside-In 개발 순서:** 서비스(Next.js) API 라우트가 먼저 인터페이스를 정의하고, 엔진(FastAPI)은 그 계약을 구현한다. 서비스 껍데기 → 엔진 설계 → 엔진 구현 순으로 진행.
+
+> 프롬프트 템플릿은 `engine/app/prompts/`에서 버전 관리. 기능별 Claude 지침은 이 디렉토리의 파일로 분리한다.
+
+---
+
+## 4. 기능별 명세
+
 
 ---
 
@@ -46,10 +104,10 @@
 **시스템 흐름:**
 ```
 PDF 업로드
-  → POST /api/resume/upload
-  → engine/parsers/pdf_parser: Buffer → 텍스트 추출
-  → POST /api/resume/questions
-  → engine/services/llm_service: 텍스트 → 맞춤 질문 생성
+  → POST /api/resume/questions (Next.js 서비스)
+  → HTTP REST → FastAPI 엔진
+  → engine/app/parsers/: PDF → 텍스트 추출 (PyMuPDF)
+  → engine/app/services/: 텍스트 → 맞춤 질문 생성 (Claude)
   → 결과 화면: 카테고리별 질문 리스트
 ```
 
@@ -60,6 +118,7 @@ PDF 업로드
 응답 (200):
 ```json
 {
+  "resumeId": "resume-abc123",
   "questions": [
     { "category": "직무 역량", "question": "OO 프로젝트에서 담당한 역할과 결과를 설명해 주세요." },
     { "category": "경험의 구체성", "question": "해당 경험에서 갈등이 있었다면 어떻게 해결했나요?" }
@@ -82,7 +141,9 @@ PDF 업로드
 
 **화면 상태:** `idle` → `uploading` → `processing` → `done` / `error`
 
-**1차 출시 제외 항목:** 회원가입·결제·DB 저장·꼬리질문·페르소나·8축 평가·오디오
+**1차 출시 제외 항목:** 회원가입·결제·DB 저장·S3 파일 저장(Week 2 도입)·꼬리질문·페르소나·8축 평가·오디오
+
+> Week 1 MVP에서 PDF는 멀티파트 업로드 후 서버 메모리에서 직접 파싱. S3 저장은 Week 2 Beta에 추가.
 
 ---
 
@@ -149,9 +210,14 @@ PDF 업로드
 {
   "resumeId": "session-abc",
   "mode": "panel",
-  "personas": ["hr", "tech_lead", "executive"]
+  "personas": ["hr", "tech_lead", "executive"],
+  "interviewMode": "real"
 }
 ```
+
+> **`interviewMode`**: `"real"` | `"practice"`
+> - `"real"` (실전 모드): 세션 중 즉각 피드백 차단. 종료 후 8축 리포트(기능07)에서만 평가 제공
+> - `"practice"` (연습 모드): `/api/interview/answer` 응답에 `feedback` 필드 포함 (기능05 `/api/practice/feedback` 연동). 클라이언트가 별도 호출하거나 서버가 인라인 반환 — 구현 시 결정 (→ `ux_flow.md` Open Questions)
 
 응답:
 ```json
@@ -226,9 +292,13 @@ PDF 업로드
 
 **Claude 프롬프트 지침:**
 - 입력: 원질문 + 지원자 답변 + 자소서 컨텍스트
-- 출력: `{ type: "CLARIFY"|"CHALLENGE"|"EXPLORE", question: "...", reasoning: "..." }`
+- 출력: `{ "type": "CLARIFY"|"CHALLENGE"|"EXPLORE", "question": "...", "reasoning": "..." }`
 - 유형 판단 기준을 system prompt에 명시
 - 꼬리질문은 단답 유도가 아닌 구체적 서술 유도
+
+> **꼬리질문 흐름 정리:**
+> - 기본 흐름: `/api/interview/answer` 응답에 꼬리질문 포함 (기능04 내장)
+> - `/api/interview/followup`: 수동 재요청 또는 별도 꼬리질문 트리거 시 사용
 
 ---
 
@@ -251,9 +321,11 @@ PDF 업로드
 {
   "question": "갈등 해결 경험을 말씀해 주세요.",
   "answer": "...",
-  "previousAnswer": "..." // 비교 모드 시 포함
+  "previousAnswer": "..."
 }
 ```
+
+> `previousAnswer`: 비교 모드 시 포함. 생략 시 단일 답변 피드백.
 
 응답:
 ```json
@@ -265,9 +337,11 @@ PDF 업로드
   },
   "keywords": ["STAR 구조", "정량적 성과", "재발 방지"],
   "improvedAnswerGuide": "상황: ... / 행동: ... / 결과: (수치 포함) ...",
-  "comparisonDelta": { "specificity": +12, "logic": +5 } // 비교 모드 시
+  "comparisonDelta": { "specificity": 12, "logic": 5 }
 }
 ```
+
+> `comparisonDelta`: 비교 모드 시 포함 (이전 답변 대비 delta). 생략 시 단일 피드백.
 
 ---
 
@@ -282,9 +356,9 @@ PDF 업로드
 | AI 아바타 | (TBD: D-ID / HeyGen API 등) | 실제 면접관처럼 말하고 반응하는 영상 아바타 |
 | TTS | (TBD: ElevenLabs / Clova Voice 등) | 자연스러운 음성 질문 생성 |
 | STT | (TBD: Whisper API 등) | 지원자 음성 답변 텍스트 변환 |
-| 비언어 분석 | (Week 3 검토) | 시선·속도·침묵 피드백 |
+| 비언어 분석 | (Phase 4 검토) | 시선·속도·침묵 피드백 |
 
-> **Week 3 기술 확정 필요.** TTS·STT·아바타 API 선정 후 명세 업데이트.
+> **Phase 4 진입 시 기술 확정 필요.** TTS·STT·아바타 API 선정 후 명세 업데이트.
 
 **기본 흐름:**
 ```
@@ -301,18 +375,22 @@ PDF 업로드
 
 **기능 정의:** 면접 세션 전체를 분석하여 8개 역량 축에 걸쳐 정량적 점수를 산출하고, 역량 성장 곡선과 함께 실행 가능한 개선 로드맵을 제공한다.
 
-**8개 역량 축:** (기획서 기준, 세부 축명은 Week 2~3 확정)
+**진입 조건:** 답변 5개 이상 후 세션 종료 시 리포트 생성. 미만 시 `"질문을 더 진행해 주세요"` 안내 반환.
+
+**8개 역량 축:** (MirAI_proposal.md §5-2 기능07 기준)
 
 | # | 역량 축 | 평가 기준 |
 |---|--------|---------|
-| 1 | 직무 전문성 | 기술 지식·문제 해결 구체성 |
-| 2 | 경험의 구체성 | STAR 구조·수치 근거·상황 묘사 |
+| 1 | 의사소통 | 명확성·간결성·전달력 |
+| 2 | 문제해결 | 구체적 해결 방식·판단 근거 |
 | 3 | 논리적 사고 | 주장-근거-결론 일관성 |
-| 4 | 커뮤니케이션 | 명확성·간결성·전달력 |
+| 4 | 직무 전문성 | 기술 지식·문제 해결 구체성 |
 | 5 | 조직 적합성 | 협업 태도·가치관 일치 |
-| 6 | 성장 가능성 | 학습 의지·변화 수용력 |
-| 7 | 비즈니스 임팩트 | 성과 지향성·전략적 사고 |
-| 8 | 압박 대응력 | 꼬리질문 대응·논리 방어 |
+| 6 | 리더십 | 주도성·팀 기여·의사결정 |
+| 7 | 창의성 | 독창적 접근·새로운 관점 |
+| 8 | 성실성 | 학습 의지·꾸준함·책임감 |
+
+> `growthCurve`는 DB 도입 이후 제공 예정. 1차 출시(세션/메모리 기반)에서는 `null` 반환.
 
 **API: POST /api/report/generate**
 
@@ -325,42 +403,53 @@ PDF 업로드
 ```json
 {
   "scores": {
-    "jobExpertise": 78, "experienceClarity": 65, "logicalThinking": 82,
-    "communication": 70, "cultureFit": 88, "growthPotential": 75,
-    "businessImpact": 60, "pressureResponse": 55
+    "communication": 70, "problemSolving": 65, "logicalThinking": 82,
+    "jobExpertise": 78, "cultureFit": 88, "leadership": 75,
+    "creativity": 60, "sincerity": 55
   },
   "totalScore": 72,
-  "summary": "논리적 사고와 조직 적합성이 강점. 압박 대응력과 비즈니스 임팩트 표현 보완 필요.",
+  "summary": "논리적 사고와 조직 적합성이 강점. 창의성과 성실성 표현 보완 필요.",
   "actionItems": [
-    { "axis": "압박 대응력", "issue": "CHALLENGE 꼬리질문 시 논리 붕괴", "action": "반박 예상 질문 3개 미리 준비" }
+    { "axis": "창의성", "issue": "CHALLENGE 꼬리질문 시 새로운 관점 제시 부족", "action": "답변에 대안적 접근 한 가지를 추가로 준비" }
   ],
-  "growthCurve": [
-    { "session": 1, "totalScore": 58 },
-    { "session": 2, "totalScore": 65 },
-    { "session": 3, "totalScore": 72 }
-  ]
+  "growthCurve": null
 }
 ```
 
 ---
 
-## 4. 구현 로드맵
+## 5. 구현 로드맵
 
-| 주차 | 기능 | 산출물 |
-|------|------|--------|
-| **Week 1** | 기능01 (1차 출시) | `/api/resume/questions`, 업로드·결과 UI |
-| **Week 2** | 기능02, 03, 04 | 서류 진단 API, 패널 면접 세션, 꼬리질문 엔진 |
-| **Week 3** | 기능05, 06, 07 | 연습 모드, 아바타·TTS (기술 확정 후), 8축 리포트 |
-| **Week 4** | 배포·마케팅 | 배포 URL, 커뮤니티 홍보, 유저 피드백 수집 |
+| 단계 | 기능 | 사용자에게 전달되는 가치 |
+|------|------|--------------------------|
+| **MVP** | 기능 01 — 자소서 맞춤 질문 생성 | "내 서류에서 이런 질문이 나오는구나" 아하 모먼트 |
+| **Phase 1** | 기능 03·04 — 패널 면접 + 꼬리질문 | 실전 패널 면접 체험, 꼬리질문 대응력 훈련 |
+| **Phase 2** | 기능 07 — 8축 역량 리포트 | 명확한 성장 기준점, 지속 사용 동기 |
+| **Phase 3** | 기능 05·02 — 연습 모드 + 서류 진단 | 반복 연습 루프, 서류·면접 원스톱 준비 |
+| **Phase 4** | 기능 06 — AI 아바타 면접 | 실전 긴장감 훈련, 비언어적 역량 강화 |
 
 ---
 
-## 5. 환경 변수
+## 6. 환경 변수
 
 ```
+# 엔진 (engine/)
 ANTHROPIC_API_KEY    Claude API 호출
 CLAUDE_MODEL         사용 모델 (기본값: claude-sonnet-4-6)
-# Week 3 추가 예정
+
+# 서비스 (services/)
+ENGINE_BASE_URL      FastAPI 엔진 주소 (타임아웃 30초)
+DATABASE_URL         PostgreSQL 연결 문자열 (Prisma)
+BETTER_AUTH_SECRET   Better Auth 세션 서명 키
+
+# AWS (Week 2 추가)
+AWS_REGION           S3·ECR 리전
+AWS_ACCESS_KEY_ID    IAM 접근 키
+AWS_SECRET_ACCESS_KEY IAM 시크릿 키
+S3_BUCKET_NAME       PDF 업로드 버킷명
+CLOUDFRONT_URL       CDN 퍼블릭 URL
+
+# Phase 4 추가 예정
 TTS_API_KEY          TTS 서비스 키
 STT_API_KEY          STT 서비스 키
 AVATAR_API_KEY       아바타 서비스 키
@@ -368,5 +457,5 @@ AVATAR_API_KEY       아바타 서비스 키
 
 ---
 
-> 기능01은 `MVP_dev_spec.md`에 원본 명세가 보존되어 있다.
-> 기능06 기술 스택(TTS·STT·아바타 API)은 Week 2 내 확정하여 이 문서를 업데이트한다.
+> 기능01 원본 명세는 `../mvp/dev_spec.md`에 보존되어 있다.
+> 기능06 기술 스택(TTS·STT·아바타 API)은 Phase 4 진입 시 확정하여 이 문서를 업데이트한다.
