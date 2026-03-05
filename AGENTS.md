@@ -20,16 +20,16 @@ mirai/
 │   ├── retrospectives/     주간 회고 기록
 │   ├── exec-plans/         실행 계획 (backlog/review/active/completed)
 │   └── onboarding/         환경 설정·기여 가이드
-├── engine/                 ← 전원 공동 설계 (기술 레이어, TDD 적용)
+├── engine/                 ← 전원 공동 설계 (독립 레포 → submodule, github.com/2026-SKP-MIRAI/mirai-engine)
 │   ├── parsers/            PDF 파싱 레이어
 │   ├── services/           LLM API 레이어
 │   ├── prompts/            프롬프트 + 버전 관리
 │   └── docs/               엔진 설계 문서
-└── services/               ← 1인 1서비스 (DDD + TDD)
-    ├── siw/
-    ├── kwan/
-    ├── dong/
-    └── seung/
+└── services/               ← 1인 1서비스 (DDD + TDD, 각각 독립 레포 → submodule)
+    ├── siw/                → github.com/2026-SKP-MIRAI/mirai-siw
+    ├── kwan/               → github.com/2026-SKP-MIRAI/mirai-kwan
+    ├── lww/                → github.com/2026-SKP-MIRAI/mirai-lww
+    └── seung/              → github.com/2026-SKP-MIRAI/mirai-seung
 ```
 
 ---
