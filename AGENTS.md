@@ -19,7 +19,7 @@ mirai/
 │   ├── onboarding/         환경 설정·기여 가이드
 │   └── work/               이슈별 작업 내역 (active/done)
 │
-├── engine/                 ← FastAPI (Python), 전원 공동 설계 (submodule: mirai-engine)
+├── engine/                 ← FastAPI (Python), 전원 공동 설계
 │   ├── app/
 │   │   ├── parsers/        PDF → 텍스트 추출
 │   │   ├── services/       LLM API 호출
@@ -27,11 +27,11 @@ mirai/
 │   │   └── routers/        API 엔드포인트
 │   └── tests/              pytest 테스트
 │
-└── services/               ← Next.js 풀스택 (TypeScript), 1인 1서비스 (각각 submodule)
-    ├── siw/                → mirai-siw
-    ├── kwan/               → mirai-kwan
-    ├── lww/                → mirai-lww
-    └── seung/              → mirai-seung
+└── services/               ← Next.js 풀스택 (TypeScript), 1인 1서비스
+    ├── siw/
+    ├── kwan/
+    ├── lww/
+    └── seung/
 ```
 
 ---
