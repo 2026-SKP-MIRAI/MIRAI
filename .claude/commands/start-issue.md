@@ -149,11 +149,7 @@ EOF
 (작성 예정)
 ```
 
-파일 생성 후 커밋한다:
-```
-git -C {WORKTREE} add {WORKFOLDER}/
-git -C {WORKTREE} commit -m "chore: docs/work 폴더 초기화 — {PADDED}-{짧은이름}"
-```
+파일은 커밋하지 않고 unstaged 상태로 둔다. `/finish-issue` 실행 시 메인 커밋에 함께 포함된다.
 
 ### 7. 이슈 Assign
 
