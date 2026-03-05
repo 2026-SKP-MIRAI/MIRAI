@@ -68,7 +68,7 @@ def main():
         if violations:
             print("\n❌ [불변식 1 위반] LLM API 직접 호출 감지")
             print("   수정 방법: engine/services/llm_service 를 통해 호출하세요")
-            print("   참고 문서: engine/docs/INTERFACE.md\n")
+            print("   참고 문서: engine/.ai.md\n")
             for file, pattern in violations:
                 print(f"   - {file}  (패턴: {pattern!r})")
             exit_code = 1
@@ -78,7 +78,7 @@ def main():
         if violations:
             print("\n❌ [불변식 2 위반] PDF 파싱 라이브러리 직접 사용 감지")
             print("   수정 방법: engine/parsers/pdf_parser 를 통해 파싱하세요")
-            print("   참고 문서: engine/docs/INTERFACE.md\n")
+            print("   참고 문서: engine/.ai.md\n")
             for file, pattern in violations:
                 print(f"   - {file}  (패턴: {pattern!r})")
             exit_code = 1
