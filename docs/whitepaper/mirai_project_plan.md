@@ -24,7 +24,7 @@
 공통 엔진 위에 개인 서비스가 올라가는 구조로 운영한다.
 
 ```
-mirai/                          ← umbrella repo
+mirai/                          ← monorepo
 ├── AGENTS.md                   ← 전체 목차 (백과사전 금지)
 ├── docs/                       ← 프로젝트 문서 (SOT)
 │   ├── whitepaper/             기획서·운영 계획
