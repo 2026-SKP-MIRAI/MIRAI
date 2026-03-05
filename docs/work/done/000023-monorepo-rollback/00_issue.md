@@ -49,3 +49,17 @@ Issue #17에서 엄브렐라 레포로 전환했으나, 실제 운영 시 PR 워
 
 실제 현황 조사(submodule status, 디렉토리 내용 확인) 후 구체적 구현 계획 수립.
 
+### 모노레포 디렉토리 구조 복원
+
+`bab8cfe` 커밋(서브모듈 전환 직전) 기준으로 `engine/`, `services/` 내용 복원.
+`services/dong/` → `services/lww/`로 전환(dong은 서브모듈 전환 시 삭제됐던 플레이스홀더).
+`services/lww/.ai.md` — 이왕원 멘토 담당으로 작성.
+
+### engine/ 구조 재정비
+
+`mirai_project_plan.md` 기준으로 `engine/app/` 계층 도입:
+- `engine/parsers/`, `engine/services/`, `engine/prompts/` → `engine/app/` 하위로 이동
+- `engine/app/routers/` 신규 생성
+- `engine/tests/fixtures/` 신규 생성
+- 각 디렉토리 `.ai.md` 작성 및 경로 참조 업데이트
+

@@ -50,8 +50,8 @@ mirai/                          ← monorepo
 └── services/                   ← Next.js 풀스택 (TypeScript), 1인 1서비스
     ├── siw/                    성시우
     ├── kwan/                   김관우
-    ├── lww/                    이왕원
-    └── seung/                  이승현
+    ├── seung/                  이승현
+    └── lww/                    이왕원
         ├── src/app/            Next.js App Router (페이지·API 라우트)
         ├── tests/              Vitest 테스트
         │   └── fixtures/       테스트 데이터
