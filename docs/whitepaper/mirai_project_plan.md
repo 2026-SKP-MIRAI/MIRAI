@@ -41,7 +41,7 @@ mirai/                      ← umbrella repo
 └── services/               ← 1인 1서비스 (각자 end-to-end, DDD 적용)
     ├── siw/                성시우
     ├── kwan/               김관우
-    ├── dong/               유동선
+    ├── lww/                이왕원
     └── seung/              이승현
 ```
 
