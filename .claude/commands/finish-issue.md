@@ -178,7 +178,18 @@ ls {WORKFOLDER}/ 2>/dev/null
 /start-issue 없이 작업을 시작한 경우입니다. PR 본문은 커밋 메시지 기반으로 작성합니다.
 ```
 
-### 9. 사용자 확인
+### 9. docs/work active → done 이동
+
+PR 생성 전에 작업 폴더를 done으로 이동한다. 이 변경은 메인 커밋에 함께 포함된다.
+
+**폴더가 존재하는 경우:**
+```
+mv {WORKFOLDER} docs/work/done/{PADDED}-{짧은이름}
+```
+
+**폴더가 없는 경우:** 이 단계를 건너뛴다.
+
+### 10. 사용자 확인
 
 생성한 커밋 메시지를 보여주고 확인을 받는다:
 ```
@@ -194,14 +205,14 @@ git commit -m "{커밋 메시지}"
 
 변경사항이 이미 커밋된 경우 커밋 단계를 건너뛰고 push로 진행한다.
 
-### 10. Push
+### 11. Push
 
 다음 명령을 실행한다:
 ```
 git push origin {BRANCH}
 ```
 
-### 11. PR 생성
+### 12. PR 생성
 
 **완료문서가 있는 경우:**
 
@@ -236,20 +247,6 @@ gh pr create \
   --title "{커밋 메시지}" \
   --body "Closes #{이슈번호}"
 ```
-
-### 12. docs/work active → done 이동
-
-PR 생성 후, 작업 폴더를 done으로 이동한다:
-
-**폴더가 존재하는 경우:**
-```
-mv {WORKFOLDER} docs/work/done/{PADDED}-{짧은이름}
-git add docs/work/
-git commit -m "chore: docs/work done 이동 — {PADDED}-{짧은이름}"
-git push origin {BRANCH}
-```
-
-**폴더가 없는 경우:** 이 단계를 건너뛴다.
 
 ### 13. 완료 안내
 
