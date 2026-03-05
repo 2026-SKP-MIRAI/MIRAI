@@ -60,3 +60,32 @@ INTERFACE.md를 .ai.md 체계로 통합하고, TDD 테스트 디렉토리 구조
 
 ## 작업 내역
 
+### 1. engine 디렉토리 구조 + 스켈레톤 코드 생성
+- FastAPI/Python 기반 엔진 구조를 신규 생성 (기존: README.md만 존재)
+- `app/main.py` (FastAPI 진입점), `config.py` (환경변수), `schemas.py` (Pydantic 모델)
+- `app/parsers/pdf_parser.py` — PDF 텍스트 추출 스켈레톤 (NotImplementedError)
+- `app/services/llm_service.py` — LLM API 호출 스켈레톤 (NotImplementedError)
+- `app/prompts/question_generation.py` — 시스템 프롬프트 v1
+- `app/routers/resume.py` — POST /resume/questions 스켈레톤
+- `pyproject.toml` — FastAPI, pytest, 의존성 정의
+- `tests/` — pytest 테스트 4개 (Red 상태 스켈레톤)
+
+### 2. .ai.md 체계 정립
+- `engine/.ai.md` — 아키텍처 불변식 4개 + 구조 + 통신 + 테스트 커맨드
+- `app/parsers/.ai.md`, `app/services/.ai.md`, `app/prompts/.ai.md`, `app/routers/.ai.md`, `tests/.ai.md` — 각 레이어별 계약 정의
+
+### 3. INTERFACE.md 참조 전환
+- 존재하지 않던 `engine/docs/INTERFACE.md` 참조를 `engine/.ai.md`로 전환
+- 대상 파일 10개: CLAUDE.md, AGENTS.md, .claude/agents/ 4개, .claude/commands/ 1개, scripts/ 1개, docs/whitepaper/ 1개
+- grep 검증: INTERFACE.md 참조 0건 (work docs 제외)
+
+### 4. 문서 현행화
+- `mirai_project_plan.md` — 레포 구조를 FastAPI/Python 기반으로 전면 재작성, 아키텍처 불변식을 파일 레벨 4개 → 아키텍처 수준 5개로 업데이트, 통신 구조·기술 스택 추가
+- `CLAUDE.md` — 불변식 5개, 핵심 문서에 기획서 경로 추가
+- `AGENTS.md` — 레포 구조 트리 + 문서 링크 현행화
+- `code-architecture-reviewer.md` — 기술 스택 설명 현행화
+- `.gitignore` — `!**/tests/fixtures/**` 추가 (테스트 픽스처 허용)
+
+### 5. engine submodule 커밋·푸시
+- mirai-engine 레포에 `refactor/000019-structure-refine` 브랜치로 커밋
+- umbrella 레포에서 submodule 해시 업데이트

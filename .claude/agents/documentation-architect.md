@@ -38,7 +38,7 @@ You are a documentation architect specializing in creating comprehensive, develo
 - **Every directory MUST have `.ai.md`** — purpose, structure, roles of files within
 - `.ai.md` is the primary context file for AI agents navigating the codebase
 - `AGENTS.md` = repo-wide table of contents (not encyclopedia)
-- `engine/docs/INTERFACE.md` = engine API contract (source of truth for service-engine boundary)
+- `engine/.ai.md` = engine API contract (source of truth for service-engine boundary)
 - `docs/specs/` = feature specs and AC
 - `docs/work/active/[task]/` = in-progress task context
 

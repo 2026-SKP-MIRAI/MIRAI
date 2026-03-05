@@ -6,15 +6,16 @@
 1. `gh issue list --assignee @me` — 내 담당 이슈 확인
 2. `AGENTS.md` — 레포 전체 목차·불변식·규칙
 3. 작업 대상 디렉토리의 `.ai.md` — 목적·구조·역할
-4. `engine/docs/INTERFACE.md` — 엔진 API 계약 (엔진/서비스 작업 시)
+4. `engine/.ai.md` — 엔진 계약 (타입·불변식·API)
 5. `docs/work/active/` — 현재 진행 중인 작업 내역 (있는 경우)
 
-## 불변식 (위반 시 pre-commit 자동 차단)
+## 아키텍처 불변식 (위반 시 CI 차단)
 ```
-1. LLM 호출     → engine/services/ 에서만
-2. PDF 파싱     → engine/parsers/ 에서만
-3. service      → engine 호출만 (내부 직접 접근 금지)
-4. 테스트 없는 코드 커밋 금지
+1. 인증은 서비스(Next.js)에서만 — 엔진은 인증 로직 없이 내부 호출만 수신
+2. 외부 AI API 호출은 엔진에서만 — 서비스가 직접 LLM을 호출하지 않는다
+3. 서비스 간 직접 통신 금지 — 각 서비스는 독립적, 공유 로직은 엔진으로
+4. DB는 서비스가 소유 — 엔진은 stateless, 데이터 저장은 서비스 책임
+5. 테스트 없는 PR은 머지 금지
 ```
 
 ## 레포 규칙
@@ -35,7 +36,8 @@
 
 ## 핵심 문서 위치
 - 레포 구조·커리큘럼 → `docs/whitepaper/mirai_project_plan.md`
-- 엔진 API 계약 → `engine/docs/INTERFACE.md`
+- 서비스 기획서 → `docs/whitepaper/MirAI_proposal.md`
+- 엔진 계약 → `engine/.ai.md`
 - 기능 명세 + AC → `docs/specs/`
 - 배경 자료·리서치 → `docs/background/`
 - 회의록 → `docs/meetings/`
