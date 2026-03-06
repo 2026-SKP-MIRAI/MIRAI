@@ -7,8 +7,8 @@ temp/
 *.pkl
 *.parquet
 
-# 테스트 fixtures는 허용
-!**/tests/fixtures/**
+# 테스트 fixtures는 무시
+**/tests/fixtures/**
 
 # Python
 __pycache__/
