@@ -1,0 +1,45 @@
+{
+  "questions": [
+    {
+      "category": "직무 역량",
+      "question": "FastAPI를 활용한 RESTful API 서버 개발 과정에서 가장 어려웠던 기술적 도전은 무엇이었나요?"
+    },
+    {
+      "category": "직무 역량",
+      "question": "백엔드 리드로서 API 설계부터 배포까지 담당하면서 팀원들과 역할을 어떻게 분배하고 조율했나요?"
+    },
+    {
+      "category": "경험의 구체성",
+      "question": "AI 기반 면접 코칭 플랫폼 프로젝트에서 PyMuPDF를 이용한 PDF 파싱 구현 시 어떤 edge case를 처음에 놓쳤고, 어떻게 발견해 수정했나요?"
+    },
+    {
+      "category": "경험의 구체성",
+      "question": "Anthropic SDK를 통합하는 과정에서 API 응답 지연이나 오류 상황을 어떻게 처리했는지 구체적으로 설명해 주세요."
+    },
+    {
+      "category": "성과 근거",
+      "question": "pytest 기반 TDD 방법론을 적용해 코드 품질을 유지했다고 하셨는데, 실제로 테스트가 버그를 조기에 잡아낸 사례가 있었나요?"
+    },
+    {
+      "category": "성과 근거",
+      "question": "AWS EC2와 Docker를 활용한 배포 경험에서 서비스 안정성이나 배포 속도 측면에서 어떤 구체적인 성과를 얻었나요?"
+    },
+    {
+      "category": "기술 역량",
+      "question": "Python과 TypeScript를 함께 사용하는 환경에서 두 언어 간 타입 안전성을 어떻게 유지하고 API 계약을 관리했나요?"
+    },
+    {
+      "category": "기술 역량",
+      "question": "새로운 기술을 빠르게 습득하고 문서화하는 것을 즐긴다고 하셨는데, 최근에 독학으로 익힌 기술과 그 과정을 설명해 주세요."
+    }
+  ],
+  "meta": {
+    "extractedLength": 781,
+    "categoriesUsed": [
+      "직무 역량",
+      "경험의 구체성",
+      "성과 근거",
+      "기술 역량"
+    ]
+  }
+}

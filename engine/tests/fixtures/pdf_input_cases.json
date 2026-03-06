@@ -1,0 +1,163 @@
+{
+  "description": "PDF 파서 입력 케이스 명세 — 실제 PDF 파일은 git 제외(팀 공유), 이 파일이 테스트 케이스의 단일 기준",
+  "spec_ref": "docs/specs/mvp/dev_spec.md §5-1",
+  "cases": [
+    {
+      "id": "normal_ko",
+      "filename": "sample_resume.pdf",
+      "description": "한국어 텍스트 기반 자기소개서 (정상 케이스)",
+      "language": "ko",
+      "has_text_layer": true,
+      "page_count": 1,
+      "approx_chars": 781,
+      "file_size_category": "normal",
+      "expected_behavior": "success",
+      "expected_error": null
+    },
+    {
+      "id": "normal_en",
+      "filename": "sample_resume_en.pdf",
+      "description": "영어 텍스트 기반 이력서 — 한국어 아닌 입력에도 질문 생성 가능한지 확인",
+      "language": "en",
+      "has_text_layer": true,
+      "page_count": 1,
+      "approx_chars": 600,
+      "file_size_category": "normal",
+      "expected_behavior": "success",
+      "expected_error": null
+    },
+    {
+      "id": "mixed_ko_en",
+      "filename": "sample_resume_mixed.pdf",
+      "description": "한/영 혼용 자기소개서 — 실무에서 흔한 케이스",
+      "language": "ko+en",
+      "has_text_layer": true,
+      "page_count": 1,
+      "approx_chars": 700,
+      "file_size_category": "normal",
+      "expected_behavior": "success",
+      "expected_error": null
+    },
+    {
+      "id": "empty",
+      "filename": "empty.pdf",
+      "description": "빈 페이지 PDF — 텍스트 없음",
+      "language": null,
+      "has_text_layer": false,
+      "page_count": 1,
+      "approx_chars": 0,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "500_parse_error"
+    },
+    {
+      "id": "image_only",
+      "filename": "image_only.pdf",
+      "description": "텍스트 레이어 없는 이미지 PDF — 스캔 자소서 등",
+      "language": null,
+      "has_text_layer": false,
+      "page_count": 1,
+      "approx_chars": 0,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "500_parse_error"
+    },
+    {
+      "id": "too_short",
+      "filename": "too_short.pdf",
+      "description": "텍스트 극소량 (100자 미만) — 질문 생성 불가 수준",
+      "language": "ko",
+      "has_text_layer": true,
+      "page_count": 1,
+      "approx_chars": 50,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "500_parse_error"
+    },
+    {
+      "id": "too_many_pages",
+      "filename": "too_many_pages.pdf",
+      "description": "11페이지 초과 PDF — 페이지 수 제한(10페이지) 초과",
+      "language": "ko",
+      "has_text_layer": true,
+      "page_count": 11,
+      "approx_chars": 5000,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "400_too_many_pages"
+    },
+    {
+      "id": "file_too_large",
+      "filename": "large_resume.pdf",
+      "description": "5MB 초과 PDF — 파일 크기 제한 초과",
+      "language": "ko",
+      "has_text_layer": true,
+      "page_count": 1,
+      "approx_chars": null,
+      "file_size_category": "over_5mb",
+      "expected_behavior": "error",
+      "expected_error": "400_file_too_large"
+    },
+    {
+      "id": "text_too_long",
+      "filename": "long_text_resume.pdf",
+      "description": "텍스트 과다 (LLM 입력 한도 초과) — 앞부분만 잘라서 처리",
+      "language": "ko",
+      "has_text_layer": true,
+      "page_count": 5,
+      "approx_chars": 20000,
+      "file_size_category": "normal",
+      "expected_behavior": "success",
+      "expected_error": null,
+      "note": "초과분은 생략, 프롬프트에 '앞부분 기준으로 질문 생성' 명시 (dev_spec.md §6-1)"
+    },
+    {
+      "id": "not_pdf",
+      "filename": "resume.jpg",
+      "description": "PDF가 아닌 파일 — jpg 업로드 시도",
+      "language": null,
+      "has_text_layer": null,
+      "page_count": null,
+      "approx_chars": null,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "400_not_pdf"
+    },
+    {
+      "id": "no_file",
+      "filename": null,
+      "description": "파일 없이 요청 — multipart form에 file 필드 누락",
+      "language": null,
+      "has_text_layer": null,
+      "page_count": null,
+      "approx_chars": null,
+      "file_size_category": null,
+      "expected_behavior": "error",
+      "expected_error": "400_no_file"
+    },
+    {
+      "id": "corrupted",
+      "filename": "corrupted.pdf",
+      "description": "손상된 PDF — 파일 헤더는 PDF이나 내부 구조 깨짐",
+      "language": null,
+      "has_text_layer": null,
+      "page_count": null,
+      "approx_chars": null,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "500_parse_error"
+    },
+    {
+      "id": "encrypted",
+      "filename": "encrypted.pdf",
+      "description": "암호화된 PDF — 비밀번호 없이 열기 불가",
+      "language": null,
+      "has_text_layer": null,
+      "page_count": null,
+      "approx_chars": null,
+      "file_size_category": "normal",
+      "expected_behavior": "error",
+      "expected_error": "500_parse_error"
+    }
+  ]
+}
