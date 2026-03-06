@@ -1,0 +1,5 @@
+{
+  "error_400": {"code": "INVALID_FILE", "message": "PDF 파일만 업로드 가능합니다."},
+  "error_413": {"code": "FILE_TOO_LARGE", "message": "파일 크기는 5MB 이하여야 합니다."},
+  "error_500": {"code": "SERVER_ERROR", "message": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}
+}
