@@ -11,8 +11,10 @@
       "page_count": 1,
       "approx_chars": 781,
       "file_size_category": "normal",
-      "expected_behavior": "success",
-      "expected_error": null
+      "expected_output": {
+        "status": 200,
+        "ref": "mock_llm_response.json"
+      }
     },
     {
       "id": "normal_en",
@@ -23,8 +25,10 @@
       "page_count": 1,
       "approx_chars": 600,
       "file_size_category": "normal",
-      "expected_behavior": "success",
-      "expected_error": null
+      "expected_output": {
+        "status": 200,
+        "ref": "mock_llm_response.json"
+      }
     },
     {
       "id": "mixed_ko_en",
@@ -35,8 +39,10 @@
       "page_count": 1,
       "approx_chars": 700,
       "file_size_category": "normal",
-      "expected_behavior": "success",
-      "expected_error": null
+      "expected_output": {
+        "status": 200,
+        "ref": "mock_llm_response.json"
+      }
     },
     {
       "id": "empty",
@@ -47,8 +53,10 @@
       "page_count": 1,
       "approx_chars": 0,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "500_parse_error"
+      "expected_output": {
+        "status": 500,
+        "detail": "PDF 파싱에 실패했습니다. 다시 시도해 주세요."
+      }
     },
     {
       "id": "image_only",
@@ -59,8 +67,10 @@
       "page_count": 1,
       "approx_chars": 0,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "500_parse_error"
+      "expected_output": {
+        "status": 500,
+        "detail": "PDF 파싱에 실패했습니다. 다시 시도해 주세요."
+      }
     },
     {
       "id": "too_short",
@@ -71,8 +81,10 @@
       "page_count": 1,
       "approx_chars": 50,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "500_parse_error"
+      "expected_output": {
+        "status": 500,
+        "detail": "PDF 파싱에 실패했습니다. 다시 시도해 주세요."
+      }
     },
     {
       "id": "too_many_pages",
@@ -83,8 +95,10 @@
       "page_count": 11,
       "approx_chars": 5000,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "400_too_many_pages"
+      "expected_output": {
+        "status": 400,
+        "detail": "PDF는 최대 10페이지까지 허용됩니다."
+      }
     },
     {
       "id": "file_too_large",
@@ -95,8 +109,10 @@
       "page_count": 1,
       "approx_chars": null,
       "file_size_category": "over_5mb",
-      "expected_behavior": "error",
-      "expected_error": "400_file_too_large"
+      "expected_output": {
+        "status": 400,
+        "detail": "파일 크기는 5MB를 초과할 수 없습니다."
+      }
     },
     {
       "id": "text_too_long",
@@ -107,9 +123,11 @@
       "page_count": 5,
       "approx_chars": 20000,
       "file_size_category": "normal",
-      "expected_behavior": "success",
-      "expected_error": null,
-      "note": "초과분은 생략, 프롬프트에 '앞부분 기준으로 질문 생성' 명시 (dev_spec.md §6-1)"
+      "expected_output": {
+        "status": 200,
+        "ref": "mock_llm_response.json",
+        "note": "초과분은 생략, 프롬프트에 '앞부분 기준으로 질문 생성' 명시 (dev_spec.md §6-1)"
+      }
     },
     {
       "id": "not_pdf",
@@ -120,8 +138,10 @@
       "page_count": null,
       "approx_chars": null,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "400_not_pdf"
+      "expected_output": {
+        "status": 400,
+        "detail": "PDF 파일만 업로드 가능합니다."
+      }
     },
     {
       "id": "no_file",
@@ -132,8 +152,10 @@
       "page_count": null,
       "approx_chars": null,
       "file_size_category": null,
-      "expected_behavior": "error",
-      "expected_error": "400_no_file"
+      "expected_output": {
+        "status": 400,
+        "detail": "파일이 없습니다."
+      }
     },
     {
       "id": "corrupted",
@@ -144,8 +166,10 @@
       "page_count": null,
       "approx_chars": null,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "500_parse_error"
+      "expected_output": {
+        "status": 500,
+        "detail": "PDF 파싱에 실패했습니다. 다시 시도해 주세요."
+      }
     },
     {
       "id": "encrypted",
@@ -156,8 +180,10 @@
       "page_count": null,
       "approx_chars": null,
       "file_size_category": "normal",
-      "expected_behavior": "error",
-      "expected_error": "500_parse_error"
+      "expected_output": {
+        "status": 500,
+        "detail": "PDF 파싱에 실패했습니다. 다시 시도해 주세요."
+      }
     }
   ]
 }
