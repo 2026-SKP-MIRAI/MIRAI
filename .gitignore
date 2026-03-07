@@ -23,6 +23,15 @@ venv/
 
 # Node
 node_modules/
+.next/
+next-env.d.ts
+
+# Python build artifacts
+*.egg-info/
+
+# Test artifacts
+test-results/
+playwright-report/
 
 # OS
 .DS_Store

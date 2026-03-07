@@ -32,8 +32,8 @@ PDF_PATTERNS = [
 ]
 
 ALLOWED_DIRS = {
-    "llm": "engine/services",
-    "pdf": "engine/parsers",
+    "llm": "engine/app/services",
+    "pdf": "engine/app/parsers",
 }
 
 
