@@ -29,7 +29,7 @@
 | **언어** | Python 3.12+ | — |
 | **타입 시스템** | Pydantic v2 (`schemas.py`) | 요청·응답 모델 |
 | **설정 관리** | pydantic-settings (`config.py`) | 환경변수 |
-| **AI** | `anthropic` Python SDK | LLM 호출 (`app/services/`에서만) |
+| **AI** | `openai` Python SDK (OpenRouter 호환) | LLM 호출 (`app/services/`에서만) |
 | **PDF 처리** | PyMuPDF (`fitz`) | 텍스트 추출 (`app/parsers/`에서만) |
 | **테스트** | pytest | 단위·통합 테스트 |
 
@@ -434,8 +434,8 @@ PDF 업로드
 
 ```
 # 엔진 (engine/)
-ANTHROPIC_API_KEY    Claude API 호출
-CLAUDE_MODEL         사용 모델 (기본값: claude-sonnet-4-6)
+OPENROUTER_API_KEY   OpenRouter API 호출 (LLM 프록시)
+OPENROUTER_MODEL     사용 모델 (기본값: google/gemini-2.5-flash)
 
 # 서비스 (services/)
 ENGINE_BASE_URL      FastAPI 엔진 주소 (타임아웃 30초)
