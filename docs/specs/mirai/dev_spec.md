@@ -118,7 +118,7 @@ PDF 업로드
 응답 (200):
 ```json
 {
-  "resumeId": "resume-abc123",
+  "resumeId": "resume-abc123",  // TODO: DB 도입(Phase 3) 후 활성화. 현재 구현에서는 미포함.
   "questions": [
     { "category": "직무 역량", "question": "OO 프로젝트에서 담당한 역할과 결과를 설명해 주세요." },
     { "category": "경험의 구체성", "question": "해당 경험에서 갈등이 있었다면 어떻게 해결했나요?" }

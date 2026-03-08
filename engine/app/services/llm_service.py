@@ -1,6 +1,6 @@
-import os
 from openai import OpenAI
 from pathlib import Path
+from app.config import settings
 from app.parsers.exceptions import LLMError
 from app.schemas import QuestionItem
 from app.services.output_parser import parse_llm_response
@@ -12,7 +12,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 def generate_questions(
     resume_text: str,
     *,
-    model: str = "google/gemini-2.5-flash",
+    model: str | None = None,
     max_input_chars: int = 16000,
     timeout_seconds: float = 30.0,
 ) -> list[QuestionItem]:
@@ -23,12 +23,13 @@ def generate_questions(
 
     client = OpenAI(
         base_url=OPENROUTER_BASE_URL,
-        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
+        api_key=settings.openrouter_api_key,
     )
+    resolved_model = model or settings.openrouter_model
 
     try:
         response = client.chat.completions.create(
-            model=model,
+            model=resolved_model,
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
             timeout=timeout_seconds,
