@@ -43,3 +43,7 @@
 - 회의록 → `docs/meetings/`
 - 온보딩·워크플로우 → `docs/onboarding/`
 - 작업 내역 → `docs/work/active/` · `docs/work/done/`
+
+## 행동 규칙
+- `git commit` 전에 항상 사용자에게 먼저 확인한다 ("커밋할까?" 등으로 물어보고 승인 후 실행)
+- `git push` 전에 항상 사용자에게 먼저 확인한다 ("푸시할까?" 등으로 물어보고 승인 후 실행)
