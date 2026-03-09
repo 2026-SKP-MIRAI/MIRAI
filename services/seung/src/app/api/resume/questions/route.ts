@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+/** Vercel Serverless 함수 타임아웃(기본 10초) 연장 — LLM 응답 대기용 */
+export const maxDuration = 35
+
+const ENGINE_FETCH_TIMEOUT_MS = 30_000
+
 export async function POST(request: NextRequest) {
   let formData: FormData
   try {
@@ -25,9 +30,18 @@ export async function POST(request: NextRequest) {
     const engineResponse = await fetch(`${engineUrl}/api/resume/questions`, {
       method: 'POST',
       body: engineFormData,
+      signal: AbortSignal.timeout(ENGINE_FETCH_TIMEOUT_MS),
     })
 
-    const data = await engineResponse.json()
+    let data: unknown
+    try {
+      data = await engineResponse.json()
+    } catch {
+      return NextResponse.json(
+        { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+        { status: 500 }
+      )
+    }
     return NextResponse.json(data, { status: engineResponse.status })
   } catch {
     return NextResponse.json(

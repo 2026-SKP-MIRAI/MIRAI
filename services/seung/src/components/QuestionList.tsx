@@ -2,6 +2,14 @@
 
 import type { Question } from '@/lib/types'
 
+/** MVP 명세(docs/specs/mvp/dev_spec.md) 기준 카테고리 고정 순서 */
+const CATEGORIES_ORDER = [
+  '직무 역량',
+  '경험의 구체성',
+  '성과 근거',
+  '기술 역량',
+] as const
+
 type Props = {
   questions: Question[]
   onReset: () => void
@@ -17,6 +25,11 @@ function groupByCategory(questions: Question[]): Record<string, Question[]> {
 
 export default function QuestionList({ questions, onReset }: Props) {
   const grouped = groupByCategory(questions)
+  const knownCategories = CATEGORIES_ORDER.filter((c) => grouped[c])
+  const otherCategories = Object.keys(grouped).filter(
+    (c) => !(CATEGORIES_ORDER as readonly string[]).includes(c)
+  )
+  const orderedCategories = [...knownCategories, ...otherCategories]
 
   return (
     <div className="flex flex-col gap-8">
@@ -33,23 +46,27 @@ export default function QuestionList({ questions, onReset }: Props) {
       </div>
 
       <div className="flex flex-col gap-6">
-        {Object.entries(grouped).map(([category, items]) => (
-          <section key={category}>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-600">
-              {category}
-            </h3>
-            <ul className="flex flex-col gap-3">
-              {items.map((q, idx) => (
-                <li
-                  key={idx}
-                  className="rounded-lg border border-gray-200 bg-white px-5 py-4 text-sm text-gray-800 shadow-sm"
-                >
-                  {q.question}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {orderedCategories.map((category) => {
+          const items = grouped[category]
+          if (!items?.length) return null
+          return (
+            <section key={category}>
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-600">
+                {category}
+              </h3>
+              <ul className="flex flex-col gap-3">
+                {items.map((q, idx) => (
+                  <li
+                    key={idx}
+                    className="rounded-lg border border-gray-200 bg-white px-5 py-4 text-sm text-gray-800 shadow-sm"
+                  >
+                    {q.question}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        })}
       </div>
     </div>
   )
