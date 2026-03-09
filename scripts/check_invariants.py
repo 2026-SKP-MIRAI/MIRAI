@@ -13,9 +13,6 @@
 
 import sys
 import argparse
-
-if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
 from pathlib import Path
 
 # 불변식 2: LLM 패턴 — engine/app/services/ 밖의 Python 파일에서 위반
