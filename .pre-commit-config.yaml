@@ -4,35 +4,35 @@ repos:
     hooks:
       - id: check-llm-invariant
         name: "불변식 2 — LLM 호출 위치 검증 (Python)"
-        entry: python -X utf8 scripts/check_invariants.py --check llm
+        entry: python scripts/check_invariants.py --check llm
         language: python
         types: [python]
         pass_filenames: false
 
       - id: check-pdf-invariant
         name: "불변식 2 — PDF 파싱 위치 검증 (Python)"
-        entry: python -X utf8 scripts/check_invariants.py --check pdf
+        entry: python scripts/check_invariants.py --check pdf
         language: python
         types: [python]
         pass_filenames: false
 
       - id: check-ts-llm-invariant
         name: "불변식 2 — LLM 호출 위치 검증 (TypeScript)"
-        entry: python -X utf8 scripts/check_invariants.py --check ts-llm
+        entry: python scripts/check_invariants.py --check ts-llm
         language: python
         types_or: [ts, tsx, javascript, jsx]
         pass_filenames: false
 
       - id: check-auth-invariant
         name: "불변식 1 — 엔진 내 인증 코드 금지"
-        entry: python -X utf8 scripts/check_invariants.py --check auth
+        entry: python scripts/check_invariants.py --check auth
         language: python
         types: [python]
         pass_filenames: false
 
       - id: check-forbidden-files
         name: "레포 규칙 2 — 금지 파일 형식 커밋 차단"
-        entry: python -X utf8 scripts/check_forbidden_files.py
+        entry: python scripts/check_forbidden_files.py
         language: python
         pass_filenames: false
         always_run: true
