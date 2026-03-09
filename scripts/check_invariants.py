@@ -51,6 +51,10 @@ AUTH_PATTERNS = [
     "set_cookie", "get_cookie",
     "session_token", "access_token",
     "verify_token", "create_token",
+    # Supabase Auth 패턴 (Better Auth → Supabase Auth 전환 후 엔진 유입 감지)
+    "@supabase/auth", "supabase_auth", "supabase.auth",
+    "from supabase", "import supabase",
+    "createClient", "create_client",
 ]
 
 ALLOWED_DIRS = {
