@@ -56,7 +56,7 @@ mirai/                          ← monorepo
         ├── tests/              Vitest 테스트
         │   └── fixtures/       테스트 데이터
         ├── prisma/             DB 스키마 (PostgreSQL)
-        └── package.json        Better Auth, Tailwind, Prisma 등
+        └── package.json        Supabase Auth, Tailwind, Prisma 등
 ```
 
 **핵심:** 기술 파트를 나누지 않는다. 1명이 서비스 1개를 프론트·백·배포 포함해서 처음부터 끝까지 만든다.
@@ -76,7 +76,7 @@ mirai/                          ← monorepo
 ### 통신 구조
 
 ```
-[유저] → [Next.js (Better Auth 인증)] → HTTP REST → [FastAPI 엔진 (내부 전용)]
+[유저] → [Next.js (Supabase Auth 인증)] → HTTP REST → [FastAPI 엔진 (내부 전용)]
 ```
 
 - 서비스 → 엔진: HTTP REST (`ENGINE_BASE_URL` 환경변수, 타임아웃 30초)
@@ -113,7 +113,7 @@ mirai/                          ← monorepo
 | 주차 | 제목 | 핵심 내용 |
 |------|------|-----------|
 | **Week 1** (3/1~3/7) | 기획 + 세팅 + MVP + 배포 | 기획 구체화, 프로젝트 세팅, MVP 구현, AWS(EC2·ALB·Route53·WAF·HTTPS) |
-| **Week 2** (3/8~3/14) | Beta 구현 | 전체 기능 구현, 가입, S3, CloudFront, Docker/ECR, CI/CD, E2E 테스트 |
+| **Week 2** (3/8~3/14) | Beta 구현 | 전체 기능 구현, 가입, Supabase Storage, CloudFront, Docker/ECR, CI/CD, E2E 테스트 |
 | **Week 3** (3/15~3/21) | 마케팅 + 유지보수 | 커뮤니티 홍보, 유저 피드백 수집, 유지보수, 오토 스케일링 + 스트레스 테스트 |
 | **Week 4** (3/22~3/28) | 버퍼 + 마무리 | 밀린 작업 소화, 포트폴리오 작성, peer review, 블로커 해소 |
 
@@ -127,7 +127,7 @@ mirai/                          ← monorepo
 
 **기획 + 세팅** (멘토 주도)
 - `AGENTS.md` 목차, 기능 상세 기획 (`MirAI_proposal.md` v2)
-- 기술 스택 확정: Next.js 풀스택 (서비스) + FastAPI (엔진) + Better Auth + PostgreSQL + Prisma
+- 기술 스택 확정: Next.js 풀스택 (서비스) + FastAPI (엔진) + Supabase Auth + Supabase PostgreSQL + Prisma
 - 프로젝트 구조 세팅 (레포·.ai.md·불변식·온보딩)
 - `engine/.ai.md` 계약 정의 (타입·불변식·API)
 
@@ -148,9 +148,9 @@ mirai/                          ← monorepo
 
 **서비스** (멘토 + 전원)
 - 기획서 기능 전체 구현
-- 회원가입/인증 (Better Auth)
-- S3 파일 업로드 연동
-- CloudFront CDN 적용
+- 회원가입/인증 (Supabase Auth)
+- Supabase Storage 파일 업로드 연동
+- CloudFront CDN 적용 (정적 에셋용, Supabase Storage가 파일 저장 담당)
 
 **인프라 + CI/CD** (멘토 + 전원)
 - Dockerize + ECR 푸시
