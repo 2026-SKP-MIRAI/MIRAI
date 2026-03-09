@@ -29,7 +29,13 @@ export default function Home() {
       const data = await response.json()
 
       if (!response.ok) {
-        const msg = ERROR_MESSAGES[response.status] ?? DEFAULT_ERROR_MESSAGE
+        // 엔진이 내려준 메시지(detail/error) 우선 → 5MB 초과 등 구체 메시지가 그대로 노출됨
+        const serverMsg =
+          data && typeof data === 'object' && (data.error ?? data.detail)
+        const msg =
+          (typeof serverMsg === 'string' ? serverMsg : null) ??
+          ERROR_MESSAGES[response.status] ??
+          DEFAULT_ERROR_MESSAGE
         setErrorMessage(msg)
         setState('error')
         return
