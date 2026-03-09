@@ -40,8 +40,8 @@
 | **프론트엔드** | Next.js (App Router) | 라우트·UI·상태 관리 |
 | **스타일** | Tailwind CSS v4 | 레이아웃·컴포넌트 |
 | **언어** | TypeScript (strict) | 타입 안전성 |
-| **인증** | Better Auth | 사용자 인증 (서비스에서만) |
-| **ORM / DB** | Prisma + PostgreSQL | 데이터 저장 (서비스가 소유) |
+| **인증** | Supabase Auth | 사용자 인증 (서비스에서만) |
+| **ORM / DB** | Prisma + Supabase PostgreSQL | 데이터 저장 (서비스가 소유) |
 | **TTS** | Phase 4 확정 예정 | 음성 인터랙션 |
 | **테스트** | Vitest | 단위 테스트 |
 | **E2E 테스트** | Playwright (Week 2 도입 예정) | 전체 흐름 통합 테스트 |
@@ -53,18 +53,18 @@
 | **컴퓨트** | EC2 + ALB | 서비스·엔진 호스팅, 트래픽 분산 | Week 1 |
 | **도메인** | Route53 | 도메인 연결 | Week 1 |
 | **보안** | WAF + HTTPS | 웹 방화벽, TLS 인증서 | Week 1 |
-| **파일 저장** | S3 | PDF 자소서 업로드 저장 | Week 2 |
+| **파일 저장** | Supabase Storage | PDF 자소서 업로드 저장 | Week 2 |
 | **CDN** | CloudFront | 정적 에셋 배포 | Week 2 |
 | **컨테이너** | Docker + ECR | 이미지 빌드·레지스트리 | Week 2 |
 | **CI/CD** | GitHub Actions | 자동 테스트·배포 파이프라인 | Week 2 |
 | **스케일링** | ALB 오토 스케일링 | 트래픽 급증 대응 | Week 3 |
 
-> **1차 출시(Week 1) 최소 인프라:** EC2 + ALB + Route53 + WAF + HTTPS. S3·CloudFront·Docker는 Week 2 Beta 릴리스에 추가.
+> **1차 출시(Week 1) 최소 인프라:** EC2 + ALB + Route53 + WAF + HTTPS. Supabase Storage·CloudFront·Docker는 Week 2 Beta 릴리스에 추가.
 
 ### 통신
 
 ```
-[유저] → [Next.js 서비스 (Better Auth 인증)] → HTTP REST → [FastAPI 엔진 (내부 전용)]
+[유저] → [Next.js 서비스 (Supabase Auth 인증)] → HTTP REST → [FastAPI 엔진 (내부 전용)]
 ```
 
 - `ENGINE_BASE_URL` 환경변수, 타임아웃 30초
@@ -141,9 +141,9 @@ PDF 업로드
 
 **화면 상태:** `idle` → `uploading` → `processing` → `done` / `error`
 
-**1차 출시 제외 항목:** 회원가입·결제·DB 저장·S3 파일 저장(Week 2 도입)·꼬리질문·페르소나·8축 평가·오디오
+**1차 출시 제외 항목:** 회원가입·결제·DB 저장·Supabase Storage 파일 저장(Week 2 도입)·꼬리질문·페르소나·8축 평가·오디오
 
-> Week 1 MVP에서 PDF는 멀티파트 업로드 후 서버 메모리에서 직접 파싱. S3 저장은 Week 2 Beta에 추가.
+> Week 1 MVP에서 PDF는 멀티파트 업로드 후 서버 메모리에서 직접 파싱. Supabase Storage 저장은 Week 2 Beta에 추가.
 
 ---
 
@@ -437,23 +437,31 @@ PDF 업로드
 OPENROUTER_API_KEY   OpenRouter API 호출 (LLM 프록시)
 OPENROUTER_MODEL     사용 모델 (기본값: google/gemini-2.5-flash)
 
-# 서비스 (services/)
-ENGINE_BASE_URL      FastAPI 엔진 주소 (타임아웃 30초)
-DATABASE_URL         PostgreSQL 연결 문자열 (Prisma)
-BETTER_AUTH_SECRET   Better Auth 세션 서명 키
+# 서비스 (services/) — Supabase DB·Auth·Storage
+ENGINE_BASE_URL           FastAPI 엔진 주소 (타임아웃 30초)
+DATABASE_URL              Supabase PostgreSQL pooler 연결 문자열 (Prisma 런타임, port 6543, ?pgbouncer=true&sslmode=require)
+DIRECT_URL                Supabase PostgreSQL direct 연결 문자열 (prisma migrate 전용, port 5432, ?sslmode=require)
+NEXT_PUBLIC_SUPABASE_URL  Supabase 프로젝트 URL (클라이언트 번들 포함, @supabase/ssr createBrowserClient용)
+NEXT_PUBLIC_SUPABASE_ANON_KEY  Supabase 익명 키 (클라이언트 번들 포함, RLS 정책 필수 전제)
+SUPABASE_URL              Supabase 프로젝트 URL (서버 사이드 전용)
+SUPABASE_ANON_KEY         Supabase 익명 키 (서버 사이드용)
+SUPABASE_SERVICE_ROLE_KEY Supabase 서비스 롤 키 (서버 전용, NEXT_PUBLIC_ 절대 금지, RLS 우회)
+SUPABASE_STORAGE_BUCKET   Supabase Storage 버킷명 (하드코딩 금지)
 
-# AWS (Week 2 추가)
-AWS_REGION           S3·ECR 리전
-AWS_ACCESS_KEY_ID    IAM 접근 키
-AWS_SECRET_ACCESS_KEY IAM 시크릿 키
-S3_BUCKET_NAME       PDF 업로드 버킷명
-CLOUDFRONT_URL       CDN 퍼블릭 URL
+# AWS (Week 2 추가) — 컴퓨트·CDN 전용 (S3 제거됨)
+AWS_REGION            ECR 리전
+AWS_ACCESS_KEY_ID     IAM 접근 키 (ECR 전용)
+AWS_SECRET_ACCESS_KEY IAM 시크릿 키 (ECR 전용)
+CLOUDFRONT_URL        정적 에셋 CDN 퍼블릭 URL
 
 # Phase 4 추가 예정
 TTS_API_KEY          TTS 서비스 키
 STT_API_KEY          STT 서비스 키
 AVATAR_API_KEY       아바타 서비스 키
 ```
+
+> **Prisma 연결 주의:** `DATABASE_URL`은 pooler(port 6543, `?pgbouncer=true`) 사용. `prisma migrate`는 반드시 `DIRECT_URL`(port 5432)로 실행. `schema.prisma`에 `directUrl = env("DIRECT_URL")` 설정 필수.
+> **보안 주의:** `SUPABASE_SERVICE_ROLE_KEY`는 RLS를 완전 우회. 서버 컴포넌트·API Route에서만 사용. 클라이언트 번들 노출 금지.
 
 ---
 
