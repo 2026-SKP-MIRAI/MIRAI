@@ -1,5 +1,8 @@
 import { callEngineQuestions } from '@/lib/engine-client'
 
+export const runtime = 'nodejs'
+export const maxDuration = 35
+
 export async function POST(req: Request) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -9,7 +12,7 @@ export async function POST(req: Request) {
 
   try {
     const res = await callEngineQuestions(file)
-    const data = await res.json()
+    const data = await res.json().catch(() => ({ error: '서버 오류가 발생했습니다.' }))
     return Response.json(data, { status: res.status })
   } catch {
     return Response.json(

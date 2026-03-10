@@ -19,7 +19,6 @@ export default function HomePage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      setState('processing')
       const res = await fetch('/api/resume/questions', {
         method: 'POST',
         body: formData,
@@ -62,7 +61,7 @@ export default function HomePage() {
         ) : (
           <>
             <UploadForm onSubmit={handleSubmit} isLoading={isLoading} />
-            {state === 'processing' && (
+            {isLoading && (
               <p className="mt-4 text-sm text-blue-600 animate-pulse">
                 자소서를 분석하고 있습니다...
               </p>

@@ -65,3 +65,13 @@
 
 ### 엔진 연결
 main 브랜치 머지 후 엔진 Python 코드 확인. `engine/.env`에 `OPENROUTER_API_KEY` 설정, uvicorn으로 엔진 실행 후 `.env.local` `ENGINE_BASE_URL=http://localhost:8001`로 변경해 end-to-end 동작 확인.
+
+### PR 리뷰 블로커 수정 (2026-03-10)
+멘토 PR 리뷰 지적사항 수정.
+
+- **`maxDuration = 35` 추가** (`route.ts`): Vercel 기본 타임아웃 10초로 엔진 응답 기다리다 종료되는 문제 해결. `runtime = 'nodejs'`도 함께 명시.
+- **`pnpm-lock.yaml` 삭제**: siw/seung 팀원이 npm만 사용하므로 lock 파일 중복 제거. `package-lock.json`만 유지.
+- **`ENGINE_BASE_URL` 폴백 추가** (`engine-client.ts`): `process.env.ENGINE_BASE_URL ?? 'http://localhost:8000'`으로 환경변수 미설정 시 로컬 기본값 사용.
+- **`res.json()` 파싱 실패 처리** (`route.ts`): `.catch(() => ({ error: '서버 오류가 발생했습니다.' }))` 추가해 비정상 응답 바디에서도 안전하게 처리.
+- **`uploading` 배칭 문제 수정** (`page.tsx`): `setState('processing')` 제거로 React 배칭에 의해 `uploading` 렌더링이 스킵되던 문제 해결. 분석 메시지 조건을 `isLoading`으로 통합.
+- **`.ai.md` 커맨드 업데이트**: `pnpm` → `npm` (lock 파일 변경과 일치).
