@@ -77,6 +77,7 @@
 | 2026-03-09 | Vitest 18개, Playwright E2E 4개 (모킹) 최초 통과 |
 | 2026-03-09 | real-flow.spec.ts 추가 — 실제 엔진 연동 E2E 1개 통과 (11.7s) |
 | 2026-03-09 | vitest.config.ts에 `tests/e2e/**` 제외 추가 — Vitest 18개 정상 통과 |
+| 2026-03-10 | E2E 모킹 detail 값을 한국어로 수정 — 4개 모두 GREEN 재확인 (4.1s) |
 
 ---
 

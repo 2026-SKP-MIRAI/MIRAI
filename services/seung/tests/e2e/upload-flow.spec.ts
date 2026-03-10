@@ -59,7 +59,7 @@ test.describe('업로드 플로우', () => {
       route.fulfill({
         status: 422,
         contentType: 'application/json',
-        body: JSON.stringify({ detail: 'unprocessable' }),
+        body: JSON.stringify({ detail: '텍스트를 읽을 수 없는 PDF입니다. 텍스트가 포함된 파일을 업로드해 주세요.' }),
       })
     )
 
@@ -81,7 +81,7 @@ test.describe('업로드 플로우', () => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ detail: 'internal server error' }),
+        body: JSON.stringify({ detail: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }),
       })
     )
 
