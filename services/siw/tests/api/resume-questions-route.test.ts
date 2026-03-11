@@ -3,6 +3,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+vi.mock("@/lib/pdf-parser", () => ({
+  parsePdf: vi.fn().mockResolvedValue("mock resume text"),
+}));
+
+vi.mock("@/lib/resume-repository", () => ({
+  resumeRepository: {
+    create: vi.fn().mockResolvedValue("mock-resume-id"),
+    findById: vi.fn().mockResolvedValue("mock resume text"),
+  },
+}));
+
+
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ENGINE_BASE_URL = "http://localhost:8000";

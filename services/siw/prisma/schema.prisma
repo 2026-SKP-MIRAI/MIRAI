@@ -1,0 +1,32 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model InterviewSession {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resumeText      String
+  currentQuestion     String   @default("")
+  currentPersona      String   @default("")
+  currentQuestionType String   @default("main")
+  questionsQueue  Json     @default("[]")
+  history         Json     @default("[]")
+  sessionComplete Boolean  @default(false)
+  userId          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@map("interview_sessions")
+}
+
+model ResumeSession {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resumeText String
+  createdAt  DateTime @default(now())
+
+  @@map("resume_sessions")
+}
