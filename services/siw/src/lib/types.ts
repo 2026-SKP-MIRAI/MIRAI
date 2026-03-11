@@ -3,5 +3,28 @@ export type QuestionItem = { category: Category; question: string };
 export type QuestionsResponse = {
   questions: QuestionItem[];
   meta: { extractedLength: number; categoriesUsed: string[] };
+  resumeId: string;
 };
 export type UploadState = "idle" | "ready" | "uploading" | "done" | "error";
+
+export type PersonaType = "hr" | "tech_lead" | "executive";
+export type FollowupType = "CLARIFY" | "CHALLENGE" | "EXPLORE";
+export type QueueItem = { persona: PersonaType; type: "main" | "follow_up" };
+export type QuestionWithPersona = {
+  persona: PersonaType;
+  personaLabel: string;
+  question: string;
+  type?: "main" | "follow_up";
+};
+export type HistoryItem = {
+  persona: PersonaType;
+  personaLabel: string;
+  question: string;
+  answer: string;
+  type: "main" | "follow_up";
+};
+export type InterviewAnswerResponse = {
+  nextQuestion: QuestionWithPersona | null;
+  updatedQueue: QueueItem[];
+  sessionComplete: boolean;
+};
