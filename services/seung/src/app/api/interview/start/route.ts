@@ -4,7 +4,7 @@ import type { PersonaType, QuestionType } from '@/lib/types'
 
 export const maxDuration = 35
 
-const ENGINE_FETCH_TIMEOUT_MS = 30_000
+const ENGINE_FETCH_TIMEOUT_MS = 55_000
 const DEFAULT_PERSONAS: PersonaType[] = ['hr', 'tech_lead', 'executive']
 
 export async function POST(request: NextRequest) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!engineResponse.ok) {
-    return NextResponse.json(engineData, { status: engineResponse.status })
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
   const { firstQuestion, questionsQueue } = engineData

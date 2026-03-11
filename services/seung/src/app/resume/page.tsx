@@ -110,6 +110,9 @@ export default function ResumePage() {
               <QuestionList questions={result.questions} onReset={handleReset} />
               {result.resumeId && (
                 <div className="mt-6 text-center">
+                  {errorMessage && (
+                    <p className="mb-3 text-sm text-red-600" role="alert">{errorMessage}</p>
+                  )}
                   <button
                     onClick={handleStartInterview}
                     disabled={startingInterview}

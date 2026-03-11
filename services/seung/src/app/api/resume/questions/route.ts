@@ -67,17 +67,21 @@ export async function POST(request: NextRequest) {
         { status: 502 }
       )
     }
-    try {
-      const resume = await prisma.resume.create({
-        data: {
-          resumeText,
-          questions: questions as object[],
-        },
-      })
-      resumeId = resume.id
-    } catch (err) {
-      console.error('[resume/questions] DB save failed', { err })
-      // continue without resumeId — client will not show "면접 시작"
+    if (!resumeText.trim()) {
+      console.warn('[resume/questions] PDF text extraction returned empty - skipping DB save')
+    } else {
+      try {
+        const resume = await prisma.resume.create({
+          data: {
+            resumeText,
+            questions: questions as object[],
+          },
+        })
+        resumeId = resume.id
+      } catch (err) {
+        console.error('[resume/questions] DB save failed', { err })
+        // continue without resumeId — client will not show "면접 시작"
+      }
     }
 
     return NextResponse.json({ ...(data as object), resumeId }, { status: 200 })

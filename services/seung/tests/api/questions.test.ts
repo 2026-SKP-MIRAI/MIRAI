@@ -163,6 +163,28 @@ describe('POST /api/resume/questions', () => {
     })
   })
 
+  it('빈 resumeText이면 DB 저장 건너뛰고 resumeId=null 반환', async () => {
+    mockExtractPdfText.mockResolvedValueOnce('   ')
+    const mockData = {
+      questions: [{ category: '직무 역량', question: '테스트' }],
+      meta: { extractedLength: 0, categoriesUsed: ['직무 역량'] },
+    }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockData,
+    })
+
+    const formData = new FormData()
+    formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
+
+    const response = await POST(makeRequest(formData))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.resumeId).toBeNull()
+    expect(mockPrisma.resume.create).not.toHaveBeenCalled()
+  })
+
   it('DB 실패 시에도 엔진 결과 반환 (resumeId=null)', async () => {
     const mockData = {
       questions: [{ category: '직무 역량', question: '테스트' }],

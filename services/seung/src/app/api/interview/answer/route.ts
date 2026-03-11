@@ -4,7 +4,7 @@ import type { HistoryItem, QueueItem, PersonaType, QuestionType } from '@/lib/ty
 
 export const maxDuration = 35
 
-const ENGINE_FETCH_TIMEOUT_MS = 30_000
+const ENGINE_FETCH_TIMEOUT_MS = 55_000
 
 export async function POST(request: NextRequest) {
   let body: { sessionId?: string; answer?: string }
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     sessionComplete: boolean
     history: unknown
     questionsQueue: unknown
+    updatedAt: Date
   } | null
   try {
     session = await prisma.interviewSession.findUnique({ where: { id: sessionId } })
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!engineResponse.ok) {
-    return NextResponse.json(engineData, { status: engineResponse.status })
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
   const { nextQuestion, updatedQueue, sessionComplete } = engineData
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.interviewSession.update({
-      where: { id: sessionId, sessionComplete: false },
+      where: { id: sessionId, sessionComplete: false, updatedAt: session.updatedAt },
       data: {
         history: updatedHistory as object[],
         questionsQueue: updatedQueue as object[],

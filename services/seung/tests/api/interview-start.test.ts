@@ -81,7 +81,7 @@ describe('POST /api/interview/start', () => {
     expect(response.status).toBe(404)
   })
 
-  it('엔진 에러 시 해당 상태 코드 전달', async () => {
+  it('엔진 에러 시 500 + generic 메시지 반환 (내부 에러 미노출)', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       resumeText: '자소서 텍스트',
     })
@@ -94,6 +94,9 @@ describe('POST /api/interview/start', () => {
 
     const response = await POST(makeRequest({ resumeId: 'resume-1' }))
     expect(response.status).toBe(500)
+    const body = await response.json()
+    expect(body.error).toBe('서버 오류가 발생했습니다.')
+    expect(body.detail).toBeUndefined()
   })
 
   it('ENGINE_BASE_URL 미설정 시 500 반환', async () => {

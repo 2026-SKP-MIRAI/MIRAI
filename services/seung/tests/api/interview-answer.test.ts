@@ -35,6 +35,7 @@ const mockSession = {
   currentQuestionType: 'main',
   history: [],
   questionsQueue: [{ persona: 'tech_lead', type: 'main' }],
+  updatedAt: new Date('2024-01-01T00:00:00Z'),
 }
 
 describe('POST /api/interview/answer', () => {
@@ -200,7 +201,7 @@ describe('POST /api/interview/answer', () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('엔진 에러 시 해당 상태 코드 전달', async () => {
+  it('엔진 에러 시 500 + generic 메시지 반환 (내부 에러 미노출)', async () => {
     mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
     mockPrisma.resume.findUnique.mockResolvedValueOnce({ resumeText: '자소서' })
 
@@ -214,5 +215,8 @@ describe('POST /api/interview/answer', () => {
       makeRequest({ sessionId: 'session-1', answer: '답변' })
     )
     expect(response.status).toBe(500)
+    const body = await response.json()
+    expect(body.error).toBe('서버 오류가 발생했습니다.')
+    expect(body.detail).toBeUndefined()
   })
 })

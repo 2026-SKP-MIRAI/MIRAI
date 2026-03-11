@@ -17,6 +17,7 @@ const PDF_PATH = path.join(
 const LLM_TIMEOUT = 60_000
 
 test('이슈 #57: 자소서 업로드 → 패널 면접 → 꼬리질문 전체 플로우', async ({ page }) => {
+  test.setTimeout(300_000) // 실제 LLM 호출 4회 포함 — 최대 5분
   // 1. /resume 페이지 접속
   await page.goto('/')
   await expect(page.getByText('자소서 분석')).toBeVisible()
@@ -49,9 +50,8 @@ test('이슈 #57: 자소서 업로드 → 패널 면접 → 꼬리질문 전체 
   )
   await page.getByRole('button', { name: '답변 제출' }).click()
 
-  // 7. 꼬리질문 또는 다음 페르소나 질문 수신 대기
-  // 답변이 논리적이면 다음 페르소나, 아니면 꼬리질문
-  await expect(page.locator('.rounded-xl').nth(2)).toBeVisible({ timeout: LLM_TIMEOUT })
+  // 7. 꼬리질문 또는 다음 페르소나 질문 수신 대기 (API 완료 = textarea 재활성화)
+  await expect(textarea).toBeEnabled({ timeout: LLM_TIMEOUT })
 
   // 8. 두 번째 답변 제출
   await textarea.fill(
@@ -59,6 +59,6 @@ test('이슈 #57: 자소서 업로드 → 패널 면접 → 꼬리질문 전체 
   )
   await page.getByRole('button', { name: '답변 제출' }).click()
 
-  // 9. 세 번째 질문 수신 대기
-  await expect(page.locator('.rounded-xl').nth(4)).toBeVisible({ timeout: LLM_TIMEOUT })
+  // 9. 세 번째 질문 수신 대기 (API 완료 = textarea 재활성화)
+  await expect(textarea).toBeEnabled({ timeout: LLM_TIMEOUT })
 })
