@@ -113,7 +113,8 @@ npm install
 
 # 환경변수 설정
 cp .env.local.example .env.local
-# ENGINE_BASE_URL=http://localhost:8000
+# 로컬: ENGINE_BASE_URL=http://localhost:8000
+# EC2 배포: ENGINE_BASE_URL=https://engine.mirainterview.com
 
 # 실행
 npm run dev
