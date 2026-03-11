@@ -3,12 +3,50 @@ export type Question = {
   question: string
 }
 
+export type PersonaType = 'hr' | 'tech_lead' | 'executive'
+export type QuestionType = 'main' | 'follow_up'
+export type QueueItem = { persona: PersonaType; type: QuestionType }
+export type QuestionWithPersona = {
+  persona: PersonaType
+  personaLabel: string
+  question: string
+  type: QuestionType
+}
+export type HistoryItem = {
+  persona: PersonaType
+  personaLabel: string
+  question: string
+  answer: string
+}
+
 export type QuestionsResponse = {
   questions: Question[]
   meta: {
     extractedLength: number
     categoriesUsed: string[]
   }
+  resumeId: string | null
+}
+
+export type InterviewStartRequest = {
+  resumeId: string
+  mode?: 'panel'
+  personas?: PersonaType[]
+  interviewMode?: 'real'
+}
+export type InterviewStartResponse = { sessionId: string; firstQuestion: QuestionWithPersona }
+export type InterviewAnswerRequest = { sessionId: string; answer: string }
+export type InterviewAnswerResponse = {
+  nextQuestion: QuestionWithPersona | null
+  sessionComplete: boolean
+}
+export type InterviewSessionState = {
+  currentQuestion: string
+  currentPersona: PersonaType
+  currentPersonaLabel: string
+  currentQuestionType: QuestionType
+  history: (HistoryItem & { questionType?: QuestionType })[]
+  sessionComplete: boolean
 }
 
 export type UploadState = 'idle' | 'uploading' | 'processing' | 'done' | 'error'

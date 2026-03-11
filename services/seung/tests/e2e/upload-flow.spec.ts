@@ -13,6 +13,7 @@ const MOCK_SUCCESS_RESPONSE = {
     extractedLength: 1234,
     categoriesUsed: ['직무역량', '인성'],
   },
+  resumeId: 'resume-test-123',
 }
 
 /** 테스트용 더미 PDF 파일 경로를 반환한다 (tmpdir에 생성) */
