@@ -16,6 +16,11 @@
       "sourceType": "github",
       "computedHash": "a2fe47d24b3fd8e52faef731fff099c557e698083cd644b2e5695cc4dd8c7715"
     },
+    "changelog-generator": {
+      "source": "local",
+      "sourceType": "local",
+      "computedHash": "92da598100d08813bc27aae6d9e4f9b1e9764236d1ff19e94deb2df2b634411e"
+    },
     "database-schema-design": {
       "source": "supercent-io/skills-template",
       "sourceType": "github",
@@ -26,10 +31,10 @@
       "sourceType": "github",
       "computedHash": "6962db07127ee540a56e4677f65576d0727668a1d67f7da8bc978f10791c2bfe"
     },
-    "enhance-prompt": {
-      "source": "google-labs-code/stitch-skills",
-      "sourceType": "github",
-      "computedHash": "71cc23e9ec5fc6361e12453495fa8c683f6cf26f3efaf9b230b0f43e0a32cc96"
+    "error-tracking": {
+      "source": "local",
+      "sourceType": "local",
+      "computedHash": "2f1471f22a5d96a8446fc203fe9ed59e7e707ea0eec5faebdf5e44b0888fdcc6"
     },
     "fastapi-templates": {
       "source": "wshobson/agents",
@@ -61,6 +66,11 @@
       "sourceType": "github",
       "computedHash": "ddec844d01d102687f89749e1d3a9f7a9019010dce1039a7d442189f39726ad4"
     },
+    "mermaid": {
+      "source": "local",
+      "sourceType": "local",
+      "computedHash": "cef500de5721b2b2867484c3ee48934f86da8aa3f990147ededd21fe653f4d2f"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "github",
@@ -85,6 +95,11 @@
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
       "computedHash": "21dd05f970ba54406d7405f92240853f809d0fed09ef6ca2a9204abcdd21548a"
+    },
+    "pytest-backend-testing": {
+      "source": "local",
+      "sourceType": "local",
+      "computedHash": "c6eaee2dadd84fc0657ea8c7499f90f09ea829eb26c764a38b1b852338ac1672"
     },
     "security-best-practices": {
       "source": "supercent-io/skills-template",
@@ -125,11 +140,6 @@
       "source": "obra/superpowers",
       "sourceType": "github",
       "computedHash": "126f1ebf6ccd414f42544f6e83d8cc5adb089e1108eaffb7c400701e37eecd9f"
-    },
-    "ui-ux-pro-max": {
-      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
-      "sourceType": "github",
-      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
