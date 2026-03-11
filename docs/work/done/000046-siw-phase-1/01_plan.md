@@ -763,6 +763,17 @@ npm run test:e2e
 | 16 | engine history 아이템 `type` 필드 미인식 | siw `HistoryItem`에 `type` 추가 후 engine에 그대로 전송 → Pydantic extra field 에러 | `answer()` 전송 전 `history.map(({ type: _t, ...r }) => r)` 으로 type 제거 |
 | 17 | `answer()` LLM 신뢰성 — HR→tech_lead 전환 500 | engine이 followup 판단 + 다음 질문 생성 LLM 2회 호출 시 간헐적 invalid JSON 응답 | `answer()`에 `start()`와 동일한 3회 재시도 로직 추가 |
 | 18 | `answer/route.ts` 404 조건 dead code | `(e as Error).message === "session_not_found"` 은 절대 true가 안 됨 — `findUniqueOrThrow`는 Prisma `PrismaClientKnownRequestError(P2025)`를 throw | `e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025"` 로 교체 |
+| 19 | 공백 답변(`"   "`)이 engine까지 도달 | `!currentAnswer` 는 truthy라 통과 → DB + engine 불필요 호출 | route에서 `!currentAnswer.trim()` 조기 차단 추가 |
+| 20 | 완료된 세션에 engine 재호출 | `sessionComplete=true` 세션에 답변 재전송 시 LLM 비용 낭비 | service `answer()`에서 DB 조회 직후 `session.sessionComplete` 체크 → `"session_complete"` throw |
+| 21 | 긴 답변 그대로 engine 전달 | 제한 없이 전달 시 engine 토큰 비용 증가 | route에서 `trim().slice(0, 5000)` 적용 후 service 전달 |
+
+---
+
+## PR
+
+- **PR #61**: https://github.com/2026-SKP-MIRAI/MIRAI/pull/61
+- **커밋**: `feat: siw Phase 1 — 패널 면접 세션 + 꼬리질문 연동 구현 (#46)`
+- **브랜치**: `feat/000046-siw-phase-1`
 
 ---
 

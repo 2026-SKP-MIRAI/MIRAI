@@ -44,6 +44,9 @@ export const interviewService = {
   async answer(sessionId: string, currentAnswer: string): Promise<InterviewAnswerResponse> {
     const session = await interviewRepository.findById(sessionId);
 
+    // 이미 완료된 세션 — engine 호출 차단 (비용 절감)
+    if (session.sessionComplete) throw new Error("session_complete");
+
     const historyForEngine = session.history.map(({ type: _type, ...rest }) => rest);
 
     let resp: Response | null = null;
