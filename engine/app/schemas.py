@@ -114,3 +114,29 @@ class ReportResponse(BaseModel):
     summary:       str
     axisFeedbacks: list[AxisFeedback] = Field(..., min_length=8, max_length=8)
     growthCurve:   None = None
+
+
+# --- 연습 모드 피드백 ---
+
+class FeedbackDetail(BaseModel):
+    good:    list[str] = Field(..., min_length=1, max_length=3, description="잘한 점 1-3개")
+    improve: list[str] = Field(..., min_length=1, max_length=3, description="개선할 점 1-3개")
+
+
+class ComparisonDelta(BaseModel):
+    scoreDelta:   int       = Field(..., ge=-100, le=100, description="이전 대비 점수 변화")
+    improvements: list[str] = Field(default_factory=list, description="구체적 개선 사항 (0개 이상)")
+
+
+class PracticeFeedbackRequest(BaseModel):
+    question:       str          = Field(..., min_length=1, description="면접 질문")
+    answer:         str          = Field(..., min_length=1, max_length=5000, description="사용자 답변")
+    previousAnswer: str | None   = Field(None, min_length=1, max_length=5000, description="이전 답변 (비교용, 선택)")
+
+
+class PracticeFeedbackResponse(BaseModel):
+    score:               int                     = Field(..., ge=0, le=100)
+    feedback:            FeedbackDetail
+    keywords:            list[str]               = Field(..., min_length=1, max_length=5)
+    improvedAnswerGuide: str                     = Field(..., min_length=1)
+    comparisonDelta:     ComparisonDelta | None  = None

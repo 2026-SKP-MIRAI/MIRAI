@@ -6,3 +6,4 @@ class PageLimitError(ParseError): pass
 class LLMError(Exception): pass
 class InsufficientAnswersError(Exception): pass
 class ReportParseError(LLMError): pass
+class PracticeParseError(LLMError): pass

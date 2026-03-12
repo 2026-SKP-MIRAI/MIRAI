@@ -9,6 +9,7 @@ from app.parsers.exceptions import EmptyPDFError, ImageOnlyPDFError, FileSizeErr
 from app.routers.resume import router
 from app.routers.interview import router as interview_router
 from app.routers.report import router as report_router
+from app.routers.practice import router as practice_router
 
 app = FastAPI(title="MirAI Engine")
 
@@ -35,6 +36,7 @@ async def handle_500(request, exc):
 app.include_router(router, prefix="/api")
 app.include_router(interview_router, prefix="/api")
 app.include_router(report_router, prefix="/api")
+app.include_router(practice_router, prefix="/api")
 
 @app.get("/")
 async def health():
