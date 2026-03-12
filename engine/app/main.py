@@ -1,3 +1,7 @@
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -31,3 +35,7 @@ async def handle_500(request, exc):
 app.include_router(router, prefix="/api")
 app.include_router(interview_router, prefix="/api")
 app.include_router(report_router, prefix="/api")
+
+@app.get("/")
+async def health():
+    return {"status": "ok"}
