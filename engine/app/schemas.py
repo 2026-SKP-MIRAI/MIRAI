@@ -1,6 +1,8 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+FeedbackType = Literal["strength", "improvement"]
+
 Category = Literal["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"]
 
 class ParsedResume(BaseModel):
@@ -80,3 +82,35 @@ class FollowupResponse(BaseModel):
     followupType: FollowupType
     followupQuestion: str
     reasoning: str
+
+
+class AxisScores(BaseModel):
+    communication:   int = Field(..., ge=0, le=100)
+    problemSolving:  int = Field(..., ge=0, le=100)
+    logicalThinking: int = Field(..., ge=0, le=100)
+    jobExpertise:    int = Field(..., ge=0, le=100)
+    cultureFit:      int = Field(..., ge=0, le=100)
+    leadership:      int = Field(..., ge=0, le=100)
+    creativity:      int = Field(..., ge=0, le=100)
+    sincerity:       int = Field(..., ge=0, le=100)
+
+
+class AxisFeedback(BaseModel):
+    axis:      str
+    axisLabel: str
+    score:     int = Field(..., ge=0, le=100)
+    type:      FeedbackType
+    feedback:  str
+
+
+class ReportRequest(BaseModel):
+    resumeText: str = Field(..., min_length=1)
+    history: list[HistoryItem] = Field(..., min_length=1)
+
+
+class ReportResponse(BaseModel):
+    scores:        AxisScores
+    totalScore:    int = Field(..., ge=0, le=100)
+    summary:       str
+    axisFeedbacks: list[AxisFeedback] = Field(..., min_length=8, max_length=8)
+    growthCurve:   None = None
