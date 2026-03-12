@@ -28,3 +28,30 @@ export type InterviewAnswerResponse = {
   updatedQueue: QueueItem[];
   sessionComplete: boolean;
 };
+
+export type AxisScores = {
+  communication: number;
+  problemSolving: number;
+  logicalThinking: number;
+  jobExpertise: number;
+  cultureFit: number;
+  leadership: number;
+  creativity: number;
+  sincerity: number;
+};
+
+export type AxisFeedback = {
+  axis: string;
+  axisLabel: string;
+  score: number;
+  type: "strength" | "improvement";
+  feedback: string;
+};
+
+export type ReportResponse = {
+  scores: AxisScores;
+  totalScore: number;
+  summary: string;
+  axisFeedbacks: AxisFeedback[];
+  growthCurve: null;
+};
