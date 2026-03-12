@@ -27,7 +27,7 @@ def mock_llm_side_effect(contents: list[str]):
 
 @pytest.mark.asyncio
 async def test_start_200_returns_first_question_and_queue():
-    with patch("app.services.interview_service.OpenAI", return_value=mock_llm(HR_Q)):
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(HR_Q)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/interview/start", json={
                 "resumeText": "테스트 이력서",
@@ -65,7 +65,7 @@ async def test_start_400_empty_resume_text():
 @pytest.mark.asyncio
 async def test_answer_200_next_question():
     # LLM 2회: 1) followup check (no followup), 2) next question
-    with patch("app.services.interview_service.OpenAI", return_value=mock_llm_side_effect([NO_FOLLOWUP_JSON, TECH_Q])):
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm_side_effect([NO_FOLLOWUP_JSON, TECH_Q])):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/interview/answer", json={
                 "resumeText": "이력서",
@@ -111,7 +111,7 @@ async def test_answer_400_missing_fields():
 @pytest.mark.asyncio
 async def test_answer_200_followup():
     # shouldFollowUp=True → nextQuestion.type == "follow_up", updatedQueue 변경 없음
-    with patch("app.services.interview_service.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/interview/answer", json={
                 "resumeText": "이력서",
@@ -154,7 +154,7 @@ async def test_answer_200_session_complete_at_max_turns():
 
 @pytest.mark.asyncio
 async def test_followup_200():
-    with patch("app.services.interview_service.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/interview/followup", json={
                 "question": "팀워크 경험을 말해주세요.",
@@ -183,7 +183,7 @@ async def test_followup_400_missing_fields():
 async def test_500_llm_error():
     fake = MagicMock()
     fake.chat.completions.create.side_effect = Exception("API 오류")
-    with patch("app.services.interview_service.OpenAI", return_value=fake):
+    with patch("app.services.llm_client.OpenAI", return_value=fake):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/interview/start", json={
                 "resumeText": "이력서",
