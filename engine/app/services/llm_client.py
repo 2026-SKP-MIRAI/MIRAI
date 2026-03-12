@@ -21,7 +21,7 @@ def call_llm(
     *,
     model: str | None = None,
     timeout: float = 30.0,
-    max_tokens: int = 1024,
+    max_tokens: int = 2048,
     error_message: str = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
 ) -> str:
     client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=settings.openrouter_api_key)
