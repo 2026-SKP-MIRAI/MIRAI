@@ -9,7 +9,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 def strip_code_block(raw: str) -> str:
     s = raw.strip()
     if s.startswith("```"):
-        s = s[s.index("\n") + 1:]
+        nl = s.find("\n")
+        s = s[nl + 1:] if nl != -1 else s[3:]  # 개행 없으면 ``` 만 제거
     if s.endswith("```"):
         s = s[:s.rfind("```")]
     return s.strip()
