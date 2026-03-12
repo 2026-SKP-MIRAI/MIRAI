@@ -34,12 +34,13 @@ export async function POST(req: Request) {
 
   const history = session.history as HistoryItem[]
   const questionsQueue = session.questionsQueue as QueueItem[]
+  const historyForEngine = history.map(({ questionType: _, ...item }) => item)
 
   let engineRes: Response
   try {
     engineRes = await callEngineAnswer({
       resumeText: session.resume.resumeText.slice(0, 16000),
-      history,
+      history: historyForEngine,
       questionsQueue,
       currentQuestion: session.currentQuestion,
       currentPersona: session.currentPersona as PersonaType,
