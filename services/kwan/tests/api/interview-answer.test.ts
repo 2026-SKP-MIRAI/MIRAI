@@ -128,4 +128,17 @@ describe('POST /api/interview/answer', () => {
     const res = await POST(req)
     expect(res.status).toBe(500)
   })
+
+  it('동시 완료 충돌(P2025) → 400 반환', async () => {
+    vi.mocked(prisma.interviewSession.findUnique).mockResolvedValueOnce(MOCK_SESSION as ReturnType<typeof prisma.interviewSession.findUnique> extends Promise<infer T> ? T : never)
+    mockCallAnswer.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockAnswerResponse), { status: 200 })
+    )
+    vi.mocked(prisma.interviewSession.update).mockRejectedValueOnce({ code: 'P2025' })
+    const req = makeRequest({ sessionId: 'session-456', answer: '답변' })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('이미 완료된 면접 세션입니다.')
+  })
 })

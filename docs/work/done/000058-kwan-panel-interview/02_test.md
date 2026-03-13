@@ -2,11 +2,15 @@
 
 실행일: 2026-03-12 (최초: 2026-03-11)
 도구: Vitest v4.0.18 / Playwright
-결과: **Vitest 6파일 35테스트 전부 통과** (+ Playwright e2e 1테스트 통과)
+결과: **Vitest 7파일 40테스트 전부 통과** (+ Playwright e2e 1테스트 통과)
 
-> **2026-03-12 변경**: `resume/questions` route를 seung 패턴(병렬 처리 + 단일 DB write)으로 통일.
+> **2026-03-12 변경 1**: `resume/questions` route를 seung 패턴(병렬 처리 + 단일 DB write)으로 통일.
 > `resume-questions.test.ts` 7→8 케이스 (빈 resumeText → resumeId: null 추가).
 > `prisma.resume.update` mock 제거, PDFParse mock `function()` 수정.
+>
+> **2026-03-12 변경 2**: `interview-session.test.ts` 4 케이스 추가 (GET session 라우트).
+> `interview-answer.test.ts` 8→9 케이스 (P2025 동시 완료 충돌 → 400 추가).
+> `playwright.config.ts` webServer 설정 추가 (CI: build+start, 로컬: dev).
 
 ---
 
@@ -49,18 +53,28 @@
 | 4 | 엔진 호출 실패 → 500 | ✅ |
 | 5 | 엔진 500 응답 → 500 전달 | ✅ |
 
-### `tests/api/interview-answer.test.ts` — 8 passed
+### `tests/api/interview-answer.test.ts` — 9 passed *(2026-03-12: 8→9)*
+
+| # | 테스트 | 결과 | 비고 |
+|---|--------|------|------|
+| 1 | sessionId 없음 → 400 | ✅ | |
+| 2 | answer 없음 → 400 | ✅ | |
+| 3 | answer 공백만 → 400 | ✅ | |
+| 4 | session 없음 → 404 | ✅ | |
+| 5 | 이미 완료된 session → 400 반환 (엔진 미호출) | ✅ | |
+| 6 | 정상 흐름: session 업데이트 + nextQuestion 반환 | ✅ | |
+| 7 | sessionComplete=true 응답 → 완료 응답 반환 | ✅ | |
+| 8 | 엔진 호출 실패 → 500 | ✅ | |
+| 9 | 동시 완료 충돌(P2025) → 400 반환 | ✅ | **신규** — prisma.update P2025 throw → "이미 완료된 면접 세션입니다." |
+
+### `tests/api/interview-session.test.ts` — 4 passed *(2026-03-12: 신규)*
 
 | # | 테스트 | 결과 |
 |---|--------|------|
 | 1 | sessionId 없음 → 400 | ✅ |
-| 2 | answer 없음 → 400 | ✅ |
-| 3 | answer 공백만 → 400 | ✅ |
-| 4 | session 없음 → 404 | ✅ |
-| 5 | 이미 완료된 session → 400 반환 (엔진 미호출) | ✅ |
-| 6 | 정상 흐름: session 업데이트 + nextQuestion 반환 | ✅ |
-| 7 | sessionComplete=true 응답 → 완료 응답 반환 | ✅ |
-| 8 | 엔진 호출 실패 → 500 | ✅ |
+| 2 | session 없음 → 404 | ✅ |
+| 3 | 정상 session → 200 + 세션 상태 반환 | ✅ |
+| 4 | 완료된 session → 200 + sessionComplete: true | ✅ |
 
 ### `tests/components/QuestionList.test.tsx` — 5 passed
 
@@ -100,7 +114,7 @@
 
 ---
 
-## 전체 검증 결과 요약 (validate-all, 2026-03-12)
+## 전체 검증 결과 요약 (validate-all, 2026-03-12 최종)
 
 날짜: 2026-03-12
 
@@ -126,8 +140,10 @@
 - ✅ DB 소유는 서비스(kwan): Prisma 6 + Supabase
 
 **불변식 5 — 테스트**
-- ✅ 모든 신규 라우트에 대응하는 Vitest 테스트 존재 (35테스트 / 6파일)
+- ✅ 모든 신규 라우트에 대응하는 Vitest 테스트 존재 (40테스트 / 7파일)
 - ✅ Playwright e2e 1건 통과
+- ✅ playwright.config.ts webServer 설정 추가 — CI 자동 실행 가능
+- ✅ P2025 TOCTOU 충돌 테스트 추가
 - ⚠️ IMPORTANT: engine `interview_service.py` 변경사항(`max_tokens: 1024`)에 대한 엔진 측 pytest 테스트 없음 (해당 변경이 아직 커밋되지 않았으며, engine 커밋은 별도 처리 예정으로 01_plan.md에 명시됨)
 
 **엔진 API 계약 검증**
@@ -275,7 +291,7 @@ engine/ 변경 없음 (01_plan.md: "engine/ — 변경 없음"). 이전 커밋(e
 
 🚨 CRITICAL 총계: **0개**
 ⚠️ IMPORTANT 총계: **8개** (모두 개선 권고, 머지 블로커 아님)
-✅ 통과 항목: **42개**
+✅ 통과 항목: **44개** (playwright webServer + P2025 테스트 추가로 +2)
 
 머지 가능 여부: **YES** (CRITICAL 0개)
 
