@@ -103,9 +103,13 @@ export default function InterviewSessionPage() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-[#1F2937] mb-2">면접이 완료됐습니다</h3>
-            {/* TODO: Phase 2 — /interview/[sessionId]/result 로 이동 (8축 리포트) */}
-            <p className="text-sm text-[#9CA3AF] mb-6">역량 리포트 기능은 준비 중입니다</p>
-            <button onClick={() => router.push("/resume")} className="btn-outline rounded-xl px-6 py-3">
+            <button
+              onClick={() => router.push(`/interview/${sessionId}/report`)}
+              className="btn-primary rounded-xl px-6 py-3 mb-3 w-full"
+            >
+              리포트 보기
+            </button>
+            <button onClick={() => router.push("/resume")} className="btn-outline rounded-xl px-6 py-3 w-full">
               다시 하기
             </button>
           </div>
