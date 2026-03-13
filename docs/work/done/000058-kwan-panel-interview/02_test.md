@@ -1,6 +1,6 @@
 # 테스트 결과 — feat: [kwan] 패널 면접 연동 (#58)
 
-실행일: 2026-03-12 (최초: 2026-03-11)
+실행일: 2026-03-13 (최초: 2026-03-11)
 도구: Vitest v4.0.18 / Playwright
 결과: **Vitest 7파일 40테스트 전부 통과** (+ Playwright e2e 1테스트 통과)
 
@@ -11,6 +11,11 @@
 > **2026-03-12 변경 2**: `interview-session.test.ts` 4 케이스 추가 (GET session 라우트).
 > `interview-answer.test.ts` 8→9 케이스 (P2025 동시 완료 충돌 → 400 추가).
 > `playwright.config.ts` webServer 설정 추가 (CI: build+start, 로컬: dev).
+>
+> **2026-03-13 변경 3**: Zod 런타임 검증 추가로 인한 mock 정합성 수정.
+> `interview-session.test.ts` MOCK_SESSION에 `updatedAt` 필드 추가 (Prisma 반환 타입과 일치).
+> `interview-start.test.ts` MOCK_SESSION에 `currentPersonaLabel`, `currentQuestionType` 필드 추가.
+> 테스트 케이스 수 변동 없음 (40 유지), tsc --noEmit 에러 0개 확인.
 
 ---
 
