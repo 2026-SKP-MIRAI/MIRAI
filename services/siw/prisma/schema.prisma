@@ -16,8 +16,9 @@ model InterviewSession {
   questionsQueue  Json     @default("[]")
   history         Json     @default("[]")
   sessionComplete Boolean  @default(false)
-  userId          String?
-  createdAt       DateTime @default(now())
+  userId              String?
+  engineResultCache   Json?
+  createdAt           DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
 
   @@map("interview_sessions")
