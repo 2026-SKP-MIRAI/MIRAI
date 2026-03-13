@@ -23,6 +23,8 @@ export async function POST(request: Request) {
   } catch (e) {
     if (e instanceof Error && e.message === "session_complete")
       return Response.json({ message: "이미 완료된 면접 세션입니다." }, { status: 400 });
+    if (e instanceof Error && e.message === "session_not_found")
+      return Response.json({ message: ENGINE_ERROR_MESSAGES.sessionNotFound }, { status: 404 });
     const status =
       e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025" ? 404 : 500;
     return Response.json({ message: ENGINE_ERROR_MESSAGES.interviewAnswerFailed }, { status });

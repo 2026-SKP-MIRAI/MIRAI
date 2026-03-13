@@ -13,8 +13,10 @@ vi.mock("@/lib/interview/interview-repository", () => ({
       questionsQueue: [],
       history: [],
       sessionComplete: false,
+      engineResultCache: null,
     }),
     updateAfterAnswer: vi.fn(),
+    saveEngineResult: vi.fn(),
   },
 }));
 
@@ -82,6 +84,7 @@ describe("interviewService", () => {
         },
       ],
       sessionComplete: false,
+      engineResultCache: null,
     });
     mockFetch.mockResolvedValue({
       ok: true,
@@ -98,6 +101,86 @@ describe("interviewService", () => {
     expect(body.history[0]).not.toHaveProperty("type");
     expect(body.history[0].persona).toBe("hr");
     expect(body.history[0].question).toBe("지원 동기는?");
+  });
+
+  it("answer: engine 3회 실패 시 engine_answer_failed throw", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 503, text: async () => "error" });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    await expect(interviewService.answer("mock-session-id", "내 답변"))
+      .rejects.toThrow("engine_answer_failed");
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("answer: sessionComplete=true 시 engine 호출 없이 session_complete throw", async () => {
+    vi.mocked(interviewRepository.findById).mockResolvedValueOnce({
+      id: "mock-session-id",
+      resumeText: "mock resume text",
+      currentQuestion: "자기소개를 해주세요.",
+      currentPersona: "hr",
+      currentQuestionType: "main" as const,
+      questionsQueue: [],
+      history: [],
+      sessionComplete: true,
+      engineResultCache: null,
+    });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    await expect(interviewService.answer("mock-session-id", "내 답변"))
+      .rejects.toThrow("session_complete");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("answer: engineResultCache 있으면 engine 재호출 안 함 (캐시 HIT)", async () => {
+    vi.mocked(interviewRepository.findById).mockResolvedValueOnce({
+      id: "mock-session-id",
+      resumeText: "mock resume text",
+      currentQuestion: "자기소개를 해주세요.",
+      currentPersona: "hr",
+      currentQuestionType: "main" as const,
+      questionsQueue: [],
+      history: [],
+      sessionComplete: false,
+      engineResultCache: {
+        nextQuestion: { persona: "tech_lead", personaLabel: "기술 리드", question: "캐시 질문", type: "main" },
+        updatedQueue: [],
+        sessionComplete: false,
+      },
+    });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    const result = await interviewService.answer("mock-session-id", "내 답변");
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.nextQuestion?.question).toBe("캐시 질문");
+  });
+
+  it("answer: engine 성공 직후 saveEngineResult 호출됨", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        nextQuestion: { persona: "tech_lead", personaLabel: "기술 리드", question: "다음 질문", type: "main" },
+        updatedQueue: [],
+        sessionComplete: false,
+      }),
+    });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    await interviewService.answer("mock-session-id", "내 답변");
+    expect(vi.mocked(interviewRepository.saveEngineResult)).toHaveBeenCalledOnce();
+  });
+
+  it("answer: engine 응답 Zod 스키마 불일치 시 throw", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ invalid: "structure" }),
+    });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    await expect(interviewService.answer("mock-session-id", "내 답변")).rejects.toThrow();
+  });
+
+  it("start: engine 응답 Zod 스키마 불일치 시 throw", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ invalid: "structure" }),
+    });
+    const { interviewService } = await import("@/lib/interview/interview-service");
+    await expect(interviewService.start("mock-resume-id", ["hr"])).rejects.toThrow();
   });
 
   it("answer: engine 첫 번째 실패 후 재시도하여 성공", async () => {

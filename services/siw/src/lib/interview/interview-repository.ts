@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { QueueItem, HistoryItem } from "@/lib/types";
+import { QueueItemArraySchema, HistoryItemArraySchema, QuestionTypeSchema } from "./schemas";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -14,6 +15,7 @@ export type SessionSnapshot = {
   questionsQueue: QueueItem[];
   history: HistoryItem[];
   sessionComplete: boolean;
+  engineResultCache: object | null;
 };
 
 export const interviewRepository = {
@@ -25,30 +27,34 @@ export const interviewRepository = {
     questionsQueue: QueueItem[];
   }): Promise<string> {
     const session = await prisma.interviewSession.create({
-      data: {
-        resumeText: data.resumeText,
-        currentQuestion: data.currentQuestion,
-        currentPersona: data.currentPersona,
-        currentQuestionType: data.currentQuestionType,
-        questionsQueue: data.questionsQueue,
-        history: [],
-      },
+      data: { ...data, history: [] },
     });
     return session.id;
   },
 
   async findById(id: string): Promise<SessionSnapshot> {
     const s = await prisma.interviewSession.findUniqueOrThrow({ where: { id } });
+    const questionsQueue = QueueItemArraySchema.parse(s.questionsQueue);
+    const history = HistoryItemArraySchema.parse(s.history);
     return {
       id: s.id,
       resumeText: s.resumeText,
       currentQuestion: s.currentQuestion,
       currentPersona: s.currentPersona,
-      currentQuestionType: (s.currentQuestionType ?? "main") as "main" | "follow_up",
-      questionsQueue: s.questionsQueue as QueueItem[],
-      history: s.history as HistoryItem[],
+      currentQuestionType: QuestionTypeSchema.parse(s.currentQuestionType ?? "main"),
+      questionsQueue,
+      history,
       sessionComplete: s.sessionComplete,
+      engineResultCache: (s.engineResultCache as object | null) ?? null,
     };
+  },
+
+  /** engine 호출 성공 직후 write-ahead 캐시 저장 */
+  async saveEngineResult(id: string, result: object): Promise<void> {
+    await prisma.interviewSession.update({
+      where: { id },
+      data: { engineResultCache: result },
+    });
   },
 
   async updateAfterAnswer(
@@ -60,8 +66,23 @@ export const interviewRepository = {
       currentPersona: string;
       currentQuestionType: "main" | "follow_up";
       sessionComplete: boolean;
+      engineResultCache: object | null;
     }
   ): Promise<void> {
-    await prisma.interviewSession.update({ where: { id }, data });
+    try {
+      const { engineResultCache, ...rest } = data;
+      await prisma.interviewSession.update({
+        where: { id },
+        data: {
+          ...rest,
+          engineResultCache: engineResultCache === null ? Prisma.DbNull : engineResultCache,
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+        throw new Error("session_not_found");
+      }
+      throw e;
+    }
   },
 };
