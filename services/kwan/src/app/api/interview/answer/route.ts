@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/db'
 import { callEngineAnswer } from '@/lib/engine-client'
-import type { HistoryItem, QueueItem, PersonaType, QuestionWithPersona } from '@/domain/interview/types'
+import { HistoryItemSchema, QueueItemSchema, EngineAnswerResponseSchema } from '@/domain/interview/schemas'
+import type { PersonaType, HistoryItem } from '@/domain/interview/types'
+
+// TODO(#9): engine 성공 → DB 실패 시 재시도하면 엔진 중복 호출 발생 (맥락 꼬임)
+// 수정 시점: 실사용자 오픈 전 QA 단계. 해결책: pendingResult 컬럼으로 엔진 응답 임시 저장 후 재시도 감지
 
 export const runtime = 'nodejs'
 export const maxDuration = 35
@@ -32,8 +36,16 @@ export async function POST(req: Request) {
     return Response.json({ error: '이미 완료된 면접 세션입니다.' }, { status: 400 })
   }
 
-  const history = session.history as HistoryItem[]
-  const questionsQueue = session.questionsQueue as QueueItem[]
+  const historyParse = HistoryItemSchema.array().safeParse(session.history)
+  if (!historyParse.success) {
+    return Response.json({ error: '세션 데이터가 올바르지 않습니다.' }, { status: 500 })
+  }
+  const queueParse = QueueItemSchema.array().safeParse(session.questionsQueue)
+  if (!queueParse.success) {
+    return Response.json({ error: '세션 데이터가 올바르지 않습니다.' }, { status: 500 })
+  }
+  const history = historyParse.data
+  const questionsQueue = queueParse.data
   const historyForEngine = history.map(({ questionType: _, ...item }) => item)
 
   let engineRes: Response
@@ -60,11 +72,11 @@ export async function POST(req: Request) {
     return Response.json({ error: msg }, { status: engineRes.status })
   }
 
-  const { nextQuestion, updatedQueue, sessionComplete } = engineData as {
-    nextQuestion: QuestionWithPersona | null
-    updatedQueue: QueueItem[]
-    sessionComplete: boolean
+  const engineParse = EngineAnswerResponseSchema.safeParse(engineData)
+  if (!engineParse.success) {
+    return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
+  const { nextQuestion, updatedQueue, sessionComplete } = engineParse.data
 
   const newHistoryItem: HistoryItem = {
     persona: session.currentPersona as PersonaType,

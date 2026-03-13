@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { callEngineStart } from '@/lib/engine-client'
-import type { QuestionWithPersona, QueueItem } from '@/domain/interview/types'
+import { EngineStartResponseSchema } from '@/domain/interview/schemas'
 
 export const runtime = 'nodejs'
 export const maxDuration = 35
@@ -43,10 +43,11 @@ export async function POST(req: Request) {
     return Response.json({ error: msg }, { status: engineRes.status })
   }
 
-  const { firstQuestion, questionsQueue } = engineData as {
-    firstQuestion: QuestionWithPersona
-    questionsQueue: QueueItem[]
+  const engineParse = EngineStartResponseSchema.safeParse(engineData)
+  if (!engineParse.success) {
+    return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
+  const { firstQuestion, questionsQueue } = engineParse.data
 
   const session = await prisma.interviewSession.create({
     data: {

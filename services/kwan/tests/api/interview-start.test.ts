@@ -37,6 +37,8 @@ const MOCK_SESSION = {
   history: [],
   currentQuestion: mockStartResponse.firstQuestion.question,
   currentPersona: mockStartResponse.firstQuestion.persona,
+  currentPersonaLabel: mockStartResponse.firstQuestion.personaLabel,
+  currentQuestionType: mockStartResponse.firstQuestion.type,
   sessionComplete: false,
   createdAt: new Date(),
   updatedAt: new Date(),

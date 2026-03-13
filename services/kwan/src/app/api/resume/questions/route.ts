@@ -1,6 +1,7 @@
 import { PDFParse } from 'pdf-parse'
 import { callEngineQuestions } from '@/lib/engine-client'
 import { prisma } from '@/lib/db'
+import { EngineQuestionsResponseSchema } from '@/domain/interview/schemas'
 
 export const runtime = 'nodejs'
 export const maxDuration = 35
@@ -32,11 +33,17 @@ export async function POST(req: Request) {
       extractTextFromPdf(arrayBuffer),
     ])
 
-    const data = await engineRes.json().catch(() => ({ error: '서버 오류가 발생했습니다.' }))
+    const raw = await engineRes.json().catch(() => ({ error: '서버 오류가 발생했습니다.' }))
     if (!engineRes.ok) {
-      const msg = data.detail ?? '서버 오류가 발생했습니다.'
+      const msg = raw.detail ?? '서버 오류가 발생했습니다.'
       return Response.json({ error: msg }, { status: engineRes.status })
     }
+
+    const engineParse = EngineQuestionsResponseSchema.safeParse(raw)
+    if (!engineParse.success) {
+      return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
+    }
+    const data = engineParse.data
 
     if (!resumeText) {
       return Response.json({ ...data, resumeId: null }, { status: 200 })

@@ -156,6 +156,20 @@ sessionId → DB 조회 → { currentQuestion, currentPersona, history, question
 
 ---
 
+## Known Limitation — 향후 수정 필요
+
+### #9 — engine 성공 → DB 실패 시 idempotency 미처리
+
+**위치**: `services/kwan/src/app/api/interview/answer/route.ts`
+
+**현상**: 엔진 호출 성공 후 `prisma.interviewSession.update` 실패 시 클라이언트가 500을 받고 재시도하면, 엔진이 다시 호출된다. 이때 history에 이전 답변이 없는 상태로 전송되어 면접 맥락이 꼬인다.
+
+**수정 시점**: 실사용자 오픈 전 QA 단계
+
+**해결책**: `InterviewSession`에 `pendingResult Json?` 컬럼 추가. 엔진 응답 직후 임시 저장 → 재시도 시 엔진 스킵 + 저장된 결과 반환. 수정 시 세 서비스(kwan, seung, siw) 동시 적용 필요.
+
+---
+
 ## 기술 결정 기록
 
 | 결정 | 이유 |

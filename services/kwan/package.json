@@ -18,7 +18,8 @@
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^4.9.155",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

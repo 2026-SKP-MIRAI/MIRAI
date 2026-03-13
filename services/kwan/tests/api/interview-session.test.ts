@@ -23,6 +23,7 @@ const MOCK_SESSION = {
   questionsQueue: [],
   sessionComplete: false,
   createdAt: new Date(),
+  updatedAt: new Date(),
 }
 
 function makeRequest(sessionId?: string): Request {
