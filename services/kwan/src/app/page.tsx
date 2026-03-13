@@ -57,7 +57,11 @@ export default function HomePage() {
         </p>
 
         {state === 'done' && result ? (
-          <QuestionList questions={result.questions} onReset={handleReset} />
+          <QuestionList
+            questions={result.questions}
+            resumeId={result.resumeId}
+            onReset={handleReset}
+          />
         ) : (
           <>
             <UploadForm onSubmit={handleSubmit} isLoading={isLoading} />

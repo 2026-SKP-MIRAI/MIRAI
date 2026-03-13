@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Resume {
+  id         String             @id @default(cuid())
+  resumeText String
+  questions  Json
+  createdAt  DateTime           @default(now())
+  sessions   InterviewSession[]
+
+  @@map("resumes")
+}
+
+model InterviewSession {
+  id               String   @id @default(cuid())
+  resumeId         String
+  resume           Resume   @relation(fields: [resumeId], references: [id])
+  questionsQueue   Json
+  history          Json
+  currentQuestion     String
+  currentPersona      String
+  currentPersonaLabel String   @default("")
+  currentQuestionType String   @default("main")
+  sessionComplete     Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("interview_sessions")
+}

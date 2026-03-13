@@ -12,12 +12,19 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "next": "16.1.6",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^4.9.155",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
@@ -27,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "^28.1.0",
+    "prisma": "^6.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
