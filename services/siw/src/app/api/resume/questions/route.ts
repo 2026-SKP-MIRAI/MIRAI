@@ -1,4 +1,6 @@
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages";
+import { parsePdf } from "@/lib/pdf-parser";
+import { resumeRepository } from "@/lib/resume-repository";
 
 export const runtime = "nodejs";
 export const maxDuration = 35;
@@ -13,6 +15,18 @@ export async function POST(request: Request) {
     return Response.json(
       { message: ENGINE_ERROR_MESSAGES.noFile },
       { status: 400 }
+    );
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  let resumeText = "";
+  try {
+    resumeText = await parsePdf(buffer);
+  } catch {
+    return Response.json(
+      { message: ENGINE_ERROR_MESSAGES.corruptedPdf },
+      { status: 422 }
     );
   }
 
@@ -35,7 +49,9 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json(await resp.json());
+    const engineData = await resp.json();
+    const resumeId = await resumeRepository.create(resumeText);
+    return Response.json({ ...engineData, resumeId });
   } catch {
     return Response.json(
       { message: ENGINE_ERROR_MESSAGES.llmError },

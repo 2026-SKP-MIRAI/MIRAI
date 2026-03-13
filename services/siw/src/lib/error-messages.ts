@@ -6,6 +6,9 @@ export const ENGINE_ERROR_MESSAGES = {
   imageOnlyPdf: "이미지만 포함된 PDF입니다. 텍스트가 포함된 PDF를 업로드해 주세요.",
   emptyPdf:     "PDF에 텍스트가 포함되어 있지 않습니다. 텍스트가 있는 PDF를 업로드해 주세요.",
   llmError:     "질문 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+  interviewStartFailed: "면접 시작에 실패했습니다. 다시 시도해주세요.",
+  interviewAnswerFailed: "답변 처리 중 오류가 발생했습니다.",
+  sessionNotFound: "면접 세션을 찾을 수 없습니다.",
 } as const;
 
 export type ErrorKey = keyof typeof ENGINE_ERROR_MESSAGES;

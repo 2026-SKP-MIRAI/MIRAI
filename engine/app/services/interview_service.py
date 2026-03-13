@@ -1,15 +1,11 @@
-import json
-from openai import OpenAI
 from pathlib import Path
-from app.config import settings
-from app.parsers.exceptions import LLMError
 from app.schemas import (
     InterviewStartResponse, InterviewAnswerResponse, FollowupResponse,
     QuestionWithPersona, QueueItem,
 )
+from app.services.llm_client import call_llm as _call_llm, parse_object as _parse_object
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 PERSONA_LABELS = {"hr": "HR 담당자", "tech_lead": "기술팀장", "executive": "경영진"}
 PERSONA_PROMPTS = {
     "hr": "interview_hr_v1.md",
@@ -19,49 +15,6 @@ PERSONA_PROMPTS = {
 
 MAX_TURNS = 10
 MAX_FOLLOWUPS = 2  # 동일 페르소나 꼬리질문 최대 횟수
-
-
-def _strip_code_block(raw: str) -> str:
-    s = raw.strip()
-    if s.startswith("```"):
-        s = s[s.index("\n") + 1:]
-    if s.endswith("```"):
-        s = s[:s.rfind("```")]
-    return s.strip()
-
-
-def _parse_object(raw: str, required_keys: list[str] | None = None) -> dict:
-    """JSON 파싱 후 dict 반환. 배열로 반환된 경우 첫 번째 원소 사용."""
-    try:
-        data = json.loads(_strip_code_block(raw))
-    except json.JSONDecodeError as e:
-        raise LLMError(f"LLM 응답이 유효한 JSON이 아닙니다: {e}") from e
-    if isinstance(data, list):
-        if not data:
-            raise LLMError("LLM 응답 배열이 비어 있습니다")
-        data = data[0]
-    if not isinstance(data, dict):
-        raise LLMError("LLM 응답이 객체가 아닙니다")
-    if required_keys:
-        missing = [k for k in required_keys if k not in data]
-        if missing:
-            raise LLMError(f"LLM 응답에 필수 키가 없습니다: {missing}")
-    return data
-
-
-def _call_llm(prompt: str, *, model: str | None = None, timeout: float = 30.0) -> str:
-    client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=settings.openrouter_api_key)
-    resolved_model = model or settings.openrouter_model
-    try:
-        response = client.chat.completions.create(
-            model=resolved_model,
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=timeout,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        raise LLMError("면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.") from e
 
 
 def _count_trailing_persona(history: list, persona: str) -> int:
@@ -100,7 +53,7 @@ def _check_followup(
         .replace("{persona_context}", persona_context)
         .replace("{resume_text}", resumeText[:16000])
     )
-    raw = _call_llm(prompt, model=model)
+    raw = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
     return _parse_object(raw, required_keys=["shouldFollowUp", "followupType", "followupQuestion", "reasoning"])
 
 
@@ -116,7 +69,7 @@ def start_interview(
     personas_context = ", ".join(PERSONA_LABELS[p] for p in personas)
     prompt = prompt_template.replace("{resume_text}", resumeText[:16000]).replace("{personas_context}", personas_context)
 
-    raw = _call_llm(prompt, model=model)
+    raw = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
     data = _parse_object(raw, required_keys=["question"])
 
     first_question = QuestionWithPersona(
@@ -176,7 +129,7 @@ def process_answer(
     personas_context = PERSONA_LABELS[persona]
     prompt = prompt_template.replace("{resume_text}", resumeText[:16000]).replace("{personas_context}", personas_context)
 
-    raw = _call_llm(prompt, model=model)
+    raw = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
     data = _parse_object(raw, required_keys=["question"])
 
     next_question = QuestionWithPersona(

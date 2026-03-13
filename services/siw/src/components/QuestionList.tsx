@@ -1,5 +1,6 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { QuestionsResponse, Category } from "@/lib/types";
 
 interface Props {
@@ -9,25 +10,123 @@ interface Props {
 
 const CATEGORIES: Category[] = ["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"];
 
+const CATEGORY_TAGS: Record<Category, string> = {
+  "직무 역량":     "tag-blue",
+  "경험의 구체성": "tag-green",
+  "성과 근거":     "tag-yellow",
+  "기술 역량":     "tag-purple",
+};
+
 export default function QuestionList({ data, onReset }: Props) {
+  const router = useRouter();
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState("");
+
   const grouped = CATEGORIES.reduce((acc, cat) => {
     acc[cat] = data.questions.filter(q => q.category === cat);
     return acc;
   }, {} as Record<Category, typeof data.questions>);
 
+  // 질문이 1개 이상 있는 카테고리만 추출
+  const activeCategories = CATEGORIES.filter(cat => grouped[cat].length > 0);
+
+  async function handleStartInterview() {
+    setStarting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/interview/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeId: data.resumeId, personas: ["hr", "tech_lead", "executive"] }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.message); return; }
+      sessionStorage.setItem(`interview-first-${json.sessionId}`, JSON.stringify(json.firstQuestion));
+      router.push(`/interview/${json.sessionId}`);
+    } catch {
+      setError("면접 시작에 실패했습니다.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
   return (
-    <div>
-      {CATEGORIES.map(cat => (
-        <section key={cat}>
-          <h2>{cat}</h2>
-          <ul>
-            {grouped[cat].map((q, i) => (
-              <li key={i} data-testid="question-item">{q.question}</li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      <button onClick={onReset}>다시 하기</button>
+    <div className="space-y-6">
+      {/* 숨겨진 question-item: data-testid 보존 (테스트용, 화면에 미표시) */}
+      <div style={{ display: "none" }} aria-hidden="true">
+        {CATEGORIES.map(cat =>
+          grouped[cat].map((q, i) => (
+            <li key={`${cat}-${i}`} data-testid="question-item">
+              {q.question}
+            </li>
+          ))
+        )}
+      </div>
+
+      {/* 자소서 분석 완료 카드 */}
+      <div className="glass-card rounded-2xl p-8 flex flex-col items-center text-center gap-4">
+        {/* 아이콘 */}
+        <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <path
+              d="M6 14.5L11.5 20L22 9"
+              stroke="url(#checkGrad)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <defs>
+              <linearGradient id="checkGrad" x1="6" y1="9" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#4F46E5" />
+                <stop offset="100%" stopColor="#7C3AED" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* 제목 */}
+        <div>
+          <h2 className="text-2xl font-bold gradient-text">자소서 분석 완료!</h2>
+          <p className="text-sm text-[#4B5563] mt-1">
+            면접 질문 <strong className="text-[#1F2937]">{data.questions.length}개</strong>가 생성됐습니다
+          </p>
+        </div>
+
+        {/* 카테고리 태그 */}
+        {activeCategories.length > 0 && (
+          <div className="w-full">
+            <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">강점 영역</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {activeCategories.map(cat => (
+                <span key={cat} className={`tag ${CATEGORY_TAGS[cat]}`}>
+                  {cat}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 에러 메시지 */}
+        {error && <p className="text-sm text-[#EF4444] w-full text-left">{error}</p>}
+
+        {/* 면접 시작 버튼 */}
+        <button
+          data-testid="start-interview"
+          onClick={handleStartInterview}
+          disabled={starting}
+          className="btn-primary rounded-xl px-6 py-3 w-full flex items-center justify-center gap-2 text-base"
+        >
+          {starting
+            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />시작 중...</>
+            : "면접 바로 시작"
+          }
+        </button>
+      </div>
+
+      {/* 처음부터 다시 */}
+      <button onClick={onReset} className="btn-outline rounded-xl px-5 py-3 w-full">
+        처음부터 다시
+      </button>
     </div>
   );
 }

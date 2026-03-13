@@ -1,9 +1,15 @@
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from app.parsers.exceptions import EmptyPDFError, ImageOnlyPDFError, FileSizeError, PageLimitError, ParseError, LLMError
+from app.parsers.exceptions import EmptyPDFError, ImageOnlyPDFError, FileSizeError, PageLimitError, ParseError, LLMError, InsufficientAnswersError
 from app.routers.resume import router
 from app.routers.interview import router as interview_router
+from app.routers.report import router as report_router
+from app.routers.practice import router as practice_router
 
 app = FastAPI(title="MirAI Engine")
 
@@ -13,6 +19,7 @@ async def handle_validation_error(request: Request, exc: RequestValidationError)
 
 @app.exception_handler(EmptyPDFError)
 @app.exception_handler(ImageOnlyPDFError)
+@app.exception_handler(InsufficientAnswersError)
 async def handle_422(request, exc):
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
@@ -28,3 +35,9 @@ async def handle_500(request, exc):
 
 app.include_router(router, prefix="/api")
 app.include_router(interview_router, prefix="/api")
+app.include_router(report_router, prefix="/api")
+app.include_router(practice_router, prefix="/api")
+
+@app.get("/")
+async def health():
+    return {"status": "ok"}

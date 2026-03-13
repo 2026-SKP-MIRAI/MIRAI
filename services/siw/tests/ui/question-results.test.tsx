@@ -5,6 +5,10 @@ import React from "react";
 import QuestionList from "../../src/components/QuestionList";
 import { QuestionsResponse } from "../../src/lib/types";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 const mockData: QuestionsResponse = {
   questions: [
     { category: "직무 역량", question: "직무 질문1?" },
@@ -13,6 +17,7 @@ const mockData: QuestionsResponse = {
     { category: "기술 역량", question: "기술 질문1?" },
   ],
   meta: { extractedLength: 100, categoriesUsed: ["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"] },
+  resumeId: "mock-resume-id",
 };
 
 describe("QuestionList", () => {

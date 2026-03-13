@@ -1,6 +1,8 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+FeedbackType = Literal["strength", "improvement"]
+
 Category = Literal["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"]
 
 class ParsedResume(BaseModel):
@@ -80,3 +82,61 @@ class FollowupResponse(BaseModel):
     followupType: FollowupType
     followupQuestion: str
     reasoning: str
+
+
+class AxisScores(BaseModel):
+    communication:   int = Field(..., ge=0, le=100)
+    problemSolving:  int = Field(..., ge=0, le=100)
+    logicalThinking: int = Field(..., ge=0, le=100)
+    jobExpertise:    int = Field(..., ge=0, le=100)
+    cultureFit:      int = Field(..., ge=0, le=100)
+    leadership:      int = Field(..., ge=0, le=100)
+    creativity:      int = Field(..., ge=0, le=100)
+    sincerity:       int = Field(..., ge=0, le=100)
+
+
+class AxisFeedback(BaseModel):
+    axis:      str
+    axisLabel: str
+    score:     int = Field(..., ge=0, le=100)
+    type:      FeedbackType
+    feedback:  str
+
+
+class ReportRequest(BaseModel):
+    resumeText: str = Field(..., min_length=1)
+    history: list[HistoryItem] = Field(..., min_length=1)
+
+
+class ReportResponse(BaseModel):
+    scores:        AxisScores
+    totalScore:    int = Field(..., ge=0, le=100)
+    summary:       str
+    axisFeedbacks: list[AxisFeedback] = Field(..., min_length=8, max_length=8)
+    growthCurve:   None = None
+
+
+# --- 연습 모드 피드백 ---
+
+class FeedbackDetail(BaseModel):
+    good:    list[str] = Field(..., min_length=1, max_length=3, description="잘한 점 1-3개")
+    improve: list[str] = Field(..., min_length=1, max_length=3, description="개선할 점 1-3개")
+
+
+class ComparisonDelta(BaseModel):
+    scoreDelta:   int       = Field(..., ge=-100, le=100, description="이전 대비 점수 변화")
+    improvements: list[str] = Field(default_factory=list, description="구체적 개선 사항 (0개 이상)")
+
+
+class PracticeFeedbackRequest(BaseModel):
+    question:       str          = Field(..., min_length=1, description="면접 질문")
+    answer:         str          = Field(..., min_length=1, max_length=5000, description="사용자 답변")
+    previousAnswer: str | None   = Field(None, min_length=1, max_length=5000, description="이전 답변 (비교용, 선택)")
+
+
+class PracticeFeedbackResponse(BaseModel):
+    score:               int                     = Field(..., ge=0, le=100)
+    feedback:            FeedbackDetail
+    keywords:            list[str]               = Field(..., min_length=1, max_length=5)
+    improvedAnswerGuide: str                     = Field(..., min_length=1)
+    comparisonDelta:     ComparisonDelta | None  = None

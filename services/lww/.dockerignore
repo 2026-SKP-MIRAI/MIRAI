@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.git/
+.gitignore
+*.md
+.env
+.env.*
+tests/
+playwright.config.ts
+vitest.config.ts

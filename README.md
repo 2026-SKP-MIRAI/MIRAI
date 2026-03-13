@@ -98,8 +98,11 @@ pip install -e ".[dev]"
 cp .env.example .env
 # OPENROUTER_API_KEY, CLAUDE_MODEL 입력
 
-# 실행
+# 실행 (로컬)
 uvicorn app.main:app --reload
+
+# 실행 (EC2 배포 — 외부 접근 허용)
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 테스트
 pytest
@@ -113,7 +116,8 @@ npm install
 
 # 환경변수 설정
 cp .env.local.example .env.local
-# ENGINE_BASE_URL=http://localhost:8000
+# 로컬: ENGINE_BASE_URL=http://localhost:8000
+# EC2 배포: ENGINE_BASE_URL=https://engine.mirainterview.com
 
 # 실행
 npm run dev
