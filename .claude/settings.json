@@ -15,10 +15,10 @@
       "MultiEdit",
       "NotebookEdit"
     ],
-    "deny": ["Bash(sudo:*)", "Bash(: >:*)"]
-  },
-  "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(: >:*)"
+    ]
   },
   "hooks": {
     "PostToolUse": [
@@ -31,5 +31,9 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
   }
 }
