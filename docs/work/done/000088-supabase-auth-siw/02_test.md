@@ -156,3 +156,25 @@ Duration    4.84s
 | P1-2 callback code 없음 | code 없을 시 /login?error=oauth | 에러 페이지 이동 |
 | P2-1 Open Redirect | // 차단 | //evil.com → 차단 |
 | P2-2 growth 401 | 미인증 시 401 | 401 응답 |
+
+---
+
+## 4차 테스트 — UX 개선 및 버그픽스 후 자동화 테스트
+
+### 변경 사항
+- 랜딩 로그아웃 버튼, 회원가입 Google OAuth 추가
+- Next.js 15 `params` → `Promise<params>` 타입 수정
+- SessionSnapshot mock `userId: null` 누락 필드 추가
+
+### 테스트 실행 결과
+```
+Test Files  22 passed (22)
+Tests       100 passed (100)
+Start at    20:15:16
+Duration    4.19s
+```
+
+### TS 타입 체크
+```
+npx tsc --noEmit → 에러 없음 (prisma/config, .next/types 기존 이슈 제외)
+```

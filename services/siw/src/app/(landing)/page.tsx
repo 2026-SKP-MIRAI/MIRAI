@@ -119,6 +119,21 @@ function StartButton({ className, children }: { className: string; children: Rea
 // ─── 메인 페이지 ──────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    createSupabaseBrowser().auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user)
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    await createSupabaseBrowser().auth.signOut()
+    setIsLoggedIn(false)
+    router.refresh()
+  }
+
   return (
     <div className="min-h-screen bg-white">
 
@@ -151,12 +166,21 @@ export default function LandingPage() {
 
           {/* 우측 CTA */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden sm:block text-sm text-[#4B5563] hover:text-[#4F46E5] transition-colors duration-150"
-            >
-              로그인
-            </Link>
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="hidden sm:block text-sm text-[#4B5563] hover:text-[#4F46E5] transition-colors duration-150"
+              >
+                로그아웃
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:block text-sm text-[#4B5563] hover:text-[#4F46E5] transition-colors duration-150"
+              >
+                로그인
+              </Link>
+            )}
             <StartButton className="btn-primary rounded-full px-5 py-2 text-sm">
               시작하기 →
             </StartButton>

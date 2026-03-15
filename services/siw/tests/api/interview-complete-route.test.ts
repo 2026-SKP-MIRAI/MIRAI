@@ -40,7 +40,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
@@ -60,7 +60,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/missing-session/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "missing-session" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "missing-session" }) });
     expect(res.status).toBe(404);
   });
 
@@ -78,7 +78,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
@@ -98,7 +98,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(500);
   });
 });

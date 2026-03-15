@@ -7,14 +7,14 @@ export const runtime = "nodejs";
 
 export async function PATCH(
   _request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const cookieStore = await cookies();
   const supabase = createServerClient(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ message: "인증이 필요합니다" }, { status: 401 });
 
-  const { sessionId } = params;
+  const { sessionId } = await params;
 
   try {
     // ownership 체크

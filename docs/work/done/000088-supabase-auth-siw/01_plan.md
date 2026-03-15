@@ -254,11 +254,11 @@ CREATE POLICY "users_own_sessions"
 
 ## 수동 설정 필요 항목 (코드 외)
 
-- [ ] **Supabase Dashboard**: Auth → Providers → Google → Client ID/Secret 입력
-- [ ] **Google Cloud Console**: OAuth 클라이언트 생성 + `{SUPABASE_URL}/auth/v1/callback` redirect URI 등록
-- [ ] **Rate limiting**: Supabase Dashboard → Auth → Rate Limits 설정
-- [ ] **RLS SQL 실제 적용**: `prisma/migrations/20260315000000_rls_interview_sessions/migration.sql` 실행
-- [ ] **환경변수**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 확인
+- [x] **Supabase Dashboard**: Auth → Providers → Google → Client ID/Secret 입력
+- [x] **Google Cloud Console**: OAuth 클라이언트 생성 + `{SUPABASE_URL}/auth/v1/callback` redirect URI 등록
+- [x] **Rate limiting**: Supabase Dashboard → Auth → Rate Limits 설정
+- [x] **RLS SQL 실제 적용**: `prisma/migrations/20260315000000_rls_interview_sessions/migration.sql` 실행
+- [x] **환경변수**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 확인
 
 ---
 
@@ -282,3 +282,10 @@ CREATE POLICY "users_own_sessions"
 - [P1-2] auth/callback code 없을 때 /login?error=oauth 리다이렉트
 - [P2-1] growth/sessions 미인증 시 401 리턴
 - [P2-2] Open Redirect protocol-relative URL 차단
+
+### UX 개선 및 버그픽스 (운영 테스트 후 피드백 반영)
+- `(landing)/page.tsx` — 인증 상태 감지, nav "로그인" ↔ "로그아웃" 버튼 전환 (`getUser()` + `signOut()`)
+- `(auth)/signup/page.tsx` — Google OAuth 버튼 추가 (로그인 페이지와 동일한 흐름)
+- `api/interview/[sessionId]/complete/route.ts` — Next.js 15 `params` → `Promise<params>` 타입 수정, `await params` 적용
+- `tests/api/interview-complete-route.test.ts` — params 전달 방식 `Promise.resolve()` 로 수정
+- `tests/unit/interview-service.test.ts` — SessionSnapshot mock에 `userId: null` 누락 필드 추가 (TS 에러 수정)
