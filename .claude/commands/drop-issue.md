@@ -38,7 +38,13 @@ git branch | grep 000015-my-feature
 git branch | grep {짧은이름}
 ```
 
-매칭된 브랜치가 없으면 오류 안내 후 중단.
+매칭된 브랜치가 없으면 **이슈 번호만으로 진행한다** (브랜치·워크트리 미시작 이슈):
+- `gh issue view {이슈번호} --json number,title` 로 이슈 존재 확인
+- 이슈가 없으면 오류 안내 후 중단
+- BRANCH = (없음), WORKTREE = (없음), WORKFOLDER = (없음)
+- 이후 브랜치·워크트리 관련 단계(2·3·8·9·10)는 전부 건너뛴다
+
+브랜치가 있으면:
 - BRANCH = 확정된 브랜치명
 - 이슈번호 = PADDED에서 정수 변환 (앞의 0 제거)
 - WORKTREE = `.worktree/{PADDED}-{짧은이름}`
@@ -169,6 +175,7 @@ git push origin --delete {브랜치명}
 
 ### 11. 완료 안내
 
+브랜치·워크트리가 있었던 경우:
 ```
 ✓ 이슈 #{이슈번호} 포기 처리 완료
 
@@ -176,4 +183,12 @@ git push origin --delete {브랜치명}
 - 작업 폴더: docs/work/done/DROPPED-{PADDED}-{짧은이름}
 - 워크트리: 삭제됨
 - 브랜치: 삭제됨
+```
+
+브랜치·워크트리가 없었던 경우 (미시작 이슈):
+```
+✓ 이슈 #{이슈번호} 포기 처리 완료
+
+- 이슈 상태: CLOSED (not planned)
+- 워크트리·브랜치: 없음 (작업 미시작)
 ```
