@@ -12,7 +12,7 @@ const PERSONA_LABELS: Record<string, string> = {
 };
 
 export const interviewService = {
-  async start(resumeId: string, personas: PersonaType[]) {
+  async start(resumeId: string, personas: PersonaType[], userId?: string | null) {
     const resumeText = await resumeRepository.findById(resumeId);
     const engineText = resumeText.slice(0, 1200);
     let resp: Response | null = null;
@@ -36,6 +36,7 @@ export const interviewService = {
       currentPersona: parsed.firstQuestion.persona,
       currentQuestionType: parsed.firstQuestion.type ?? "main",
       questionsQueue: parsed.questionsQueue,
+      userId: userId ?? null,
     });
 
     return { sessionId, firstQuestion: parsed.firstQuestion };

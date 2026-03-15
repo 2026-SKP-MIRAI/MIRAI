@@ -44,26 +44,10 @@ export default function ResumesPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       {/* 페이지 헤더 */}
-      <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">내 이력서</h1>
-          <p className="text-sm text-gray-500 mt-1">업로드된 이력서를 관리하세요</p>
-        </div>
-        <button
-          onClick={() => setShowUpload(!showUpload)}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          새 이력서
-        </button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">내 이력서</h1>
+        <p className="text-sm text-gray-500 mt-1">업로드된 이력서를 관리하세요</p>
       </div>
-
-      {/* 업로드 폼 인라인 */}
-      {showUpload && (
-        <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6 mb-5">
-          <UploadForm onComplete={(data: QuestionsResponse) => { router.push(`/interview/new?resumeId=${data.resumeId}`) }} />
-        </div>
-      )}
 
       {loading && (
         <div className="space-y-4">
@@ -71,7 +55,8 @@ export default function ResumesPage() {
         </div>
       )}
 
-      {!loading && (
+      {/* 이력서 목록 */}
+      {!loading && resumes.length > 0 && (
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
           {resumes.map(resume => (
             <motion.div
@@ -80,7 +65,6 @@ export default function ResumesPage() {
               className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all duration-200"
             >
               <div className="flex gap-4 items-start">
-                {/* 아이콘 박스 */}
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: "linear-gradient(135deg, #EDE9FE, #DDD6FE)" }}
@@ -99,7 +83,6 @@ export default function ResumesPage() {
                     </span>
                   </div>
 
-                  {/* 미리보기 */}
                   <div className="mt-3 bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-500 border border-black/[0.05] truncate">
                     {resume.fileName}
                   </div>
@@ -124,9 +107,13 @@ export default function ResumesPage() {
             </motion.div>
           ))}
 
-          {/* 점선 추가 카드 */}
+          {/* 추가 업로드 카드 */}
           <motion.div variants={itemVariants}>
-            {!showUpload ? (
+            {showUpload ? (
+              <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6">
+                <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/interview/new?resumeId=${data.resumeId}`) }} />
+              </div>
+            ) : (
               <button
                 onClick={() => setShowUpload(true)}
                 className="w-full border-2 border-dashed border-gray-200 bg-transparent rounded-2xl py-10 text-center hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200 group"
@@ -137,26 +124,33 @@ export default function ResumesPage() {
                 <p className="font-semibold text-gray-700 mb-1">새 이력서 추가</p>
                 <p className="text-sm text-gray-400">이력서를 업로드하면 AI가 자동으로 분석해드려요</p>
               </button>
-            ) : null}
+            )}
           </motion.div>
         </motion.div>
       )}
 
-      {!loading && resumes.length === 0 && !showUpload && (
-        <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-indigo-400" />
+      {/* 빈 상태 */}
+      {!loading && resumes.length === 0 && (
+        showUpload ? (
+          <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-8">
+            <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/interview/new?resumeId=${data.resumeId}`) }} />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">아직 업로드한 이력서가 없습니다</h3>
-          <p className="text-sm text-gray-400 mb-6">이력서를 업로드하면 AI가 면접 질문을 생성해드립니다</p>
-          <button
-            onClick={() => setShowUpload(true)}
-            className="text-white rounded-full px-6 py-3 font-semibold shadow-[0_4px_14px_rgba(124,58,237,0.35)] active:scale-95 transition-all"
-            style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
-          >
-            첫 이력서 업로드
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-indigo-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">아직 업로드한 이력서가 없습니다</h3>
+            <p className="text-sm text-gray-400 mb-6">이력서를 업로드하면 AI가 면접 질문을 생성해드립니다</p>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="text-white rounded-full px-6 py-3 font-semibold shadow-[0_4px_14px_rgba(124,58,237,0.35)] active:scale-95 transition-all"
+              style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
+            >
+              첫 이력서 업로드
+            </button>
+          </div>
+        )
       )}
     </div>
   )

@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { QuestionsResponse, Category } from "@/lib/types";
+import type { InterviewMode } from "@/lib/types";
+import { Zap, BookOpen } from "lucide-react";
 
 interface Props {
   data: QuestionsResponse;
@@ -30,7 +32,7 @@ export default function QuestionList({ data, onReset }: Props) {
   // 질문이 1개 이상 있는 카테고리만 추출
   const activeCategories = CATEGORIES.filter(cat => grouped[cat].length > 0);
 
-  async function handleStartInterview() {
+  async function handleStartInterview(mode: InterviewMode) {
     setStarting(true);
     setError("");
     try {
@@ -42,6 +44,7 @@ export default function QuestionList({ data, onReset }: Props) {
       const json = await res.json();
       if (!res.ok) { setError(json.message); return; }
       sessionStorage.setItem(`interview-first-${json.sessionId}`, JSON.stringify(json.firstQuestion));
+      sessionStorage.setItem(`interview-mode-${json.sessionId}`, mode);
       router.push(`/interview/${json.sessionId}`);
     } catch {
       setError("면접 시작에 실패했습니다.");
@@ -109,18 +112,37 @@ export default function QuestionList({ data, onReset }: Props) {
         {/* 에러 메시지 */}
         {error && <p className="text-sm text-[#EF4444] w-full text-left">{error}</p>}
 
-        {/* 면접 시작 버튼 */}
-        <button
-          data-testid="start-interview"
-          onClick={handleStartInterview}
-          disabled={starting}
-          className="btn-primary rounded-xl px-6 py-3 w-full flex items-center justify-center gap-2 text-base"
-        >
-          {starting
-            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />시작 중...</>
-            : "면접 바로 시작"
-          }
-        </button>
+        {/* 모드 선택 */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-[#6B7280] text-center">면접 모드 선택</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              data-testid="mode-real"
+              onClick={() => handleStartInterview("real")}
+              disabled={starting}
+              className="glass-card rounded-xl p-4 flex flex-col items-center gap-2 text-left hover:ring-2 hover:ring-indigo-400 transition-all"
+            >
+              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-indigo-600" />
+              </div>
+              <p className="text-sm font-bold text-[#1F2937]">실전 모드</p>
+              <p className="text-xs text-[#6B7280] text-center">면접처럼 진행<br/>즉각 피드백 없음</p>
+            </button>
+            <button
+              data-testid="mode-practice"
+              onClick={() => handleStartInterview("practice")}
+              disabled={starting}
+              className="glass-card rounded-xl p-4 flex flex-col items-center gap-2 text-left hover:ring-2 hover:ring-violet-400 transition-all"
+            >
+              <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-violet-600" />
+              </div>
+              <p className="text-sm font-bold text-[#1F2937]">연습 모드</p>
+              <p className="text-xs text-[#6B7280] text-center">즉각 AI 피드백<br/>재답변 가능</p>
+            </button>
+          </div>
+          {starting && <p className="text-xs text-center text-[#9CA3AF]">시작 중...</p>}
+        </div>
       </div>
 
       {/* 처음부터 다시 */}

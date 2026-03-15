@@ -6,6 +6,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock("@/lib/supabase/browser", () => ({
+  createSupabaseBrowser: () => ({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { email: "test@example.com", user_metadata: { full_name: "테스트유저" } } },
+      }),
+    },
+  }),
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: React.ComponentProps<"div">) =>

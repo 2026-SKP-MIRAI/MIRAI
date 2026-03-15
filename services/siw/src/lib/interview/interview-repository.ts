@@ -5,6 +5,7 @@ import { QueueItemArraySchema, HistoryItemArraySchema, QuestionTypeSchema } from
 
 export type SessionSnapshot = {
   id: string;
+  userId: string | null;
   resumeText: string;
   currentQuestion: string;
   currentPersona: string;
@@ -22,6 +23,7 @@ export const interviewRepository = {
     currentPersona: string;
     currentQuestionType: "main" | "follow_up";
     questionsQueue: QueueItem[];
+    userId?: string | null;
   }): Promise<string> {
     const session = await prisma.interviewSession.create({
       data: { ...data, history: [] },
@@ -29,12 +31,15 @@ export const interviewRepository = {
     return session.id;
   },
 
-  async findById(id: string): Promise<SessionSnapshot> {
-    const s = await prisma.interviewSession.findUniqueOrThrow({ where: { id } });
+  async findById(id: string, userId?: string): Promise<SessionSnapshot> {
+    const s = await prisma.interviewSession.findUniqueOrThrow({
+      where: userId ? { id, userId } : { id },
+    });
     const questionsQueue = QueueItemArraySchema.parse(s.questionsQueue);
     const history = HistoryItemArraySchema.parse(s.history);
     return {
       id: s.id,
+      userId: s.userId ?? null,
       resumeText: s.resumeText,
       currentQuestion: s.currentQuestion,
       currentPersona: s.currentPersona,
@@ -114,7 +119,7 @@ export const interviewRepository = {
   },
 
   /** 완료된 세션 목록 (reportScores 있는 것만) */
-  async listCompleted(): Promise<Array<{
+  async listCompleted(userId: string): Promise<Array<{
     id: string;
     createdAt: Date;
     resumeText: string;
@@ -125,6 +130,7 @@ export const interviewRepository = {
       where: {
         sessionComplete: true,
         reportScores: { not: Prisma.DbNull },
+        userId: userId,
       },
       orderBy: { createdAt: "desc" },
       select: {

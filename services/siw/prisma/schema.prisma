@@ -1,10 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model InterviewSession {
@@ -16,6 +17,7 @@ model InterviewSession {
   questionsQueue  Json     @default("[]")
   history         Json     @default("[]")
   sessionComplete Boolean  @default(false)
+  interviewMode   String   @default("real")
   userId              String?
   engineResultCache   Json?
   reportScores     Json?

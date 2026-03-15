@@ -96,7 +96,7 @@ export default function ReportResult({ report }: Props) {
         },
         grid: { color: "rgba(0,0,0,0.07)" },
         angleLines: { color: "rgba(0,0,0,0.07)" },
-        pointLabels: { font: { size: 13, weight: "600" as const }, color: "#374151" as const },
+        pointLabels: { font: { size: 13, weight: 600 }, color: "#374151" as const },
       },
     },
   };

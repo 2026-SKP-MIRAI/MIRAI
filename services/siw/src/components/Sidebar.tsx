@@ -1,7 +1,7 @@
 "use client"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   FileText,
@@ -13,6 +13,7 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import { createSupabaseBrowser } from "@/lib/supabase/browser"
 
 type NavItem = {
   label: string
@@ -38,7 +39,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "면접",
     href: "/interview/new",
     icon: MessageSquare,
-    activeCheck: (p) => p.startsWith("/interview/"),
+    activeCheck: (p) => p.startsWith("/interview"),
   },
   {
     label: "성장 추이",
@@ -50,8 +51,26 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowser()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null)
+      setUserName(user?.user_metadata?.full_name ?? null)
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    const supabase = createSupabaseBrowser()
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="flex flex-col h-full relative">
@@ -117,20 +136,25 @@ export default function Sidebar() {
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
             style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
           >
-            U
+            {(userName?.[0] ?? userEmail?.[0] ?? "U").toUpperCase()}
           </div>
           <div
             className={`overflow-hidden transition-[opacity,width] duration-150 ${
               !mobile && collapsed ? "opacity-0 w-0" : "opacity-100"
             }`}
           >
-            <p className="text-sm font-bold text-gray-900 whitespace-nowrap">사용자</p>
+            {userName && (
+              <p className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+                {userName}
+              </p>
+            )}
             <p className="text-xs text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]">
-              user@example.com
+              {userEmail ?? "로딩 중..."}
             </p>
           </div>
         </div>
         <button
+          onClick={handleLogout}
           className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-gray-400 text-sm transition-all hover:bg-gray-100 hover:text-gray-600 ${
             !mobile && collapsed ? "justify-center" : ""
           }`}
