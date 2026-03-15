@@ -46,8 +46,11 @@ AC가 없으면 빈 체크리스트로 계속 진행한다.
 
 다음 순서로 감지하여 첫 번째로 사용 가능한 도구를 사용한다:
 
-1. **OMC가 있는 경우**: `/oh-my-claudecode:ralplan` 호출. 스킬이 대화형으로 플랜 작성을 처리한다. 이 커맨드의 역할은 여기서 끝난다.
-2. **superpowers가 있는 경우 (OMC 없음)**: `/superpowers:writing-plans` 호출. 스킬이 플랜 작성을 처리한다. 이 커맨드의 역할은 여기서 끝난다.
+1. **OMC가 있는 경우**: `/oh-my-claudecode:ralplan` 호출. 호출 전 반드시 다음 컨텍스트를 ralplan에 전달한다:
+   - 저장 경로: `{WORKFOLDER}/01_plan.md` (`.omc/` 디렉토리가 아닌 이 경로에 저장해야 함)
+   - 완료 기준: 위에서 추출한 AC 항목
+   - ralplan이 플랜 작성을 완료하면, 결과를 `{WORKFOLDER}/01_plan.md`의 `## 구현 계획` 섹션에 저장한다. 이 커맨드의 역할은 여기서 끝난다.
+2. **superpowers가 있는 경우 (OMC 없음)**: `/superpowers:writing-plans` 호출. 결과를 `{WORKFOLDER}/01_plan.md`의 `## 구현 계획` 섹션에 저장한다. 이 커맨드의 역할은 여기서 끝난다.
 3. **둘 다 없는 경우**: Claude가 직접 아래 4단계를 수행한다.
 
 ### 4. 직접 플랜 작성 (OMC 없는 경우)
