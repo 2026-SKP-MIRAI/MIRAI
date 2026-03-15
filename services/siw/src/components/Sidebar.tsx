@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "면접",
     href: "/interview/new",
     icon: MessageSquare,
-    activeCheck: (p) => p.startsWith("/interview/"),
+    activeCheck: (p) => p.startsWith("/interview"),
   },
   {
     label: "성장 추이",

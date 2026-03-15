@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import InterviewChat from "@/components/InterviewChat";
-import type { QuestionWithPersona, HistoryItem } from "@/lib/types";
+import type { QuestionWithPersona, HistoryItem, InterviewMode, PracticeFeedback } from "@/lib/types";
 
 export default function InterviewSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -16,6 +16,12 @@ export default function InterviewSessionPage() {
   const [error, setError] = useState("");
   const [showExitModal, setShowExitModal] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [interviewMode, setInterviewMode] = useState<InterviewMode>("real");
+  const [practiceFeedback, setPracticeFeedback] = useState<PracticeFeedback | null>(null);
+  const [isRetried, setIsRetried] = useState(false);
+  const [lastAnswer, setLastAnswer] = useState("");
+  const [practiceAnswer, setPracticeAnswer] = useState("");
+  const [fetchingFeedback, setFetchingFeedback] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -25,30 +31,105 @@ export default function InterviewSessionPage() {
     if (stored) {
       try { setCurrentQuestion(JSON.parse(stored)); } catch { /* 손상된 캐시는 무시 */ }
     }
+    const storedMode = sessionStorage.getItem(`interview-mode-${sessionId}`);
+    if (storedMode === "practice" || storedMode === "real") {
+      setInterviewMode(storedMode);
+    }
   }, [sessionId]);
 
   async function handleSubmit() {
-    if (!answer.trim() || submitting) return;
+    if (!answer.trim() || submitting || fetchingFeedback) return;
+
+    if (interviewMode === "real") {
+      setSubmitting(true);
+      setError("");
+      try {
+        const res = await fetch("/api/interview/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, currentAnswer: answer }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.message); return; }
+        if (currentQuestion) {
+          setHistory(prev => [...prev, {
+            persona: currentQuestion.persona,
+            personaLabel: currentQuestion.personaLabel,
+            question: currentQuestion.question,
+            answer,
+            type: currentQuestion.type ?? "main",
+          }]);
+        }
+        setAnswer("");
+        setCurrentQuestion(data.nextQuestion);
+        setSessionComplete(data.sessionComplete);
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      // practice mode: get feedback first, don't advance question
+      setFetchingFeedback(true);
+      setError("");
+      const currentAnswerText = answer;
+      const prevAnswer = isRetried ? lastAnswer : undefined;
+      try {
+        const body: Record<string, string> = {
+          question: currentQuestion?.question ?? "",
+          answer: currentAnswerText,
+        };
+        if (prevAnswer) body.previousAnswer = prevAnswer;
+
+        const res = await fetch("/api/practice/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.message); return; }
+
+        if (!isRetried) {
+          setLastAnswer(currentAnswerText);
+        }
+        setAnswer("");
+        setPracticeAnswer(currentAnswerText);
+        setPracticeFeedback(data);
+      } catch {
+        setError("피드백 생성에 실패했습니다.");
+      } finally {
+        setFetchingFeedback(false);
+      }
+    }
+  }
+
+  function handleRetry() {
+    setIsRetried(true);
+  }
+
+  async function handleNextQuestion() {
+    if (submitting) return;
     setSubmitting(true);
     setError("");
     try {
       const res = await fetch("/api/interview/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, currentAnswer: answer }),
+        body: JSON.stringify({ sessionId, currentAnswer: lastAnswer }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); return; }
       if (currentQuestion) {
         setHistory(prev => [...prev, {
-          persona: currentQuestion.persona,
-          personaLabel: currentQuestion.personaLabel,
-          question: currentQuestion.question,
-          answer,
-          type: currentQuestion.type ?? "main",
+          persona: currentQuestion!.persona,
+          personaLabel: currentQuestion!.personaLabel,
+          question: currentQuestion!.question,
+          answer: lastAnswer,
+          type: currentQuestion!.type ?? "main",
         }]);
       }
-      setAnswer("");
+      setPracticeFeedback(null);
+      setIsRetried(false);
+      setLastAnswer("");
+      setPracticeAnswer("");
       setCurrentQuestion(data.nextQuestion);
       setSessionComplete(data.sessionComplete);
     } finally {
@@ -94,10 +175,16 @@ export default function InterviewSessionPage() {
             currentQuestion={currentQuestion}
             history={history}
             sessionComplete={sessionComplete}
+            interviewMode={interviewMode}
+            practiceFeedback={practiceFeedback}
+            onRetryAnswer={handleRetry}
+            onNextQuestion={handleNextQuestion}
+            isRetried={isRetried}
+            practiceAnswer={practiceAnswer}
           />
         </div>
 
-        {!sessionComplete && (
+        {!sessionComplete && (!practiceFeedback || isRetried) && (
           <div className="glass-card rounded-2xl p-4 sticky bottom-4">
             <textarea
               data-testid="answer-input"
@@ -111,10 +198,12 @@ export default function InterviewSessionPage() {
             <button
               data-testid="submit-answer"
               onClick={handleSubmit}
-              disabled={submitting || !answer.trim()}
+              disabled={submitting || fetchingFeedback || !answer.trim()}
               className="btn-primary rounded-xl px-5 py-3 w-full mt-3 flex items-center justify-center gap-2"
             >
-              {submitting
+              {fetchingFeedback
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />피드백 생성 중...</>
+                : submitting
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />처리 중...</>
                 : "답변 제출"
               }
