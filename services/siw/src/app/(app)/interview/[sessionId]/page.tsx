@@ -14,13 +14,17 @@ export default function InterviewSessionPage() {
   const [sessionComplete, setSessionComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     const stored = sessionStorage.getItem(`interview-first-${sessionId}`);
-    if (stored) setCurrentQuestion(JSON.parse(stored));
+    if (stored) {
+      try { setCurrentQuestion(JSON.parse(stored)); } catch { /* 손상된 캐시는 무시 */ }
+    }
   }, [sessionId]);
 
   async function handleSubmit() {
@@ -52,16 +56,39 @@ export default function InterviewSessionPage() {
     }
   }
 
+  async function handleExit() {
+    setExiting(true);
+    try {
+      await fetch(`/api/interview/${sessionId}/complete`, { method: "PATCH" });
+      if (history.length >= 5) {
+        router.push(`/interview/${sessionId}/report`);
+      } else {
+        router.push("/dashboard");
+      }
+    } finally {
+      setExiting(false);
+      setShowExitModal(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
       <header className="glass-panel sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold gradient-text">MirAI</Link>
-          <span className="tag tag-purple">면접 진행 중</span>
+          <div className="flex items-center gap-3">
+            <span className="tag tag-purple">면접 진행 중</span>
+            <button
+              onClick={() => setShowExitModal(true)}
+              className="border border-gray-200 text-gray-600 rounded-full px-4 py-1.5 text-sm hover:bg-gray-50 active:scale-95 transition-all"
+            >
+              면접 종료
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 flex-1 flex flex-col gap-4 w-full">
+      <main className="max-w-5xl mx-auto px-4 py-6 flex-1 flex flex-col gap-4 w-full">
         <div className="flex-1">
           <InterviewChat
             currentQuestion={currentQuestion}
@@ -109,12 +136,42 @@ export default function InterviewSessionPage() {
             >
               리포트 보기
             </button>
-            <button onClick={() => router.push("/resume")} className="btn-outline rounded-xl px-6 py-3 w-full">
+            <button onClick={() => router.push("/interview/new")} className="btn-outline rounded-xl px-6 py-3 w-full">
               다시 하기
             </button>
           </div>
         )}
       </main>
+
+      {/* 종료 모달 */}
+      {showExitModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">면접을 종료하시겠어요?</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-[1.7]">
+              {history.length >= 5
+                ? "충분한 답변이 있어 리포트를 생성할 수 있습니다."
+                : `아직 답변이 ${history.length}개입니다. 리포트는 5개 이상 답변이 필요합니다.`}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full py-2.5 font-semibold text-sm transition-all active:scale-95"
+              >
+                계속하기
+              </button>
+              <button
+                onClick={handleExit}
+                disabled={exiting}
+                className="flex-1 text-white rounded-full py-2.5 font-semibold text-sm shadow-[0_4px_14px_rgba(124,58,237,0.35)] active:scale-95 transition-all disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
+              >
+                {exiting ? "종료 중..." : "종료하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

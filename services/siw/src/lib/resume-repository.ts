@@ -1,8 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/prisma";
 
 export const resumeRepository = {
   async create(resumeText: string): Promise<string> {
@@ -12,5 +8,17 @@ export const resumeRepository = {
   async findById(id: string): Promise<string> {
     const s = await prisma.resumeSession.findUniqueOrThrow({ where: { id } });
     return s.resumeText;
+  },
+  async findDetailById(id: string): Promise<{ id: string; resumeText: string; createdAt: Date }> {
+    return prisma.resumeSession.findUniqueOrThrow({
+      where: { id },
+      select: { id: true, resumeText: true, createdAt: true },
+    });
+  },
+  async listAll(): Promise<Array<{ id: string; resumeText: string; createdAt: Date }>> {
+    return prisma.resumeSession.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, resumeText: true, createdAt: true },
+    });
   },
 };

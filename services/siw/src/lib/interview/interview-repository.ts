@@ -1,10 +1,7 @@
-import { PrismaClient, Prisma } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import type { QueueItem, HistoryItem } from "@/lib/types";
 import { QueueItemArraySchema, HistoryItemArraySchema, QuestionTypeSchema } from "./schemas";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
 
 export type SessionSnapshot = {
   id: string;
@@ -84,5 +81,63 @@ export const interviewRepository = {
       }
       throw e;
     }
+  },
+
+  /** 면접 세션을 완료 처리 */
+  async complete(id: string): Promise<void> {
+    try {
+      await prisma.interviewSession.update({
+        where: { id },
+        data: { sessionComplete: true },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+        throw new Error("session_not_found");
+      }
+      throw e;
+    }
+  },
+
+  /** 리포트 점수 저장 (best-effort) */
+  async saveReport(id: string, scores: import("@/lib/types").AxisScores, totalScore: number): Promise<void> {
+    try {
+      await prisma.interviewSession.update({
+        where: { id },
+        data: { reportScores: scores, reportTotalScore: totalScore },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+        throw new Error("session_not_found");
+      }
+      throw e;
+    }
+  },
+
+  /** 완료된 세션 목록 (reportScores 있는 것만) */
+  async listCompleted(): Promise<Array<{
+    id: string;
+    createdAt: Date;
+    resumeText: string;
+    reportScores: unknown;
+    reportTotalScore: number;
+  }>> {
+    const sessions = await prisma.interviewSession.findMany({
+      where: {
+        sessionComplete: true,
+        reportScores: { not: Prisma.DbNull },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        createdAt: true,
+        resumeText: true,
+        reportScores: true,
+        reportTotalScore: true,
+      },
+    });
+    return sessions.map(s => ({
+      ...s,
+      reportTotalScore: s.reportTotalScore ?? 0,
+    }));
   },
 };

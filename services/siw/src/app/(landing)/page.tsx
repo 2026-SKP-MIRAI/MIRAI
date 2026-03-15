@@ -108,18 +108,6 @@ export default function LandingPage() {
 
           {/* 로고 */}
           <div className="flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-              <path
-                d="M9 1L10.8 6.8H17L11.8 10.4L13.5 16.2L9 12.6L4.5 16.2L6.2 10.4L1 6.8H7.2L9 1Z"
-                fill="url(#navStarGrad)"
-              />
-              <defs>
-                <linearGradient id="navStarGrad" x1="0" y1="0" x2="18" y2="18">
-                  <stop offset="0%" stopColor="#4F46E5" />
-                  <stop offset="100%" stopColor="#7C3AED" />
-                </linearGradient>
-              </defs>
-            </svg>
             <span className="text-xl font-bold gradient-text">MirAI</span>
           </div>
 
@@ -147,7 +135,7 @@ export default function LandingPage() {
               로그인
             </span>
             <Link
-              href="/resume"
+              href="/dashboard"
               className="btn-primary rounded-full px-5 py-2 text-sm inline-block"
             >
               시작하기 →
@@ -209,7 +197,7 @@ export default function LandingPage() {
             {/* 버튼 */}
             <div className="flex gap-3 flex-wrap">
               <Link
-                href="/resume"
+                href="/dashboard"
                 className="btn-primary rounded-full px-8 py-4 text-base inline-block"
               >
                 무료로 시작하기 →
@@ -337,7 +325,7 @@ export default function LandingPage() {
               자소서를 업로드하고 AI 면접을 지금 시작하세요
             </p>
             <Link
-              href="/resume"
+              href="/dashboard"
               className="inline-block bg-white text-[#4F46E5] font-semibold rounded-xl px-8 py-4 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
             >
               무료로 시작하기
@@ -354,7 +342,7 @@ export default function LandingPage() {
             <p className="text-xs text-[#9CA3AF] mt-0.5">AI 모의면접 코치</p>
           </div>
           <div className="flex gap-6 text-sm text-[#6B7280]">
-            <Link href="/resume" className="hover:text-[#4F46E5] transition-colors duration-150">
+            <Link href="/dashboard" className="hover:text-[#4F46E5] transition-colors duration-150">
               면접 시작
             </Link>
             <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">

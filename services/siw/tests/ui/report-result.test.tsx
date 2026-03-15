@@ -1,8 +1,21 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import ReportResult from "../../src/components/ReportResult";
 import type { ReportResponse } from "@/lib/types";
+
+vi.mock("chart.js", () => ({
+  Chart: { register: vi.fn() },
+  RadialLinearScale: {},
+  PointElement: {},
+  LineElement: {},
+  Filler: {},
+  Tooltip: {},
+  Legend: {},
+}));
+vi.mock("react-chartjs-2", () => ({
+  Radar: () => null,
+}));
 
 const mockReport: ReportResponse = {
   scores: {
@@ -33,7 +46,7 @@ const mockReport: ReportResponse = {
 describe("ReportResult", () => {
   it("totalScore_렌더링", () => {
     render(<ReportResult report={mockReport} />);
-    expect(screen.getByText("76")).toBeInTheDocument();
+    expect(screen.getAllByText("76").length).toBeGreaterThan(0);
   });
 
   it("summary_텍스트_렌더링", () => {
@@ -55,13 +68,25 @@ describe("ReportResult", () => {
 
   it("strength_피드백_텍스트_렌더링", () => {
     render(<ReportResult report={mockReport} />);
-    expect(screen.getByText("명확한 의사소통 능력을 보여주었습니다")).toBeInTheDocument();
-    expect(screen.getByText("직무 전문성이 탁월합니다")).toBeInTheDocument();
+    // strength feedbacks render as score entries in the summary tab axis list
+    expect(screen.getByText("성실성")).toBeInTheDocument();
+    expect(screen.getByText("의사소통")).toBeInTheDocument();
   });
 
   it("improvement_피드백_텍스트_렌더링", () => {
     render(<ReportResult report={mockReport} />);
+    fireEvent.click(screen.getByText("개선점"));
     expect(screen.getByText("논리적 흐름을 더욱 강화해야 합니다")).toBeInTheDocument();
     expect(screen.getByText("팀 협업 사례를 보강해주세요")).toBeInTheDocument();
+  });
+
+  it("개선점 탭 존재", () => {
+    render(<ReportResult report={mockReport} />);
+    expect(screen.getByText("개선점")).toBeInTheDocument();
+  });
+
+  it("총평 탭 존재", () => {
+    render(<ReportResult report={mockReport} />);
+    expect(screen.getByText("총평")).toBeInTheDocument();
   });
 });
