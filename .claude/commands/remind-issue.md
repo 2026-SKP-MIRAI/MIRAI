@@ -36,6 +36,24 @@ git branch | grep {패턴}
 매칭 없으면 오류 안내 후 중단.
 - WORKFOLDER = `docs/work/active/{PADDED}-{짧은이름}`
 
+### 1.5. 터미널/tmux 윈도우 컨텍스트 설정
+
+Step 1에서 PADDED · 짧은이름 추출 직후 실행한다:
+
+```bash
+if [ -n "$TMUX" ]; then
+  tmux rename-window -t "$TMUX_PANE" "{이슈번호}-{짧은이름}"
+else
+  printf '\033]0;#%s %s\007' "{이슈번호}" "{짧은이름}"
+fi
+```
+
+- tmux 내: `$TMUX_PANE`으로 현재 pane의 윈도우를 명시 타겟팅해 이름 변경 (예: `101-broadpull-main`)
+- tmux 밖: 터미널 타이틀을 `#{이슈번호} {짧은이름}` 으로 변경 (예: `#101 broadpull-main`)
+- 실패 시 오류만 출력하고 계속 진행한다.
+
+---
+
 ### 2. AC 목록 추출
 
 `{WORKFOLDER}/00_issue.md`가 존재하면 읽어서 `## 완료 기준` 또는 `## AC` 섹션의 항목을 추출한다.
