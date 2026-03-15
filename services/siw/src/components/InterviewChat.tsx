@@ -26,9 +26,10 @@ interface Props {
   onNextQuestion?: () => void;
   isRetried?: boolean;
   practiceAnswer?: string;
+  isNextLoading?: boolean;
 }
 
-export default function InterviewChat({ currentQuestion, history, sessionComplete, interviewMode, practiceFeedback, onRetryAnswer, onNextQuestion, isRetried, practiceAnswer }: Props) {
+export default function InterviewChat({ currentQuestion, history, sessionComplete, interviewMode, practiceFeedback, onRetryAnswer, onNextQuestion, isRetried, practiceAnswer, isNextLoading }: Props) {
   return (
     <div className="space-y-6">
       {history.map((item, i) => {
@@ -179,9 +180,13 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
             <button
               data-testid="btn-next-question"
               onClick={onNextQuestion}
-              className="flex-1 btn-primary rounded-xl py-2.5 text-sm"
+              disabled={isNextLoading}
+              className="flex-1 btn-primary rounded-xl py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-70"
             >
-              다음 질문으로
+              {isNextLoading
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />불러오는 중...</>
+                : "다음 질문으로"
+              }
             </button>
           </div>
         </div>

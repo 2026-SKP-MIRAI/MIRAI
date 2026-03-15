@@ -181,6 +181,7 @@ export default function InterviewSessionPage() {
             onNextQuestion={handleNextQuestion}
             isRetried={isRetried}
             practiceAnswer={practiceAnswer}
+            isNextLoading={submitting}
           />
         </div>
 
