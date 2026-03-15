@@ -63,3 +63,12 @@ export type GrowthSession = {
   scores: AxisScores;
   resumeLabel: string;
 };
+
+export type InterviewMode = "real" | "practice";
+export type PracticeFeedback = {
+  score: number;
+  feedback: { good: string[]; improve: string[] };
+  keywords: string[];
+  improvedAnswerGuide: string;
+  comparisonDelta?: { scoreDelta: number; improvements: string[] } | null;
+};

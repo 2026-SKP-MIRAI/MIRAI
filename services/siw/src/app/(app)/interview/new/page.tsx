@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Users, Code2, Briefcase } from "lucide-react"
+import type { InterviewMode } from "@/lib/types"
 
 const containerVariants = {
   hidden: {},
@@ -73,6 +74,7 @@ export default function InterviewNewPage() {
   const preselectedResumeId = searchParams.get("resumeId")
 
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(preselectedResumeId)
+  const [selectedMode, setSelectedMode] = useState<InterviewMode | null>(null)
   const [resumes, setResumes] = useState<ResumeItem[]>([])
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
@@ -87,7 +89,7 @@ export default function InterviewNewPage() {
   const selectedResume = resumes.find(r => r.id === selectedResumeId)
 
   async function handleStart() {
-    if (!selectedResumeId || starting) return
+    if (!selectedResumeId || !selectedMode || starting) return
     setStarting(true)
     setStartError(null)
     try {
@@ -105,6 +107,7 @@ export default function InterviewNewPage() {
         return
       }
       sessionStorage.setItem(`interview-first-${json.sessionId}`, JSON.stringify(json.firstQuestion))
+      sessionStorage.setItem(`interview-mode-${json.sessionId}`, selectedMode ?? "real")
       router.push(`/interview/${json.sessionId}`)
     } finally {
       setStarting(false)
@@ -194,14 +197,40 @@ export default function InterviewNewPage() {
           )}
         </motion.div>
 
+        {/* 모드 선택 */}
+        {selectedResumeId && (
+          <motion.div variants={itemVariants}>
+            <h2 className="text-base font-bold text-gray-900 mb-3">면접 모드 선택</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                data-testid="mode-real"
+                onClick={() => setSelectedMode("real")}
+                className={`rounded-2xl p-5 border transition-all ${selectedMode === "real" ? "border-indigo-500 bg-indigo-50" : "border-black/[0.08] bg-white/90"}`}
+              >
+                <p className="font-bold text-gray-900 text-sm mb-1">⚡ 실전 모드</p>
+                <p className="text-xs text-gray-500 leading-[1.6]">면접처럼 진행<br/>즉각 피드백 없음</p>
+              </button>
+              <button
+                data-testid="mode-practice"
+                onClick={() => setSelectedMode("practice")}
+                className={`rounded-2xl p-5 border transition-all ${selectedMode === "practice" ? "border-violet-500 bg-violet-50" : "border-black/[0.08] bg-white/90"}`}
+              >
+                <p className="font-bold text-gray-900 text-sm mb-1">📝 연습 모드</p>
+                <p className="text-xs text-gray-500 leading-[1.6]">즉각 AI 피드백<br/>재답변 가능</p>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* 시작 버튼 */}
         <motion.div variants={itemVariants}>
           {startError && (
             <p className="text-sm text-red-500 mb-3 text-center">{startError}</p>
           )}
           <button
+            data-testid="start-interview"
             onClick={handleStart}
-            disabled={!selectedResumeId || starting}
+            disabled={!selectedResumeId || !selectedMode || starting}
             className="w-full flex items-center justify-center gap-2 text-white rounded-full py-3.5 font-semibold text-base shadow-[0_4px_14px_rgba(124,58,237,0.35)] hover:-translate-y-px active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
             style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}
           >
@@ -212,6 +241,8 @@ export default function InterviewNewPage() {
               </>
             ) : !selectedResumeId ? (
               "이력서를 선택해주세요"
+            ) : !selectedMode ? (
+              "모드를 선택해주세요"
             ) : (
               "면접 시작하기 →"
             )}

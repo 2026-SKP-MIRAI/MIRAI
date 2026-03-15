@@ -5,9 +5,10 @@ import { ENGINE_ERROR_MESSAGES } from "@/lib/error-messages";
 
 interface Props {
   onComplete: (data: QuestionsResponse) => void;
+  hideTitle?: boolean;
 }
 
-export default function UploadForm({ onComplete }: Props) {
+export default function UploadForm({ onComplete, hideTitle }: Props) {
   const [state, setState] = useState<UploadState>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string>("");
@@ -51,7 +52,7 @@ export default function UploadForm({ onComplete }: Props) {
 
   return (
     <div className="glass-card rounded-2xl p-8 shadow-sm">
-      <h2 className="text-2xl font-bold gradient-text mb-2">자소서 분석</h2>
+      {!hideTitle && <h2 className="text-2xl font-bold gradient-text mb-2">자소서 분석</h2>}
       <p className="text-sm text-[#4B5563] mb-6">PDF 자소서를 업로드하면 맞춤 면접 질문을 생성해드립니다</p>
 
       <div className={dropzoneClass} onClick={() => inputRef.current?.click()}>
@@ -78,12 +79,12 @@ export default function UploadForm({ onComplete }: Props) {
         <button
           onClick={handleSubmit}
           disabled={state === "uploading" || !file}
-          aria-label="질문 생성"
+          aria-label="이력서 분석"
           className="btn-primary rounded-xl px-5 py-3 flex-1 flex items-center justify-center gap-2"
         >
           {state === "uploading" ? (
             <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />자소서를 분석하고 있습니다...</>
-          ) : "질문 생성"}
+          ) : "이력서 분석"}
         </button>
       </div>
     </div>

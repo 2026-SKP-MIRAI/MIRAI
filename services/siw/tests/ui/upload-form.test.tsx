@@ -7,7 +7,7 @@ import UploadForm from "../../src/components/UploadForm";
 describe("UploadForm 상태머신", () => {
   it("idle_renders_upload_controls", () => {
     render(<UploadForm onComplete={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /질문 생성/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /이력서 분석/i })).toBeInTheDocument();
   });
 
   it("moves_to_ready_when_pdf_selected", async () => {
@@ -17,7 +17,7 @@ describe("UploadForm 상태머신", () => {
     const file = new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" });
     await user.upload(input, file);
     // ready 상태: 버튼 활성화 확인
-    expect(screen.getByRole("button", { name: /질문 생성/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /이력서 분석/i })).not.toBeDisabled();
   });
 
   it("moves_to_uploading_when_submit_clicked", async () => {
@@ -27,9 +27,9 @@ describe("UploadForm 상태머신", () => {
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     const file = new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" });
     await user.upload(input, file);
-    await user.click(screen.getByRole("button", { name: /질문 생성/i }));
+    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
     // uploading 상태: 버튼 비활성
-    expect(screen.getByRole("button", { name: /질문 생성/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /이력서 분석/i })).toBeDisabled();
   });
 
   it("moves_to_done_when_api_returns_questions", async () => {
@@ -45,7 +45,7 @@ describe("UploadForm 상태머신", () => {
     render(<UploadForm onComplete={onComplete} />);
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" }));
-    await user.click(screen.getByRole("button", { name: /질문 생성/i }));
+    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
     await vi.waitFor(() => expect(onComplete).toHaveBeenCalledWith(mockData));
   });
 
@@ -57,7 +57,7 @@ describe("UploadForm 상태머신", () => {
     render(<UploadForm onComplete={vi.fn()} />);
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" }));
-    await user.click(screen.getByRole("button", { name: /질문 생성/i }));
+    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
     await vi.waitFor(() => expect(screen.getByText(/다시/i)).toBeInTheDocument());
   });
 });
