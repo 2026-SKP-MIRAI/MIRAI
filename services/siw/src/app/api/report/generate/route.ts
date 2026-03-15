@@ -1,11 +1,18 @@
 import { ENGINE_ERROR_MESSAGES } from "@/lib/error-messages";
 import { interviewRepository } from "@/lib/interview/interview-repository";
+import { createServerClient } from "@/lib/supabase/server";
 import { Prisma } from "@prisma/client";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ message: "인증이 필요합니다" }, { status: 401 });
+
   const body = await request.json();
   const { sessionId } = body;
 
@@ -14,6 +21,7 @@ export async function POST(request: Request) {
 
   try {
     const session = await interviewRepository.findById(sessionId);
+    if (session.userId !== user.id) return Response.json({ message: "권한이 없습니다" }, { status: 403 });
 
     if (session.history.length < 5)
       return Response.json(

@@ -9,6 +9,18 @@ vi.mock("@/lib/interview/interview-service", () => ({
   },
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockReturnValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } } }),
+    },
+  }),
+}));
+
 describe("POST /api/interview/start", () => {
   it("200: sessionId와 firstQuestion 반환", async () => {
     const { POST } = await import("@/app/api/interview/start/route");

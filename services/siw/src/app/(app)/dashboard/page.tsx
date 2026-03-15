@@ -4,6 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { MessageSquare, TrendingUp, FileText, BarChart2 } from "lucide-react"
 import type { GrowthSession } from "@/lib/types"
+import { createSupabaseBrowser } from "@/lib/supabase/browser"
 
 const containerVariants = {
   hidden: {},
@@ -28,6 +29,14 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<GrowthSession[]>([])
   const [resumeCount, setResumeCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowser()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserName(user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? null)
+    })
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -82,7 +91,7 @@ export default function DashboardPage() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              사용자
+              {userName ?? "사용자"}
             </span>
             님
           </h2>
