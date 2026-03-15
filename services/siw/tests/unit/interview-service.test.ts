@@ -85,6 +85,7 @@ describe("interviewService", () => {
       ],
       sessionComplete: false,
       engineResultCache: null,
+      userId: null,
     });
     mockFetch.mockResolvedValue({
       ok: true,
@@ -122,6 +123,7 @@ describe("interviewService", () => {
       history: [],
       sessionComplete: true,
       engineResultCache: null,
+      userId: null,
     });
     const { interviewService } = await import("@/lib/interview/interview-service");
     await expect(interviewService.answer("mock-session-id", "내 답변"))
@@ -144,6 +146,7 @@ describe("interviewService", () => {
         updatedQueue: [],
         sessionComplete: false,
       },
+      userId: null,
     });
     const { interviewService } = await import("@/lib/interview/interview-service");
     const result = await interviewService.answer("mock-session-id", "내 답변");

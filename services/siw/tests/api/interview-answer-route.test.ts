@@ -11,6 +11,24 @@ vi.mock("@/lib/interview/interview-service", () => ({
   },
 }));
 
+vi.mock("@/lib/interview/interview-repository", () => ({
+  interviewRepository: {
+    findById: vi.fn().mockResolvedValue({ userId: "user-123" }),
+  },
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockReturnValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } } }),
+    },
+  }),
+}));
+
 describe("POST /api/interview/answer", () => {
   it("200: nextQuestion 반환", async () => {
     const { POST } = await import("@/app/api/interview/answer/route");

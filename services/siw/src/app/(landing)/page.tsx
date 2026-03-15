@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { FileText, Users, Zap } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import LayeredCardWrapper from "@/components/landing/LayeredCardWrapper"
 import RadarChartInteractive from "@/components/landing/RadarChartInteractive"
+import { createSupabaseBrowser } from "@/lib/supabase/browser"
 
 // ─── 데이터 ────────────────────────────────────────────────────────────────
 
@@ -96,9 +98,42 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
   )
 }
 
+// ─── 시작하기 버튼 ────────────────────────────────────────────────────────
+
+function StartButton({ className, children }: { className: string; children: React.ReactNode }) {
+  const router = useRouter()
+
+  const handleStart = async () => {
+    const supabase = createSupabaseBrowser()
+    const { data: { user } } = await supabase.auth.getUser()
+    router.push(user ? "/dashboard" : "/login")
+  }
+
+  return (
+    <button onClick={handleStart} className={className}>
+      {children}
+    </button>
+  )
+}
+
 // ─── 메인 페이지 ──────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    createSupabaseBrowser().auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user)
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    await createSupabaseBrowser().auth.signOut()
+    setIsLoggedIn(false)
+    router.refresh()
+  }
+
   return (
     <div className="min-h-screen bg-white">
 
@@ -108,7 +143,7 @@ export default function LandingPage() {
 
           {/* 로고 */}
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold gradient-text">MirAI</span>
+            <Link href="/" className="text-xl font-bold gradient-text">MirAI</Link>
           </div>
 
           {/* 중앙 링크 */}
@@ -131,15 +166,24 @@ export default function LandingPage() {
 
           {/* 우측 CTA */}
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-sm text-[#4B5563] cursor-pointer hover:text-[#4F46E5] transition-colors duration-150">
-              로그인
-            </span>
-            <Link
-              href="/dashboard"
-              className="btn-primary rounded-full px-5 py-2 text-sm inline-block"
-            >
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="hidden sm:block text-sm text-[#4B5563] hover:text-[#4F46E5] transition-colors duration-150"
+              >
+                로그아웃
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:block text-sm text-[#4B5563] hover:text-[#4F46E5] transition-colors duration-150"
+              >
+                로그인
+              </Link>
+            )}
+            <StartButton className="btn-primary rounded-full px-5 py-2 text-sm">
               시작하기 →
-            </Link>
+            </StartButton>
           </div>
         </div>
       </nav>
@@ -196,18 +240,12 @@ export default function LandingPage() {
 
             {/* 버튼 */}
             <div className="flex gap-3 flex-wrap">
-              <Link
-                href="/dashboard"
-                className="btn-primary rounded-full px-8 py-4 text-base inline-block"
-              >
+              <StartButton className="btn-primary rounded-full px-8 py-4 text-base">
                 무료로 시작하기 →
-              </Link>
-              <a
-                href="#features"
-                className="btn-outline rounded-full px-8 py-4 text-base inline-block"
-              >
+              </StartButton>
+              <StartButton className="btn-outline rounded-full px-8 py-4 text-base">
                 대시보드 보기
-              </a>
+              </StartButton>
             </div>
           </div>
 
@@ -324,12 +362,9 @@ export default function LandingPage() {
             <p className="text-white/80 text-lg mb-10">
               자소서를 업로드하고 AI 면접을 지금 시작하세요
             </p>
-            <Link
-              href="/dashboard"
-              className="inline-block bg-white text-[#4F46E5] font-semibold rounded-xl px-8 py-4 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
-            >
+            <StartButton className="inline-block bg-white text-[#4F46E5] font-semibold rounded-xl px-8 py-4 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
               무료로 시작하기
-            </Link>
+            </StartButton>
           </FadeInSection>
         </div>
       </section>

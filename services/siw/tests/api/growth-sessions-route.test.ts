@@ -16,6 +16,18 @@ const baseSession = {
   reportTotalScore: 76,
 };
 
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockReturnValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
+    },
+  }),
+}));
+
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
     listCompleted: vi.fn().mockResolvedValue([
