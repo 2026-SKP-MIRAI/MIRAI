@@ -27,10 +27,10 @@
 - [x] 에러 메시지 통일 — "이메일 또는 비밀번호가 올바르지 않습니다" (이메일 열거 공격 방어)
 - [x] Open Redirect 방어 — `?redirectTo` 파라미터가 외부 URL일 경우 차단 (`/` 시작 여부 검증)
 - [x] 비밀번호 정책 — 최소 8자·영문+숫자 조합 Zod 검증 (클라이언트 + 서버 양쪽)
-- [ ] Rate limiting — Supabase Auth 설정에서 로그인 연속 실패 횟수 제한 활성화 _(운영 설정 — 코드 외)_
+- [x] Rate limiting — Supabase Auth 설정에서 로그인 연속 실패 횟수 제한 활성화
 - [x] RLS 완전성 검증 — `interview_sessions` RLS 활성화 + users_own_sessions 정책 추가
 - [x] `NEXT_PUBLIC_` 키 감사 — `createServiceClient`는 서버 전용, 클라이언트 번들 미노출
-- [ ] Google OAuth redirect URI — Google Cloud Console에서 허용 URI 최소화 _(운영 설정 — 코드 외)_
+- [x] Google OAuth redirect URI — Google Cloud Console에서 허용 URI 최소화
 
 ## 구현 플랜
 
@@ -106,10 +106,10 @@ CREATE POLICY "users can access own sessions"
 
 ## 개발 체크리스트
 
-- [ ] 테스트 코드 포함
-- [ ] `services/siw/.ai.md` 최신화
-- [ ] 불변식 위반 없음 (`SUPABASE_SERVICE_ROLE_KEY` 클라이언트 번들 노출 금지)
-- [ ] 기존 인터뷰 세션 흐름 회귀 없음 확인
+- [x] 테스트 코드 포함
+- [x] `services/siw/.ai.md` 최신화
+- [x] 불변식 위반 없음 (`SUPABASE_SERVICE_ROLE_KEY` 클라이언트 번들 노출 금지)
+- [x] 기존 인터뷰 세션 흐름 회귀 없음 확인
 
 ---
 
