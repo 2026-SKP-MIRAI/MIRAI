@@ -55,3 +55,11 @@ export type ReportResponse = {
   axisFeedbacks: AxisFeedback[];
   growthCurve: null;
 };
+
+export type GrowthSession = {
+  id: string;
+  createdAt: string;
+  reportTotalScore: number;
+  scores: AxisScores;
+  resumeLabel: string;
+};

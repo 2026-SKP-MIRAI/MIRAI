@@ -44,12 +44,12 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
       <header className="glass-panel sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/" className="text-xl font-bold gradient-text">MirAI</Link>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 w-full">
+      <main className="max-w-5xl mx-auto px-4 py-6 w-full">
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <span className="w-8 h-8 border-2 border-[#7C3AED]/30 border-t-[#7C3AED] rounded-full animate-spin" />

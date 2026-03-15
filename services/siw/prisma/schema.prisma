@@ -18,6 +18,8 @@ model InterviewSession {
   sessionComplete Boolean  @default(false)
   userId              String?
   engineResultCache   Json?
+  reportScores     Json?
+  reportTotalScore Int?
   createdAt           DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
 

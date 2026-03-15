@@ -34,6 +34,23 @@ export async function POST(request: Request) {
     });
 
     const data = await engineRes.json();
+
+    // best-effort: 리포트 점수 저장 (실패 시 1회 재시도)
+    if (engineRes.ok && data.scores && typeof data.totalScore === "number") {
+      const saveWithRetry = async () => {
+        try {
+          await interviewRepository.saveReport(sessionId, data.scores, data.totalScore);
+        } catch (err) {
+          console.error("[report/generate] saveReport failed, retrying in 2s:", err);
+          await new Promise(r => setTimeout(r, 2000));
+          interviewRepository.saveReport(sessionId, data.scores, data.totalScore).catch((err2) => {
+            console.error("[report/generate] saveReport retry failed:", err2);
+          });
+        }
+      };
+      saveWithRetry();
+    }
+
     return Response.json(data, { status: engineRes.status });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025")
