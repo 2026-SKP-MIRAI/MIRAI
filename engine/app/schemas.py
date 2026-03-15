@@ -167,4 +167,4 @@ class ResumeFeedbackResponse(BaseModel):
     scores:      ResumeFeedbackScores
     strengths:   list[str] = Field(..., min_length=2, max_length=3)
     weaknesses:  list[str] = Field(..., min_length=2, max_length=3)
-    suggestions: list[SuggestionItem]
+    suggestions: list[SuggestionItem] = Field(..., min_length=1)

@@ -36,20 +36,23 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
     if not isinstance(data, dict):
         raise ResumeFeedbackParseError("이력서 피드백 응답이 객체가 아닙니다")
 
-    # scores 파싱 (누락 시 50점 fallback)
+    # scores 파싱 — 5개 키 전부 있어야 하며 null 값도 불허
     raw_scores = data.get("scores", {}) if isinstance(data.get("scores"), dict) else {}
-    score_values = {key: _clamp(raw_scores.get(key, 50)) for key in SCORE_KEYS}
+    missing = [key for key in SCORE_KEYS if key not in raw_scores or raw_scores[key] is None]
+    if missing:
+        raise ResumeFeedbackParseError(f"scores 키 누락 또는 null: {missing}")
+    score_values = {key: _clamp(raw_scores[key]) for key in SCORE_KEYS}
     scores = ResumeFeedbackScores(**score_values)
 
     # strengths/weaknesses — truncate 후 2개 보장 (Pydantic min_length=2)
     def _safe_list(key: str, fallback: str) -> list[str]:
-        raw = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
-        return raw if len(raw) >= 2 else raw + [fallback] * (2 - len(raw))
+        items = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
+        return items if len(items) >= 2 else items + [fallback] * (2 - len(items))
 
     strengths  = _safe_list("strengths",  "강점을 확인하지 못했습니다")
     weaknesses = _safe_list("weaknesses", "약점을 확인하지 못했습니다")
 
-    # suggestions
+    # suggestions — 1개 이상 보장 (Pydantic min_length=1)
     raw_sug = data.get("suggestions", [])
     if not isinstance(raw_sug, list):
         raw_sug = []
@@ -62,6 +65,8 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
         for s in raw_sug
         if isinstance(s, dict)
     ]
+    if not suggestions:
+        suggestions = [SuggestionItem(section="", issue="", suggestion="개선 제안을 확인하지 못했습니다")]
 
     return ResumeFeedbackResponse(
         scores=scores,
@@ -77,7 +82,7 @@ def generate_resume_feedback(
     *,
     model: str | None = None,
 ) -> ResumeFeedbackResponse:
-    prompt = _build_prompt(resumeText[:16000], targetRole)
+    prompt = _build_prompt(resumeText, targetRole)
     raw = call_llm(
         prompt,
         model=model,

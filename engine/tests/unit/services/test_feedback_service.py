@@ -165,3 +165,52 @@ def test_generate_resume_feedback_invalid_json_raises_parse_error():
         from app.services.feedback_service import generate_resume_feedback
         with pytest.raises(ResumeFeedbackParseError):
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 13 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_missing_scores_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
+    json_str = json.dumps({
+        "strengths": ["강점1", "강점2"],
+        "weaknesses": ["약점1", "약점2"],
+        "suggestions": [{"section": "s", "issue": "i", "suggestion": "su"}],
+    })
+    with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
+        from app.services.feedback_service import generate_resume_feedback
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 14 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_partial_scores_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
+    json_str = json.dumps({
+        "scores": {"specificity": 72, "achievementClarity": 65,
+                   "logicStructure": 80, "roleAlignment": 88},
+        "strengths": ["강점1", "강점2"],
+        "weaknesses": ["약점1", "약점2"],
+        "suggestions": [{"section": "s", "issue": "i", "suggestion": "su"}],
+    })
+    with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
+        from app.services.feedback_service import generate_resume_feedback
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 15 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_null_score_value_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
+    json_str = json.dumps({
+        "scores": {"specificity": None, "achievementClarity": 65,
+                   "logicStructure": 80, "roleAlignment": 88, "differentiation": 60},
+        "strengths": ["강점1", "강점2"],
+        "weaknesses": ["약점1", "약점2"],
+        "suggestions": [{"section": "s", "issue": "i", "suggestion": "su"}],
+    })
+    with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
+        from app.services.feedback_service import generate_resume_feedback
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")

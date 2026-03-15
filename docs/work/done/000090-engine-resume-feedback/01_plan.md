@@ -25,8 +25,8 @@
 |------|------|
 | `engine/app/services/feedback_service.py` | 이력서 피드백 비즈니스 로직 (`report_service.py` 패턴 동일) |
 | `engine/app/prompts/resume_feedback_v1.md` | 자소서 5개 항목 진단 프롬프트 |
-| `engine/tests/unit/services/test_feedback_service.py` | 서비스 단위 테스트 12개 |
-| `engine/tests/integration/test_resume_feedback_router.py` | 라우터 통합 테스트 8개 |
+| `engine/tests/unit/services/test_feedback_service.py` | 서비스 단위 테스트 15개 |
+| `engine/tests/integration/test_resume_feedback_router.py` | 라우터 통합 테스트 9개 |
 
 ### 수정 파일 (7개)
 
@@ -61,6 +61,8 @@ LLMError (독립)                    → HTTP 500
 | strengths/weaknesses 최솟값 | 서비스에서 2개 보장 | Pydantic `min_length=2` 제약 — LLM이 1개 이하 반환 시 ValidationError 방지 |
 | 로깅 | `logger.info(...)` 추가 | 기존 `/questions` 엔드포인트 패턴과 일관성 유지 |
 | main.py 수정 | 불필요 | `resume.py`가 이미 `APIRouter(prefix="/resume")`로 `/api`에 등록됨 |
+| suggestions 최솟값 | 서비스에서 1개 보장 | 프롬프트 "1개 이상" 명시 + Pydantic `min_length=1` — LLM 빈 배열 반환 시 fallback SuggestionItem 삽입 |
+| scores 누락 처리 | ParseError raise | silent 50점 fallback 대신 명시적 500 반환 — 5개 키 중 하나라도 누락/null 시 `ResumeFeedbackParseError` |
 
 ---
 
@@ -87,7 +89,7 @@ class ResumeFeedbackResponse(BaseModel):
     scores:      ResumeFeedbackScores
     strengths:   list[str] = Field(..., min_length=2, max_length=3)
     weaknesses:  list[str] = Field(..., min_length=2, max_length=3)
-    suggestions: list[SuggestionItem]
+    suggestions: list[SuggestionItem] = Field(..., min_length=1)
 ```
 
 ---
@@ -99,6 +101,8 @@ class ResumeFeedbackResponse(BaseModel):
 | `resumeText`/`targetRole` 누락·빈 문자열 | `RequestValidationError` | 400 | `main.py handle_validation_error` |
 | LLM API 호출 실패 | `LLMError` | 500 | `main.py handle_500` |
 | LLM 응답 JSON 파싱 실패 | `ResumeFeedbackParseError(LLMError)` | 500 | `main.py handle_500` (상속 자동 포착) |
+| scores 키 누락 또는 null | `ResumeFeedbackParseError(LLMError)` | 500 | `_parse_feedback` 내부 명시적 에러 |
+| suggestions 빈 배열 | — | 200 | `_parse_feedback` fallback SuggestionItem 삽입 |
 | 점수 범위 초과·텍스트 누락 | — | 200 | `_parse_feedback` 내부 fallback |
 
 ---
@@ -132,8 +136,8 @@ class ResumeFeedbackParseError(LLMError): pass
 
 ```python
 def _safe_list(key: str, fallback: str) -> list[str]:
-    raw = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
-    return raw if len(raw) >= 2 else raw + [fallback] * (2 - len(raw))
+    items = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
+    return items if len(items) >= 2 else items + [fallback] * (2 - len(items))
 
 strengths  = _safe_list("strengths",  "강점을 확인하지 못했습니다")
 weaknesses = _safe_list("weaknesses", "약점을 확인하지 못했습니다")
@@ -187,7 +191,7 @@ def _feedback_json(**overrides) -> str:
     return json.dumps(base)
 ```
 
-**단위 테스트 12개** (`test_feedback_service.py`):
+**단위 테스트 15개** (`test_feedback_service.py`):
 
 | # | 함수명 | 검증 내용 |
 |---|--------|-----------|
@@ -203,19 +207,23 @@ def _feedback_json(**overrides) -> str:
 | 10 | `test_generate_resume_feedback_empty_strengths_uses_fallback` | strengths=[] → fallback 2개 보장 |
 | 11 | `test_generate_resume_feedback_llm_error_raises_llm_error` | LLM API 오류 → `LLMError` raise |
 | 12 | `test_generate_resume_feedback_invalid_json_raises_parse_error` | 잘못된 JSON → `ResumeFeedbackParseError` raise |
+| 13 | `test_generate_resume_feedback_missing_scores_raises_parse_error` | scores 전체 누락 → `ResumeFeedbackParseError` raise |
+| 14 | `test_generate_resume_feedback_partial_scores_raises_parse_error` | scores 4개 (1개 누락) → `ResumeFeedbackParseError` raise |
+| 15 | `test_generate_resume_feedback_null_score_value_raises_parse_error` | score null 값 → `ResumeFeedbackParseError` raise |
 
-**통합 테스트 8개** (`test_resume_feedback_router.py`):
+**통합 테스트 9개** (`test_resume_feedback_router.py`):
 
 | # | 함수명 | HTTP | 검증 내용 |
 |---|--------|------|-----------|
-| 13 | `test_resume_feedback_200_full_fields` | 200 | scores·strengths·weaknesses·suggestions 전체 존재 |
-| 14 | `test_resume_feedback_200_scores_five_keys` | 200 | scores 5개 키 모두 존재 |
-| 15 | `test_resume_feedback_400_missing_resume_text` | 400 | resumeText 누락 |
-| 16 | `test_resume_feedback_400_missing_target_role` | 400 | targetRole 누락 |
-| 17 | `test_resume_feedback_400_empty_resume_text` | 400 | resumeText="" |
-| 18 | `test_resume_feedback_400_empty_target_role` | 400 | targetRole="" |
-| 19 | `test_resume_feedback_500_llm_error` | 500 | LLM mock side_effect → 500 |
-| 20 | `test_resume_feedback_500_parse_error` | 500 | 잘못된 JSON 응답 → 500 |
+| 1 | `test_resume_feedback_200_full_fields` | 200 | scores·strengths·weaknesses·suggestions 전체 존재 |
+| 2 | `test_resume_feedback_200_scores_five_keys` | 200 | scores 5개 키 모두 존재 |
+| 3 | `test_resume_feedback_400_missing_resume_text` | 400 | resumeText 누락 |
+| 4 | `test_resume_feedback_400_missing_target_role` | 400 | targetRole 누락 |
+| 5 | `test_resume_feedback_400_empty_resume_text` | 400 | resumeText="" |
+| 6 | `test_resume_feedback_400_empty_target_role` | 400 | targetRole="" |
+| 7 | `test_resume_feedback_500_llm_error` | 500 | LLM mock side_effect → 500 |
+| 8 | `test_resume_feedback_500_parse_error` | 500 | 잘못된 JSON 응답 → 500 |
+| 9 | `test_resume_feedback_200_empty_suggestions_uses_fallback` | 200 | suggestions 빈 배열 → fallback SuggestionItem 삽입 |
 
 ---
 
@@ -234,7 +242,7 @@ def _feedback_json(**overrides) -> str:
 
 ### 7단계 — `02_test.md` 작성
 
-테스트 현황 문서 작성 (단위 12 + 통합 8 = 20개 목록, GREEN 확인 후 체크).
+테스트 현황 문서 작성 (단위 15 + 통합 9 = 24개 목록, GREEN 확인 후 체크).
 
 ---
 
@@ -261,8 +269,8 @@ def _feedback_json(**overrides) -> str:
 ### Phase 1 — Red (테스트 먼저 작성)
 1. `exceptions.py`에 `ResumeFeedbackParseError` 추가
 2. `schemas.py`에 4개 모델 추가
-3. 단위 테스트 12개 작성 → import 실패 / service 없음 = **Red**
-4. 통합 테스트 8개 작성 → 404 = **Red**
+3. 단위 테스트 15개 작성 → import 실패 / service 없음 = **Red**
+4. 통합 테스트 9개 작성 → 404 = **Red**
 
 ### Phase 2 — Green (최소 구현)
 5. 프롬프트 파일 작성
@@ -280,8 +288,8 @@ def _feedback_json(**overrides) -> str:
 
 ## 불변식 검증
 
-- [ ] **LLM API 호출은 engine/services/ 에서만** — `feedback_service.py`는 `llm_client.call_llm` 사용
-- [ ] **인증 로직 없음** — `ResumeFeedbackRequest`에 user/auth 필드 없음
-- [ ] **stateless** — 전역 가변 상태 없음, DB 접근 없음
-- [ ] **서비스 간 직접 통신 금지** — 엔진은 독립 API 제공만
-- [ ] **테스트 없는 PR 머지 금지** — 단위 12개 + 통합 8개 필수
+- [x] **LLM API 호출은 engine/services/ 에서만** — `feedback_service.py`는 `llm_client.call_llm` 사용
+- [x] **인증 로직 없음** — `ResumeFeedbackRequest`에 user/auth 필드 없음
+- [x] **stateless** — 전역 가변 상태 없음, DB 접근 없음
+- [x] **서비스 간 직접 통신 금지** — 엔진은 독립 API 제공만
+- [x] **테스트 없는 PR 머지 금지** — 단위 15개 + 통합 9개 = 24개 통과

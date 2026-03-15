@@ -118,3 +118,23 @@ async def test_resume_feedback_500_parse_error():
                 "resumeText": "자소서 내용", "targetRole": "백엔드 개발자",
             })
     assert resp.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_resume_feedback_200_empty_suggestions_uses_fallback():
+    no_sug = json.dumps({
+        "scores": {
+            "specificity": 72, "achievementClarity": 65,
+            "logicStructure": 80, "roleAlignment": 88, "differentiation": 60,
+        },
+        "strengths": ["강점1", "강점2"],
+        "weaknesses": ["약점1", "약점2"],
+        "suggestions": [],
+    })
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(no_sug)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/resume/feedback", json={
+                "resumeText": "자소서 내용", "targetRole": "백엔드 개발자",
+            })
+    assert resp.status_code == 200
+    assert len(resp.json()["suggestions"]) >= 1
