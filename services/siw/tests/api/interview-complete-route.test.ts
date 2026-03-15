@@ -14,8 +14,21 @@ vi.mock("@prisma/client", () => ({
 
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
+    findById: vi.fn().mockResolvedValue({ userId: "user-123" }),
     complete: vi.fn().mockResolvedValue(undefined),
   },
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockReturnValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } } }),
+    },
+  }),
 }));
 
 describe("PATCH /api/interview/[sessionId]/complete", () => {
@@ -27,7 +40,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
@@ -47,7 +60,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/missing-session/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "missing-session" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "missing-session" }) });
     expect(res.status).toBe(404);
   });
 
@@ -65,7 +78,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
@@ -85,7 +98,7 @@ describe("PATCH /api/interview/[sessionId]/complete", () => {
       "http://localhost/api/interview/session-abc/complete",
       { method: "PATCH" }
     );
-    const res = await PATCH(req, { params: { sessionId: "session-abc" } });
+    const res = await PATCH(req, { params: Promise.resolve({ sessionId: "session-abc" }) });
     expect(res.status).toBe(500);
   });
 });

@@ -1,11 +1,19 @@
 import { interviewRepository } from "@/lib/interview/interview-repository";
+import { createServerClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import type { GrowthSession, AxisScores } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const sessions = await interviewRepository.listCompleted();
+    const cookieStore = await cookies();
+    const supabase = createServerClient(cookieStore);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return Response.json({ message: "인증이 필요합니다" }, { status: 401 });
+
+    const sessions = await interviewRepository.listCompleted(user.id);
 
     const result: GrowthSession[] = sessions.map((s) => ({
       id: s.id,

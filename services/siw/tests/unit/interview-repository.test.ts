@@ -34,6 +34,7 @@ describe("interviewRepository", () => {
     it("정상 세션 — questionsQueue/history Zod parse 후 SessionSnapshot 반환", async () => {
       mockFindUniqueOrThrow.mockResolvedValueOnce({
         id: "session-1",
+        userId: "user-1",
         resumeText: "이력서",
         currentQuestion: "자기소개를 해주세요.",
         currentPersona: "hr",
@@ -53,7 +54,7 @@ describe("interviewRepository", () => {
 
     it("currentQuestionType null → 'main' 기본값 처리", async () => {
       mockFindUniqueOrThrow.mockResolvedValueOnce({
-        id: "s1", resumeText: "r", currentQuestion: "q",
+        id: "s1", userId: null, resumeText: "r", currentQuestion: "q",
         currentPersona: "hr", currentQuestionType: null,
         questionsQueue: [], history: [], sessionComplete: false, engineResultCache: null,
       });
@@ -64,7 +65,7 @@ describe("interviewRepository", () => {
 
     it("questionsQueue/history 빈 배열 처리", async () => {
       mockFindUniqueOrThrow.mockResolvedValueOnce({
-        id: "s1", resumeText: "r", currentQuestion: "q",
+        id: "s1", userId: null, resumeText: "r", currentQuestion: "q",
         currentPersona: "hr", currentQuestionType: "main",
         questionsQueue: [], history: [], sessionComplete: false, engineResultCache: null,
       });

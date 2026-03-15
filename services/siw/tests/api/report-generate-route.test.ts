@@ -47,8 +47,20 @@ const { mockSession, mockReportResponse } = vi.hoisted(() => ({
 
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
-    findById: vi.fn().mockResolvedValue(mockSession),
+    findById: vi.fn().mockResolvedValue({ ...mockSession, userId: "user-123" }),
   },
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockReturnValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } } }),
+    },
+  }),
 }));
 
 describe("POST /api/report/generate", () => {
@@ -62,7 +74,7 @@ describe("POST /api/report/generate", () => {
 
   it("200: history 5개 이상 세션 → 리포트 반환", async () => {
     const { interviewRepository } = await import("@/lib/interview/interview-repository");
-    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockSession);
+    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ...mockSession, userId: "user-123" });
 
     const { POST } = await import("@/app/api/report/generate/route");
     const req = new Request("http://localhost/api/report/generate", {
@@ -92,6 +104,7 @@ describe("POST /api/report/generate", () => {
     const { interviewRepository } = await import("@/lib/interview/interview-repository");
     (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...mockSession,
+      userId: "user-123",
       history: mockSession.history.slice(0, 3),
     });
 
@@ -127,7 +140,7 @@ describe("POST /api/report/generate", () => {
 
   it("500: engine fetch 실패", async () => {
     const { interviewRepository } = await import("@/lib/interview/interview-repository");
-    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockSession);
+    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ...mockSession, userId: "user-123" });
     (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("fetch failed"));
 
     const { POST } = await import("@/app/api/report/generate/route");
