@@ -67,6 +67,19 @@ const PERSONAS = [
   },
 ]
 
+// NOTE: RadarChartInteractive.tsx의 AXES와 동일한 도메인 데이터
+// TODO: 향후 공유 상수로 추출 예정
+const EVALUATION_AXES = [
+  { name: "기술 정확도", weight: 20, desc: "개념이 사실에 기반하는가" },
+  { name: "설명 명확도", weight: 15, desc: "이해하기 쉽게 설명했는가" },
+  { name: "문제 해결",   weight: 15, desc: "체계적 접근 방식을 보였는가" },
+  { name: "의사소통",   weight: 15, desc: "논리적이고 간결한가" },
+  { name: "논리 흐름",  weight: 10, desc: "답변 간 일관성이 있는가" },
+  { name: "구체성",     weight: 10, desc: "수치와 사례를 포함했는가" },
+  { name: "자신감",     weight:  8, desc: "확신을 가지고 답변했는가" },
+  { name: "적응력",     weight:  7, desc: "후속 질문에 유연하게 대응했는가" },
+]
+
 // ─── FadeInSection ────────────────────────────────────────────────────────
 
 function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -151,8 +164,7 @@ export default function LandingPage() {
             {[
               { label: "기능",      href: "#features"  },
               { label: "페르소나",  href: "#personas"  },
-              { label: "평가시스템", href: "#features"  },
-              { label: "공채달력",  href: "#features"  },
+              { label: "평가시스템", href: "#evaluation" },
             ].map((item) => (
               <a
                 key={item.label}
@@ -284,9 +296,17 @@ export default function LandingPage() {
       <section id="features" className="bg-[#F8F9FB] py-24">
         <div className="max-w-6xl mx-auto px-6">
           <FadeInSection>
-            <div className="text-center mb-14">
-              <h2 className="text-3xl font-bold text-[#111827] mb-3">면접 준비의 모든 것</h2>
-              <p className="text-[#6B7280]">자소서 분석부터 실전 면접까지 원스톱</p>
+            <div className="text-center mb-20">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-cyan-200/60 bg-cyan-50/80 text-cyan-700">
+                <Zap className="w-3.5 h-3.5" />
+                핵심 기능
+              </span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-[#111827] mb-4 leading-tight">
+                면접 준비의 새로운 기준
+              </h2>
+              <p className="text-lg text-[#6B7280] max-w-xl mx-auto">
+                이력서 분석부터 실전 면접, 데이터 피드백까지 — 하나의 AI가 모두 처리합니다.
+              </p>
             </div>
           </FadeInSection>
 
@@ -310,9 +330,18 @@ export default function LandingPage() {
       <section id="personas" className="bg-white py-24">
         <div className="max-w-6xl mx-auto px-6">
           <FadeInSection>
-            <div className="text-center mb-14">
-              <h2 className="text-3xl font-bold text-[#111827] mb-3">3인 1조 페르소나 패널 면접</h2>
-              <p className="text-[#6B7280]">실제 면접처럼, 세 가지 관점에서 검증받으세요</p>
+            <div className="text-center mb-20">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-purple-200/60 bg-purple-50/80 text-purple-700">
+                <Users className="w-3.5 h-3.5" />
+                3가지 면접관 페르소나
+              </span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-[#111827] mb-4 leading-tight">
+                실제 면접처럼,{" "}
+                <span className="gradient-text">더 실전같이</span>
+              </h2>
+              <p className="text-lg text-[#6B7280] max-w-xl mx-auto">
+                각 페르소나는 고유한 질문 스타일과 평가 관점을 가집니다. 원하는 면접 유형을 선택해 집중 훈련하세요.
+              </p>
             </div>
           </FadeInSection>
 
@@ -336,6 +365,42 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── EVALUATION ──────────────────────────────────────────────────── */}
+      <section id="evaluation" className="bg-[#F8F9FB] py-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <FadeInSection>
+            <div className="text-center mb-20">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-indigo-200/60 bg-indigo-50/80 text-indigo-700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                8축 평가 시스템
+              </span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-[#111827] mb-4 leading-tight">
+                단순 점수가 아닌,{" "}
+                <span className="gradient-text">정밀한 분석</span>
+              </h2>
+              <p className="text-lg text-[#6B7280] max-w-xl mx-auto">
+                LLM-as-a-Judge 기술로 8개 평가 축을 독립적으로 분석합니다.
+              </p>
+            </div>
+          </FadeInSection>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {EVALUATION_AXES.map((axis, i) => (
+              <FadeInSection key={i} delay={i * 60}>
+                <div className="bg-white rounded-2xl p-5 border border-black/6 hover:-translate-y-1 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-50 transition-all duration-200 h-full">
+                  <span className="inline-block text-xs font-bold text-[#6D28D9] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full mb-3">
+                    {axis.weight}%
+                  </span>
+                  <p className="text-sm font-bold text-[#1F2937] mb-1">{axis.name}</p>
+                  <p className="text-xs text-[#9CA3AF]">{axis.desc}</p>
                 </div>
               </FadeInSection>
             ))}
