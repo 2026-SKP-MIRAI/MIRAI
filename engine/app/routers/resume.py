@@ -1,10 +1,11 @@
 import logging
 
 from fastapi import APIRouter, File, Request, UploadFile
-from app.schemas import QuestionsResponse, Meta
+from app.schemas import QuestionsResponse, Meta, ResumeFeedbackRequest, ResumeFeedbackResponse
 from app.parsers.pdf_parser import parse_pdf
 from app.parsers.exceptions import FileSizeError, ParseError
 from app.services.llm_service import generate_questions
+from app.services.feedback_service import generate_resume_feedback
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +51,10 @@ async def create_questions(request: Request, file: UploadFile | None = File(None
             categoriesUsed=categories_used,
         ),
     )
+
+
+@router.post("/feedback", response_model=ResumeFeedbackResponse)
+async def create_feedback(body: ResumeFeedbackRequest):
+    logger.info("[resume/feedback] 요청 수신: resumeText 길이=%d, targetRole=%s",
+                len(body.resumeText), body.targetRole)
+    return generate_resume_feedback(body.resumeText, body.targetRole)
