@@ -17,10 +17,10 @@
 - [x] 에러 메시지 통일 — "이메일 또는 비밀번호가 올바르지 않습니다" (이메일 열거 공격 방어)
 - [x] Open Redirect 방어 — `?redirectTo` 파라미터가 외부 URL일 경우 차단
 - [x] 비밀번호 정책 — 최소 8자·영문+숫자 조합 Zod 검증 (클라이언트 + 서버 양쪽)
-- [ ] Rate limiting — Supabase Auth 설정에서 로그인 연속 실패 횟수 제한 활성화 (Supabase Dashboard 수동 설정)
-- [ ] RLS 완전성 검증 — `InterviewSession` 외 모든 테이블 RLS 활성화 여부 체크
+- [x] Rate limiting — Supabase Auth 설정에서 로그인 연속 실패 횟수 제한 활성화 (Supabase Dashboard 수동 설정)
+- [x] RLS 완전성 검증 — `InterviewSession` 외 모든 테이블 RLS 활성화 여부 체크
 - [x] `NEXT_PUBLIC_` 키 감사 — `createServiceClient`는 서버 전용, 클라이언트 번들 미노출
-- [ ] Google OAuth redirect URI — Google Cloud Console에서 허용 URI 최소화 (수동 설정)
+- [x] Google OAuth redirect URI — Google Cloud Console에서 허용 URI 최소화 (수동 설정)
 
 ---
 
