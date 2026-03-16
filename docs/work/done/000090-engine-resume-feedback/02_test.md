@@ -17,8 +17,8 @@
 | 3 | `test_generate_resume_feedback_strengths_count` | ✅ PASS |
 | 4 | `test_generate_resume_feedback_weaknesses_count` | ✅ PASS |
 | 5 | `test_generate_resume_feedback_suggestions_structure` | ✅ PASS |
-| 6 | `test_generate_resume_feedback_score_clamped_over_100` | ✅ PASS |
-| 7 | `test_generate_resume_feedback_score_clamped_negative` | ✅ PASS |
+| 6 | `test_generate_resume_feedback_score_over_100_raises_parse_error` | ✅ PASS |
+| 7 | `test_generate_resume_feedback_score_negative_raises_parse_error` | ✅ PASS |
 | 8 | `test_generate_resume_feedback_strengths_truncated_to_3` | ✅ PASS |
 | 9 | `test_generate_resume_feedback_weaknesses_truncated_to_3` | ✅ PASS |
 | 10 | `test_generate_resume_feedback_empty_strengths_uses_fallback` | ✅ PASS |
@@ -56,6 +56,7 @@
 | shadowing 수정 | `_safe_list()` 내부 변수명 `raw` → `items` |
 | suggestions min 보장 | `schemas.py` `min_length=1` 추가 + 빈 배열 시 fallback SuggestionItem 삽입 (테스트 9 추가) |
 | scores 엄격 검증 | 5개 키 누락/null → `ResumeFeedbackParseError` raise. silent 50점 fallback 제거 (테스트 13·14·15 추가) |
+| scores 범위 검증 | `_clamp()` 제거 → `_validate_score()` 도입 — 0~100 초과 시 `ResumeFeedbackParseError` raise (테스트 6·7 변경) |
 
 > 기존 `test_report_router.py`, `test_practice_router.py`, `test_report_service.py`는
 > `fixtures/output/` JSON 파일 미싱으로 수집 오류 발생. 이슈 #90 범위 외 기존 문제.

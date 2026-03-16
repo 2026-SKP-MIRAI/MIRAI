@@ -63,6 +63,7 @@ LLMError (독립)                    → HTTP 500
 | main.py 수정 | 불필요 | `resume.py`가 이미 `APIRouter(prefix="/resume")`로 `/api`에 등록됨 |
 | suggestions 최솟값 | 서비스에서 1개 보장 | 프롬프트 "1개 이상" 명시 + Pydantic `min_length=1` — LLM 빈 배열 반환 시 fallback SuggestionItem 삽입 |
 | scores 누락 처리 | ParseError raise | silent 50점 fallback 대신 명시적 500 반환 — 5개 키 중 하나라도 누락/null 시 `ResumeFeedbackParseError` |
+| scores 범위 검증 | ParseError raise | `_clamp()` 제거 → `_validate_score()` 도입 — 프롬프트 지정 0~100 초과 시 `ResumeFeedbackParseError`. 보정 없음 |
 
 ---
 
@@ -200,8 +201,8 @@ def _feedback_json(**overrides) -> str:
 | 3 | `test_generate_resume_feedback_strengths_count` | strengths 2~3개 |
 | 4 | `test_generate_resume_feedback_weaknesses_count` | weaknesses 2~3개 |
 | 5 | `test_generate_resume_feedback_suggestions_structure` | suggestions 항목에 section·issue·suggestion 키 존재 |
-| 6 | `test_generate_resume_feedback_score_clamped_over_100` | score=105 → 100 clamp |
-| 7 | `test_generate_resume_feedback_score_clamped_negative` | score=-5 → 0 clamp |
+| 6 | `test_generate_resume_feedback_score_over_100_raises_parse_error` | score=105 → `ResumeFeedbackParseError` raise |
+| 7 | `test_generate_resume_feedback_score_negative_raises_parse_error` | score=-5 → `ResumeFeedbackParseError` raise |
 | 8 | `test_generate_resume_feedback_strengths_truncated_to_3` | strengths 4개 → 3개 슬라이싱 |
 | 9 | `test_generate_resume_feedback_weaknesses_truncated_to_3` | weaknesses 4개 → 3개 슬라이싱 |
 | 10 | `test_generate_resume_feedback_empty_strengths_uses_fallback` | strengths=[] → fallback 2개 보장 |

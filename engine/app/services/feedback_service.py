@@ -10,11 +10,10 @@ SCORE_KEYS = ["specificity", "achievementClarity", "logicStructure",
               "roleAlignment", "differentiation"]
 
 
-def _clamp(val) -> int:
-    try:
-        return max(0, min(100, int(val)))
-    except (TypeError, ValueError):
-        return 50
+def _validate_score(key: str, val: int | None) -> int:
+    if not isinstance(val, int) or not (0 <= val <= 100):
+        raise ResumeFeedbackParseError(f"scores.{key} 값이 유효하지 않음: {val}")
+    return val
 
 
 def _build_prompt(resume_text: str, target_role: str) -> str:
@@ -41,7 +40,7 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
     missing = [key for key in SCORE_KEYS if key not in raw_scores or raw_scores[key] is None]
     if missing:
         raise ResumeFeedbackParseError(f"scores 키 누락 또는 null: {missing}")
-    score_values = {key: _clamp(raw_scores[key]) for key in SCORE_KEYS}
+    score_values = {key: _validate_score(key, raw_scores[key]) for key in SCORE_KEYS}
     scores = ResumeFeedbackScores(**score_values)
 
     # strengths/weaknesses — truncate 후 2개 보장 (Pydantic min_length=2)

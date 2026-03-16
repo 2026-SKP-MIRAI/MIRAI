@@ -85,7 +85,8 @@ def test_generate_resume_feedback_suggestions_structure():
 
 # ── 테스트 6 ──────────────────────────────────────────────────────────────────
 
-def test_generate_resume_feedback_score_clamped_over_100():
+def test_generate_resume_feedback_score_over_100_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
     json_str = json.dumps({
         "scores": {"specificity": 105, "achievementClarity": 65,
                    "logicStructure": 80, "roleAlignment": 88, "differentiation": 60},
@@ -95,13 +96,14 @@ def test_generate_resume_feedback_score_clamped_over_100():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
-    assert result.scores.specificity == 100
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
 # ── 테스트 7 ──────────────────────────────────────────────────────────────────
 
-def test_generate_resume_feedback_score_clamped_negative():
+def test_generate_resume_feedback_score_negative_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
     json_str = json.dumps({
         "scores": {"specificity": -5, "achievementClarity": 65,
                    "logicStructure": 80, "roleAlignment": 88, "differentiation": 60},
@@ -111,8 +113,8 @@ def test_generate_resume_feedback_score_clamped_negative():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
-    assert result.scores.specificity == 0
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
 # ── 테스트 8 ──────────────────────────────────────────────────────────────────
