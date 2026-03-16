@@ -43,18 +43,23 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
     score_values = {key: _validate_score(key, raw_scores[key]) for key in SCORE_KEYS}
     scores = ResumeFeedbackScores(**score_values)
 
-    # strengths/weaknesses — truncate 후 2개 보장 (Pydantic min_length=2)
-    def _safe_list(key: str, fallback: str) -> list[str]:
-        items = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
-        return items if len(items) >= 2 else items + [fallback] * (2 - len(items))
+    # strengths/weaknesses — truncate 후 2개 미만 시 에러
+    def _require_str_list(key: str, min_count: int, max_count: int) -> list[str]:
+        raw = data.get(key, [])
+        if not isinstance(raw, list):
+            raise ResumeFeedbackParseError(f"{key}가 배열이 아닙니다")
+        items = [str(x) for x in raw if str(x).strip()][:max_count]
+        if len(items) < min_count:
+            raise ResumeFeedbackParseError(f"{key}는 최소 {min_count}개 필요합니다. 현재 {len(items)}개")
+        return items
 
-    strengths  = _safe_list("strengths",  "강점을 확인하지 못했습니다")
-    weaknesses = _safe_list("weaknesses", "약점을 확인하지 못했습니다")
+    strengths  = _require_str_list("strengths",  min_count=2, max_count=3)
+    weaknesses = _require_str_list("weaknesses", min_count=2, max_count=3)
 
-    # suggestions — 1개 이상 보장 (Pydantic min_length=1)
+    # suggestions — 1개 이상 필수
     raw_sug = data.get("suggestions", [])
     if not isinstance(raw_sug, list):
-        raw_sug = []
+        raise ResumeFeedbackParseError("suggestions가 배열이 아닙니다")
     suggestions = [
         SuggestionItem(
             section=str(s.get("section", "")),
@@ -65,7 +70,7 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
         if isinstance(s, dict)
     ]
     if not suggestions:
-        suggestions = [SuggestionItem(section="", issue="", suggestion="개선 제안을 확인하지 못했습니다")]
+        raise ResumeFeedbackParseError("suggestions는 최소 1개 필요합니다")
 
     return ResumeFeedbackResponse(
         scores=scores,

@@ -139,12 +139,35 @@ def test_generate_resume_feedback_weaknesses_truncated_to_3():
 
 # ── 테스트 10 ─────────────────────────────────────────────────────────────────
 
-def test_generate_resume_feedback_empty_strengths_uses_fallback():
+def test_generate_resume_feedback_empty_strengths_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
     with patch("app.services.llm_client.OpenAI",
                return_value=make_mock_llm(_feedback_json(strengths=[]))):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
-    assert len(result.strengths) >= 2
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 16 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_empty_weaknesses_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
+    with patch("app.services.llm_client.OpenAI",
+               return_value=make_mock_llm(_feedback_json(weaknesses=[]))):
+        from app.services.feedback_service import generate_resume_feedback
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 17 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_empty_suggestions_raises_parse_error():
+    from app.parsers.exceptions import ResumeFeedbackParseError
+    with patch("app.services.llm_client.OpenAI",
+               return_value=make_mock_llm(_feedback_json(suggestions=[]))):
+        from app.services.feedback_service import generate_resume_feedback
+        with pytest.raises(ResumeFeedbackParseError):
+            generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
 # ── 테스트 11 ─────────────────────────────────────────────────────────────────

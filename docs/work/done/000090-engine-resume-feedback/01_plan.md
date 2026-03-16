@@ -58,10 +58,10 @@ LLMError (독립)                    → HTTP 500
 | 결정 | 선택 | 이유 |
 |------|------|------|
 | fixture 관리 | inline JSON mock | `fixtures/output/` JSON 파일이 현재 미커밋 — 파일 의존 없이 테스트 독립성 보장 |
-| strengths/weaknesses 최솟값 | 서비스에서 2개 보장 | Pydantic `min_length=2` 제약 — LLM이 1개 이하 반환 시 ValidationError 방지 |
+| strengths/weaknesses 최솟값 | ParseError raise | 2개 미만 반환 시 `ResumeFeedbackParseError` (500) — fallback 문장 삽입 없음 |
 | 로깅 | `logger.info(...)` 추가 | 기존 `/questions` 엔드포인트 패턴과 일관성 유지 |
 | main.py 수정 | 불필요 | `resume.py`가 이미 `APIRouter(prefix="/resume")`로 `/api`에 등록됨 |
-| suggestions 최솟값 | 서비스에서 1개 보장 | 프롬프트 "1개 이상" 명시 + Pydantic `min_length=1` — LLM 빈 배열 반환 시 fallback SuggestionItem 삽입 |
+| suggestions 최솟값 | ParseError raise | 빈 배열 반환 시 `ResumeFeedbackParseError` (500) — fallback SuggestionItem 삽입 없음 |
 | scores 누락 처리 | ParseError raise | silent 50점 fallback 대신 명시적 500 반환 — 5개 키 중 하나라도 누락/null 시 `ResumeFeedbackParseError` |
 | scores 범위 검증 | ParseError raise | `_clamp()` 제거 → `_validate_score()` 도입 — 프롬프트 지정 0~100 초과 시 `ResumeFeedbackParseError`. 보정 없음 |
 
@@ -103,8 +103,8 @@ class ResumeFeedbackResponse(BaseModel):
 | LLM API 호출 실패 | `LLMError` | 500 | `main.py handle_500` |
 | LLM 응답 JSON 파싱 실패 | `ResumeFeedbackParseError(LLMError)` | 500 | `main.py handle_500` (상속 자동 포착) |
 | scores 키 누락 또는 null | `ResumeFeedbackParseError(LLMError)` | 500 | `_parse_feedback` 내부 명시적 에러 |
-| suggestions 빈 배열 | — | 200 | `_parse_feedback` fallback SuggestionItem 삽입 |
-| 점수 범위 초과·텍스트 누락 | — | 200 | `_parse_feedback` 내부 fallback |
+| suggestions 빈 배열 | `ResumeFeedbackParseError(LLMError)` | 500 | `_parse_feedback` 내부 명시적 에러 |
+| strengths/weaknesses 2개 미만 | `ResumeFeedbackParseError(LLMError)` | 500 | `_parse_feedback` 내부 명시적 에러 |
 
 ---
 
@@ -133,15 +133,20 @@ class ResumeFeedbackParseError(LLMError): pass
 
 ### 3단계 — `feedback_service.py` 구현
 
-`report_service.py` 패턴 동일 적용. **핵심 — strengths/weaknesses 2개 보장:**
+`report_service.py` 패턴 동일 적용. **핵심 — strengths/weaknesses 2개 미만 시 에러:**
 
 ```python
-def _safe_list(key: str, fallback: str) -> list[str]:
-    items = [str(x) for x in data.get(key, []) if str(x).strip()][:3]
-    return items if len(items) >= 2 else items + [fallback] * (2 - len(items))
+def _require_str_list(key: str, min_count: int, max_count: int) -> list[str]:
+    raw = data.get(key, [])
+    if not isinstance(raw, list):
+        raise ResumeFeedbackParseError(f"{key}가 배열이 아닙니다")
+    items = [str(x) for x in raw if str(x).strip()][:max_count]
+    if len(items) < min_count:
+        raise ResumeFeedbackParseError(f"{key}는 최소 {min_count}개 필요합니다. 현재 {len(items)}개")
+    return items
 
-strengths  = _safe_list("strengths",  "강점을 확인하지 못했습니다")
-weaknesses = _safe_list("weaknesses", "약점을 확인하지 못했습니다")
+strengths  = _require_str_list("strengths",  min_count=2, max_count=3)
+weaknesses = _require_str_list("weaknesses", min_count=2, max_count=3)
 ```
 
 | 항목 | `report_service.py` | `feedback_service.py` |
@@ -205,12 +210,14 @@ def _feedback_json(**overrides) -> str:
 | 7 | `test_generate_resume_feedback_score_negative_raises_parse_error` | score=-5 → `ResumeFeedbackParseError` raise |
 | 8 | `test_generate_resume_feedback_strengths_truncated_to_3` | strengths 4개 → 3개 슬라이싱 |
 | 9 | `test_generate_resume_feedback_weaknesses_truncated_to_3` | weaknesses 4개 → 3개 슬라이싱 |
-| 10 | `test_generate_resume_feedback_empty_strengths_uses_fallback` | strengths=[] → fallback 2개 보장 |
+| 10 | `test_generate_resume_feedback_empty_strengths_raises_parse_error` | strengths=[] → `ResumeFeedbackParseError` raise |
 | 11 | `test_generate_resume_feedback_llm_error_raises_llm_error` | LLM API 오류 → `LLMError` raise |
 | 12 | `test_generate_resume_feedback_invalid_json_raises_parse_error` | 잘못된 JSON → `ResumeFeedbackParseError` raise |
 | 13 | `test_generate_resume_feedback_missing_scores_raises_parse_error` | scores 전체 누락 → `ResumeFeedbackParseError` raise |
 | 14 | `test_generate_resume_feedback_partial_scores_raises_parse_error` | scores 4개 (1개 누락) → `ResumeFeedbackParseError` raise |
 | 15 | `test_generate_resume_feedback_null_score_value_raises_parse_error` | score null 값 → `ResumeFeedbackParseError` raise |
+| 16 | `test_generate_resume_feedback_empty_weaknesses_raises_parse_error` | weaknesses=[] → `ResumeFeedbackParseError` raise |
+| 17 | `test_generate_resume_feedback_empty_suggestions_raises_parse_error` | suggestions=[] → `ResumeFeedbackParseError` raise |
 
 **통합 테스트 9개** (`test_resume_feedback_router.py`):
 
@@ -224,7 +231,7 @@ def _feedback_json(**overrides) -> str:
 | 6 | `test_resume_feedback_400_empty_target_role` | 400 | targetRole="" |
 | 7 | `test_resume_feedback_500_llm_error` | 500 | LLM mock side_effect → 500 |
 | 8 | `test_resume_feedback_500_parse_error` | 500 | 잘못된 JSON 응답 → 500 |
-| 9 | `test_resume_feedback_200_empty_suggestions_uses_fallback` | 200 | suggestions 빈 배열 → fallback SuggestionItem 삽입 |
+| 9 | `test_resume_feedback_500_empty_suggestions_raises_error` | 500 | suggestions 빈 배열 → `ResumeFeedbackParseError` raise |
 
 ---
 

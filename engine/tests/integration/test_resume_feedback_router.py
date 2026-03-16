@@ -121,7 +121,7 @@ async def test_resume_feedback_500_parse_error():
 
 
 @pytest.mark.asyncio
-async def test_resume_feedback_200_empty_suggestions_uses_fallback():
+async def test_resume_feedback_500_empty_suggestions_raises_error():
     no_sug = json.dumps({
         "scores": {
             "specificity": 72, "achievementClarity": 65,
@@ -136,5 +136,4 @@ async def test_resume_feedback_200_empty_suggestions_uses_fallback():
             resp = await ac.post("/api/resume/feedback", json={
                 "resumeText": "자소서 내용", "targetRole": "백엔드 개발자",
             })
-    assert resp.status_code == 200
-    assert len(resp.json()["suggestions"]) >= 1
+    assert resp.status_code == 500
