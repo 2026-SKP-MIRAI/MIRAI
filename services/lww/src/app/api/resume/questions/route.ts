@@ -1,7 +1,7 @@
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages";
 
 export const runtime = "nodejs";
-export const maxDuration = 35;
+export const maxDuration = 110;
 
 const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000";
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
       method: "POST",
       body: engineForm,
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(95000),
     });
 
     console.log(`[resume/questions] 엔진 응답: ${resp.status}`);
