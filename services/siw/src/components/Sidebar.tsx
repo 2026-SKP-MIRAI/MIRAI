@@ -211,7 +211,7 @@ export default function Sidebar() {
 
       {/* 데스크탑 사이드바 */}
       <div
-        className={`hidden md:flex flex-col bg-white border-r border-black/[0.08] h-screen sticky top-0 shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out ${
+        className={`hidden md:flex flex-col bg-white border-r border-black/[0.08] h-screen sticky top-0 shrink-0 transition-[width] duration-200 ease-in-out ${
           collapsed ? "w-[68px]" : "w-60"
         }`}
       >

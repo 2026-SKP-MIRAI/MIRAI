@@ -13,7 +13,8 @@ const PERSONA_LABELS: Record<string, string> = {
 
 export const interviewService = {
   async start(resumeId: string, personas: PersonaType[], userId?: string | null) {
-    const resumeText = await resumeRepository.findById(resumeId);
+    const resume = await resumeRepository.findById(resumeId);
+    const resumeText = resume.resumeText;
     const engineText = resumeText.slice(0, 1200);
     let resp: Response | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {

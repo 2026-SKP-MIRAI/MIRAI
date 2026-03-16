@@ -25,7 +25,7 @@ export default function UploadForm({ onComplete, hideTitle }: Props) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const resp = await fetch("/api/resume/questions", { method: "POST", body: formData });
+      const resp = await fetch("/api/resumes", { method: "POST", body: formData });
       if (!resp.ok) {
         const body = await resp.json();
         setError(body.message ?? ENGINE_ERROR_MESSAGES.llmError);

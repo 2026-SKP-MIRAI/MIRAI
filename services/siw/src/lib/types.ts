@@ -62,6 +62,7 @@ export type GrowthSession = {
   reportTotalScore: number;
   scores: AxisScores;
   resumeLabel: string;
+  axisFeedbacks?: AxisFeedback[];
 };
 
 export type InterviewMode = "real" | "practice";

@@ -14,6 +14,7 @@ export type SessionSnapshot = {
   history: HistoryItem[];
   sessionComplete: boolean;
   engineResultCache: object | null;
+  reportJson: object | null;
 };
 
 export const interviewRepository = {
@@ -48,6 +49,7 @@ export const interviewRepository = {
       history,
       sessionComplete: s.sessionComplete,
       engineResultCache: (s.engineResultCache as object | null) ?? null,
+      reportJson: (s.reportJson as object | null) ?? null,
     };
   },
 
@@ -103,12 +105,12 @@ export const interviewRepository = {
     }
   },
 
-  /** 리포트 점수 저장 (best-effort) */
-  async saveReport(id: string, scores: import("@/lib/types").AxisScores, totalScore: number): Promise<void> {
+  /** 리포트 점수 + 전체 JSON 저장 (best-effort) */
+  async saveReport(id: string, userId: string, scores: import("@/lib/types").AxisScores, totalScore: number, reportJson: object): Promise<void> {
     try {
       await prisma.interviewSession.update({
-        where: { id },
-        data: { reportScores: scores, reportTotalScore: totalScore },
+        where: { id, userId },
+        data: { reportScores: scores, reportTotalScore: totalScore, reportJson },
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
@@ -118,6 +120,15 @@ export const interviewRepository = {
     }
   },
 
+  /** 캐시된 리포트 JSON 조회 */
+  async findReportCache(id: string): Promise<object | null> {
+    const s = await prisma.interviewSession.findUnique({
+      where: { id },
+      select: { reportJson: true },
+    });
+    return (s?.reportJson as object | null) ?? null;
+  },
+
   /** 완료된 세션 목록 (reportScores 있는 것만) */
   async listCompleted(userId: string): Promise<Array<{
     id: string;
@@ -125,12 +136,14 @@ export const interviewRepository = {
     resumeText: string;
     reportScores: unknown;
     reportTotalScore: number;
+    reportJson: unknown;
   }>> {
     const sessions = await prisma.interviewSession.findMany({
       where: {
         sessionComplete: true,
         reportScores: { not: Prisma.DbNull },
         userId: userId,
+        interviewMode: "real",
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -139,6 +152,7 @@ export const interviewRepository = {
         resumeText: true,
         reportScores: true,
         reportTotalScore: true,
+        reportJson: true,
       },
     });
     return sessions.map(s => ({
