@@ -140,3 +140,31 @@ class PracticeFeedbackResponse(BaseModel):
     keywords:            list[str]               = Field(..., min_length=1, max_length=5)
     improvedAnswerGuide: str                     = Field(..., min_length=1)
     comparisonDelta:     ComparisonDelta | None  = None
+
+
+# --- 이력서·자소서 피드백 ---
+
+class ResumeFeedbackScores(BaseModel):
+    specificity:        int = Field(..., ge=0, le=100)
+    achievementClarity: int = Field(..., ge=0, le=100)
+    logicStructure:     int = Field(..., ge=0, le=100)
+    roleAlignment:      int = Field(..., ge=0, le=100)
+    differentiation:    int = Field(..., ge=0, le=100)
+
+
+class SuggestionItem(BaseModel):
+    section:    str
+    issue:      str
+    suggestion: str
+
+
+class ResumeFeedbackRequest(BaseModel):
+    resumeText: str = Field(..., min_length=1)
+    targetRole: str = Field(..., min_length=1)
+
+
+class ResumeFeedbackResponse(BaseModel):
+    scores:      ResumeFeedbackScores
+    strengths:   list[str] = Field(..., min_length=2, max_length=3)
+    weaknesses:  list[str] = Field(..., min_length=2, max_length=3)
+    suggestions: list[SuggestionItem] = Field(..., min_length=1)
