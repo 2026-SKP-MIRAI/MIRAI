@@ -168,14 +168,6 @@ export default function GrowthPage() {
   const strengths = axisAverages.slice(0, 3)
   const weaknesses = axisAverages.slice(-2)
 
-  // 개선 추천 (최신 세션 하위 3개)
-  const recommendations = latest
-    ? axisKeys
-        .map(k => ({ key: k, label: AXIS_LABELS[k], score: latest.scores[k] }))
-        .sort((a, b) => a.score - b.score)
-        .slice(0, 3)
-    : []
-
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-4">
@@ -288,26 +280,6 @@ export default function GrowthPage() {
             )
           })}
         </motion.div>
-
-        {/* AI 개선 추천 */}
-        {recommendations.length > 0 && (
-          <motion.div variants={itemVariants} className="bg-white/90 border border-black/[0.08] rounded-2xl p-6 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">AI 개선 추천</h3>
-            {recommendations.map((r, i) => (
-              <div key={r.key} className="flex gap-3 bg-gray-50 rounded-xl p-4 border border-black/[0.05] mb-2.5 last:mb-0">
-                <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${i === 0 ? "bg-red-500" : "bg-amber-400"}`} />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-1">{r.label} {r.score}점 — {i === 0 ? "우선 개선 필요" : "개선 권고"}</p>
-                  <p className="text-sm text-gray-500 leading-[1.7]">
-                    {r.score < 65
-                      ? "집중적인 연습이 필요합니다. 관련 역량을 강화하는 구체적인 사례를 준비하세요."
-                      : "조금 더 노력하면 강점으로 발전시킬 수 있습니다. 실제 경험 기반의 답변을 연습해보세요."}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        )}
 
         {/* 하단 2열 */}
         <div className="grid grid-cols-2 gap-5">

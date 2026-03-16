@@ -1,6 +1,5 @@
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages";
 import { parsePdf } from "@/lib/pdf-parser";
-import { resumeRepository } from "@/lib/resume-repository";
 
 export const runtime = "nodejs";
 export const maxDuration = 35;
@@ -50,8 +49,7 @@ export async function POST(request: Request) {
     }
 
     const engineData = await resp.json();
-    const resumeId = await resumeRepository.create(resumeText);
-    return Response.json({ ...engineData, resumeId });
+    return Response.json({ ...engineData });
   } catch {
     return Response.json(
       { message: ENGINE_ERROR_MESSAGES.llmError },

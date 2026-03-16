@@ -20,8 +20,12 @@ export async function POST(request: Request) {
     return Response.json({ message: ENGINE_ERROR_MESSAGES.sessionNotFound }, { status: 400 });
 
   try {
-    const session = await interviewRepository.findById(sessionId);
-    if (session.userId !== user.id) return Response.json({ message: "권한이 없습니다" }, { status: 403 });
+    const session = await interviewRepository.findById(sessionId, user.id);
+
+    // 캐시 확인: 완료된 세션에 이미 생성된 리포트가 있으면 즉시 반환
+    if (session.sessionComplete && session.reportJson) {
+      return Response.json(session.reportJson);
+    }
 
     if (session.history.length < 5)
       return Response.json(
@@ -43,15 +47,15 @@ export async function POST(request: Request) {
 
     const data = await engineRes.json();
 
-    // best-effort: 리포트 점수 저장 (실패 시 1회 재시도)
+    // best-effort: 리포트 전체 JSON + 점수 저장 (실패 시 1회 재시도)
     if (engineRes.ok && data.scores && typeof data.totalScore === "number") {
       const saveWithRetry = async () => {
         try {
-          await interviewRepository.saveReport(sessionId, data.scores, data.totalScore);
+          await interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data);
         } catch (err) {
           console.error("[report/generate] saveReport failed, retrying in 2s:", err);
           await new Promise(r => setTimeout(r, 2000));
-          interviewRepository.saveReport(sessionId, data.scores, data.totalScore).catch((err2) => {
+          interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data).catch((err2) => {
             console.error("[report/generate] saveReport retry failed:", err2);
           });
         }

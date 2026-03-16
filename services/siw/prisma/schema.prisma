@@ -8,6 +8,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Resume {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String
+  fileName    String
+  storageKey  String
+  resumeText  String
+  questions   Json     @default("[]")
+  createdAt   DateTime @default(now())
+
+  interviewSessions InterviewSession[]
+
+  @@index([userId])
+  @@map("resumes")
+}
+
 model InterviewSession {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   resumeText      String
@@ -22,16 +37,12 @@ model InterviewSession {
   engineResultCache   Json?
   reportScores     Json?
   reportTotalScore Int?
+  reportJson       Json?
+  resumeId            String?  @db.Uuid
   createdAt           DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
 
+  resume      Resume?  @relation(fields: [resumeId], references: [id])
+
   @@map("interview_sessions")
-}
-
-model ResumeSession {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  resumeText String
-  createdAt  DateTime @default(now())
-
-  @@map("resume_sessions")
 }

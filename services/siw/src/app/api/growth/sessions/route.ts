@@ -15,13 +15,17 @@ export async function GET() {
 
     const sessions = await interviewRepository.listCompleted(user.id);
 
-    const result: GrowthSession[] = sessions.map((s) => ({
-      id: s.id,
-      createdAt: s.createdAt.toISOString(),
-      reportTotalScore: s.reportTotalScore,
-      scores: s.reportScores as AxisScores,
-      resumeLabel: s.resumeText.slice(0, 30) + (s.resumeText.length > 30 ? "…" : ""),
-    }));
+    const result: GrowthSession[] = sessions.map((s) => {
+      const rj = s.reportJson as { axisFeedbacks?: import("@/lib/types").AxisFeedback[] } | null;
+      return {
+        id: s.id,
+        createdAt: s.createdAt.toISOString(),
+        reportTotalScore: s.reportTotalScore,
+        scores: s.reportScores as AxisScores,
+        resumeLabel: s.resumeText.slice(0, 30) + (s.resumeText.length > 30 ? "…" : ""),
+        axisFeedbacks: rj?.axisFeedbacks ?? undefined,
+      };
+    });
 
     return Response.json(result);
   } catch {

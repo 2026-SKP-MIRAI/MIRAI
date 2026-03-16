@@ -23,7 +23,15 @@ vi.mock("@/lib/interview/interview-repository", () => ({
 vi.mock("@/lib/resume-repository", () => ({
   resumeRepository: {
     create: vi.fn().mockResolvedValue("mock-resume-id"),
-    findById: vi.fn().mockResolvedValue("mock resume text"),
+    findById: vi.fn().mockResolvedValue({
+      id: "mock-resume-id",
+      userId: "user-123",
+      fileName: "test.pdf",
+      storageKey: "user-123/abc.pdf",
+      resumeText: "mock resume text",
+      questions: [],
+      createdAt: new Date(),
+    }),
   },
 }));
 
@@ -85,6 +93,7 @@ describe("interviewService", () => {
       ],
       sessionComplete: false,
       engineResultCache: null,
+      reportJson: null,
       userId: null,
     });
     mockFetch.mockResolvedValue({
@@ -123,6 +132,7 @@ describe("interviewService", () => {
       history: [],
       sessionComplete: true,
       engineResultCache: null,
+      reportJson: null,
       userId: null,
     });
     const { interviewService } = await import("@/lib/interview/interview-service");
@@ -146,6 +156,7 @@ describe("interviewService", () => {
         updatedQueue: [],
         sessionComplete: false,
       },
+      reportJson: null,
       userId: null,
     });
     const { interviewService } = await import("@/lib/interview/interview-service");

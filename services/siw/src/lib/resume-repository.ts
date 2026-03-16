@@ -1,24 +1,44 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+export type ResumeRecord = {
+  id: string;
+  userId: string;
+  fileName: string;
+  storageKey: string;
+  resumeText: string;
+  questions: Prisma.JsonValue;
+  createdAt: Date;
+};
 
 export const resumeRepository = {
-  async create(resumeText: string): Promise<string> {
-    const session = await prisma.resumeSession.create({ data: { resumeText } });
-    return session.id;
+  async create(data: {
+    userId: string;
+    fileName: string;
+    storageKey: string;
+    resumeText: string;
+    questions: Prisma.InputJsonValue;
+  }): Promise<string> {
+    const resume = await prisma.resume.create({ data });
+    return resume.id;
   },
-  async findById(id: string): Promise<string> {
-    const s = await prisma.resumeSession.findUniqueOrThrow({ where: { id } });
-    return s.resumeText;
+
+  async findById(id: string): Promise<ResumeRecord> {
+    return prisma.resume.findUniqueOrThrow({ where: { id } });
   },
-  async findDetailById(id: string): Promise<{ id: string; resumeText: string; createdAt: Date }> {
-    return prisma.resumeSession.findUniqueOrThrow({
-      where: { id },
-      select: { id: true, resumeText: true, createdAt: true },
+
+  async findDetailById(id: string, userId: string): Promise<ResumeRecord> {
+    const resume = await prisma.resume.findFirst({
+      where: { id, userId },
     });
+    if (!resume) throw new Error("Resume not found");
+    return resume;
   },
-  async listAll(): Promise<Array<{ id: string; resumeText: string; createdAt: Date }>> {
-    return prisma.resumeSession.findMany({
+
+  async listByUserId(userId: string): Promise<ResumeRecord[]> {
+    return prisma.resume.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
-      select: { id: true, resumeText: true, createdAt: true },
     });
   },
 };

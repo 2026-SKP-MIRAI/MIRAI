@@ -16,15 +16,11 @@ export async function GET(
 
   const { id } = await params
   try {
-    const resume = await resumeRepository.findDetailById(id, user.id)
-    return NextResponse.json({
-      id: resume.id,
-      fileName: resume.fileName,
-      resumeText: resume.resumeText,
-      questions: resume.questions,
-      uploadedAt: resume.createdAt.toISOString(),
-    })
+    // Resume 모델에 feedbackJson 컬럼이 없어 항상 null 반환
+    // 엔진에 resume feedback 엔드포인트 추가 시 여기에 연동
+    await resumeRepository.findDetailById(id, user.id) // 소유권 확인
+    return NextResponse.json(null)
   } catch {
-    return NextResponse.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 })
+    return NextResponse.json(null)
   }
 }
