@@ -19,10 +19,11 @@ AXIS_KEYS = [
 ]
 
 
-def _validate_score(key: str, val: int | None) -> int:
-    if not isinstance(val, int) or not (0 <= val <= 100):
-        raise ReportParseError(f"scores.{key} 값이 유효하지 않음: {val}")
-    return val
+def _clamp(val) -> int:
+    try:
+        return max(0, min(100, int(val)))
+    except (TypeError, ValueError):
+        return 50
 
 
 def _build_prompt(resume_text: str, history: list[HistoryItem]) -> str:
@@ -51,16 +52,14 @@ def _parse_report(raw: str) -> ReportResponse:
     if not isinstance(data, dict):
         raise ReportParseError("리포트 응답이 객체가 아닙니다")
 
-    # scores 파싱 — 8개 키 전부 있어야 하며 null 값도 불허
+    # scores 파싱 (축 누락 시 50점 fallback)
     raw_scores = data.get("scores", {}) if isinstance(data.get("scores"), dict) else {}
-    missing = [key for key, _ in AXIS_KEYS if key not in raw_scores or raw_scores[key] is None]
-    if missing:
-        raise ReportParseError(f"scores 키 누락 또는 null: {missing}")
-    score_values = {key: _validate_score(key, raw_scores[key]) for key, _ in AXIS_KEYS}
+    score_values = {key: _clamp(raw_scores.get(key, 50)) for key, _ in AXIS_KEYS}
     scores = AxisScores(**score_values)
 
-    # totalScore = 8개 평균 (정수 반올림) — 검증된 점수의 평균이므로 항상 0~100
+    # totalScore = 8개 평균 (정수 반올림)
     total_score = round(sum(score_values.values()) / len(AXIS_KEYS))
+    total_score = _clamp(total_score)
 
     summary = str(data.get("summary", ""))
 
@@ -75,7 +74,7 @@ def _parse_report(raw: str) -> ReportResponse:
     for fb in raw_feedbacks:
         axis = str(fb.get("axis", ""))
         axis_label = str(fb.get("axisLabel", ""))
-        score = _validate_score(axis, fb.get("score"))
+        score = _clamp(fb.get("score", 50))
         # type 강제 보정: score >= 75이면 strength, 미만이면 improvement
         fb_type = "strength" if score >= 75 else "improvement"
         feedback = str(fb.get("feedback", ""))
