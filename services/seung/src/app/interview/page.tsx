@@ -81,6 +81,8 @@ function InterviewContent() {
         }
         setMessages(initialMessages)
         setSessionComplete(data.sessionComplete ?? false)
+        // URL param 없이 접근(새로고침 등)할 때 session DB 값으로 복원
+        if (data.interviewMode === 'practice') setInterviewMode('practice')
         setLoading(false)
       })
       .catch(() => {
