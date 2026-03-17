@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import type { HistoryItem, QueueItem, PersonaType, QuestionType } from '@/lib/types'
+import type { HistoryItem, QueueItem, PersonaType, QuestionType, StoredHistoryEntry } from '@/lib/types'
 
 export const maxDuration = 35
 
@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '자소서를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  type StoredHistoryEntry = HistoryItem & { questionType?: string }
   const history = session.history as unknown as StoredHistoryEntry[]
   const questionsQueue = session.questionsQueue as unknown as QueueItem[]
 

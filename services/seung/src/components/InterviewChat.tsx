@@ -28,9 +28,17 @@ type Props = {
   messages: Message[]
   sessionComplete: boolean
   onRestart?: () => void
+  onReport?: () => void
+  isGeneratingReport?: boolean
 }
 
-export default function InterviewChat({ messages, sessionComplete, onRestart }: Props) {
+export default function InterviewChat({
+  messages,
+  sessionComplete,
+  onRestart,
+  onReport,
+  isGeneratingReport,
+}: Props) {
   return (
     <div className="space-y-4">
       {messages.map((msg) => {
@@ -63,14 +71,52 @@ export default function InterviewChat({ messages, sessionComplete, onRestart }: 
       {sessionComplete && (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
           <p className="mb-4 text-lg font-semibold text-gray-900">면접이 완료되었습니다.</p>
-          {onRestart && (
-            <button
-              onClick={onRestart}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-            >
-              다시 시작
-            </button>
-          )}
+          <div className="flex justify-center gap-3">
+            {onReport && (
+              <button
+                onClick={onReport}
+                disabled={isGeneratingReport}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2 inline"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    리포트 생성 중...
+                  </>
+                ) : (
+                  '리포트 생성하기'
+                )}
+              </button>
+            )}
+            {onRestart && (
+              <button
+                onClick={onRestart}
+                disabled={isGeneratingReport}
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+              >
+                다시 시작
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

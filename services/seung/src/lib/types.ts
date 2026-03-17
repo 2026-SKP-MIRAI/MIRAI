@@ -49,6 +49,37 @@ export type InterviewSessionState = {
   sessionComplete: boolean
 }
 
+export type AxisScores = {
+  communication: number
+  problemSolving: number
+  logicalThinking: number
+  jobExpertise: number
+  cultureFit: number
+  leadership: number
+  creativity: number
+  sincerity: number
+}
+
+export type AxisFeedback = {
+  axis: string
+  axisLabel: string
+  score: number
+  type: 'strength' | 'improvement'
+  feedback: string
+}
+
+export type ReportResponse = {
+  id: string
+  sessionId: string
+  totalScore: number
+  scores: AxisScores
+  summary: string
+  axisFeedbacks: AxisFeedback[]
+  createdAt: string
+}
+
+export type StoredHistoryEntry = HistoryItem & { questionType?: string }
+
 export type UploadState = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
 
 export const ERROR_MESSAGES: Record<number, string> = {

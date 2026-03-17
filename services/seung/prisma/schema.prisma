@@ -29,4 +29,16 @@ model InterviewSession {
   currentQuestionType String   @default("main")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  report              Report?
+}
+
+model Report {
+  id            String           @id @default(cuid())
+  sessionId     String           @unique
+  session       InterviewSession @relation(fields: [sessionId], references: [id])
+  totalScore    Int
+  scores        Json
+  summary       String
+  axisFeedbacks Json
+  createdAt     DateTime         @default(now())
 }

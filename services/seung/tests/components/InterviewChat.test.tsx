@@ -72,6 +72,33 @@ describe('InterviewChat', () => {
     expect(screen.getByText('저는 개발자입니다.')).toBeInTheDocument()
   })
 
+  it('onReport prop 전달 시 "리포트 생성하기" 버튼이 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={true}
+        onReport={vi.fn()}
+        isGeneratingReport={false}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: '리포트 생성하기' })).toBeInTheDocument()
+  })
+
+  it('isGeneratingReport=true 시 버튼이 disabled되고 "리포트 생성 중..." 텍스트가 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={true}
+        onReport={vi.fn()}
+        isGeneratingReport={true}
+      />
+    )
+
+    const button = screen.getByRole('button', { name: /리포트 생성 중/ })
+    expect(button).toBeDisabled()
+  })
+
   it('main 타입 질문에는 꼬리질문 배지가 없다', () => {
     const messages: Message[] = [
       {
