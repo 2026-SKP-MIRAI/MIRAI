@@ -20,6 +20,8 @@ function InterviewContent() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const submittingRef = useRef(false)
   const msgIdRef = useRef(0)
@@ -116,6 +118,29 @@ function InterviewContent() {
     }
   }
 
+  const handleReport = async () => {
+    if (!sessionId) return
+    setIsGeneratingReport(true)
+    setReportError(null)
+    try {
+      const res = await fetch('/api/report/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setReportError(data?.error ?? '리포트 생성에 실패했습니다. 다시 시도해 주세요.')
+        return
+      }
+      router.push(`/report?reportId=${data.reportId}`)
+    } catch {
+      setReportError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
+
   const handleRestart = () => {
     router.push('/resume')
   }
@@ -138,10 +163,17 @@ function InterviewContent() {
           messages={messages}
           sessionComplete={sessionComplete}
           onRestart={handleRestart}
+          onReport={handleReport}
+          isGeneratingReport={isGeneratingReport}
         />
         {submitError && (
           <p role="alert" className="text-sm text-red-600 text-center px-4">
             {submitError}
+          </p>
+        )}
+        {reportError && (
+          <p role="alert" className="text-sm text-red-600 text-center px-4">
+            {reportError}
           </p>
         )}
         <AnswerInput
