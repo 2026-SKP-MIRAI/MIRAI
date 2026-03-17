@@ -3,7 +3,11 @@ import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const requestUrl = new URL(request.url)
+  const { searchParams } = requestUrl
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? requestUrl.host
+  const proto = request.headers.get("x-forwarded-proto") ?? requestUrl.protocol.replace(":", "")
+  const origin = `${proto}://${host}`
   const code = searchParams.get("code")
   const next = searchParams.get("next") ?? "/dashboard"
 
