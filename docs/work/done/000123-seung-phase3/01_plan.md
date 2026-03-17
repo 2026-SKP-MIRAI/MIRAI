@@ -23,7 +23,7 @@
 
 - 엔진 계약 우선 — LLM 직접 호출 금지, `practice/feedback` 라우트는 엔진 포워딩만 담당
 - 하위 호환 — `InterviewChat`의 신규 props는 모두 optional, 기본값 `interviewMode='real'`
-- 상태 머신 — `practiceStep('idle'→'feedback'→'retry'→'done')`으로 연습 플로우 관리
+- 단계별 흐름 관리 — `practiceStep('idle'→'feedback'→'retry'→'done')`으로 연습 플로우 단계 추적
 
 ### 핵심 고민 포인트
 
