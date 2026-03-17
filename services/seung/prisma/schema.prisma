@@ -27,6 +27,7 @@ model InterviewSession {
   currentPersona      String
   currentPersonaLabel String
   currentQuestionType String   @default("main")
+  interviewMode       String   @default("real")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   report              Report?
