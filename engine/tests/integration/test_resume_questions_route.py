@@ -1,8 +1,16 @@
+import shutil
+
 import pytest
 import fitz
 from unittest.mock import MagicMock, patch
 from httpx import AsyncClient, ASGITransport
+
 from app.main import app
+
+HAS_TESSERACT = shutil.which("tesseract") is not None
+requires_tesseract = pytest.mark.skipif(
+    not HAS_TESSERACT, reason="Tesseract not installed"
+)
 
 VALID_LLM_RESPONSE = '[' + ','.join([
     f'{{"category":"직무 역량","question":"질문{i}?"}}'
@@ -111,3 +119,20 @@ async def test_500_llm_error():
                 files={"file": ("resume.pdf", pdf_bytes, "application/pdf")},
             )
     assert resp.status_code == 500
+
+
+@requires_tesseract
+@pytest.mark.asyncio
+async def test_200_ocr_pdf_success(ocr_target_pdf_bytes):
+    """AC1+AC5: 이미지 PDF → OCR → 200 + questions 응답 (ParsedResume 스키마 불변)"""
+    with patch("app.services.llm_service.OpenAI", return_value=mock_llm_success()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/resume/questions",
+                files={"file": ("image_resume.pdf", ocr_target_pdf_bytes, "application/pdf")},
+            )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "questions" in data
+    assert "meta" in data
+    assert len(data["questions"]) >= 8
