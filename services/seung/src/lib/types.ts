@@ -32,7 +32,7 @@ export type InterviewStartRequest = {
   resumeId: string
   mode?: 'panel'
   personas?: PersonaType[]
-  interviewMode?: 'real'
+  interviewMode?: 'real' | 'practice'
 }
 export type InterviewStartResponse = { sessionId: string; firstQuestion: QuestionWithPersona }
 export type InterviewAnswerRequest = { sessionId: string; answer: string }
@@ -90,3 +90,27 @@ export const ERROR_MESSAGES: Record<number, string> = {
 }
 
 export const DEFAULT_ERROR_MESSAGE = '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+
+export type FeedbackDetail = {
+  good: string[]
+  improve: string[]
+}
+
+export type ComparisonDelta = {
+  scoreDelta: number
+  improvements: string[]
+}
+
+export type PracticeFeedbackRequest = {
+  question: string
+  answer: string
+  previousAnswer?: string
+}
+
+export type PracticeFeedbackResponse = {
+  score: number
+  feedback: FeedbackDetail
+  keywords: string[]
+  improvedAnswerGuide: string
+  comparisonDelta?: ComparisonDelta | null
+}

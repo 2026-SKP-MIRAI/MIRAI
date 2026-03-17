@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     currentQuestionType: string
     history: unknown
     sessionComplete: boolean
+    interviewMode: string
   } | null
   try {
     session = await prisma.interviewSession.findUnique({
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
         currentQuestionType: true,
         history: true,
         sessionComplete: true,
+        interviewMode: true,
       },
     })
   } catch (err) {
@@ -45,5 +47,6 @@ export async function GET(request: NextRequest) {
     currentQuestionType: session.currentQuestionType,
     history: session.history as HistoryItem[],
     sessionComplete: session.sessionComplete,
+    interviewMode: session.interviewMode,
   })
 }

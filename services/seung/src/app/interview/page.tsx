@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import InterviewChat from '@/components/InterviewChat'
 import AnswerInput from '@/components/AnswerInput'
-import type { QuestionWithPersona } from '@/lib/types'
+import type { QuestionWithPersona, PracticeFeedbackResponse } from '@/lib/types'
 
 type Message =
   | { id: string; type: 'question'; data: QuestionWithPersona }
@@ -22,6 +22,11 @@ function InterviewContent() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
+  const [interviewMode, setInterviewMode] = useState<'real' | 'practice'>('real')
+  const [practiceStep, setPracticeStep] = useState<'idle' | 'feedback' | 'retry' | 'done'>('idle')
+  const [currentAnswer, setCurrentAnswer] = useState<string>('')
+  const [practiceFeedback, setPracticeFeedback] = useState<PracticeFeedbackResponse | null>(null)
+  const [practiceSubmitting, setPracticeSubmitting] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const submittingRef = useRef(false)
   const msgIdRef = useRef(0)
@@ -32,6 +37,10 @@ function InterviewContent() {
       router.replace('/resume')
       return
     }
+
+    // interviewMode URL param 읽기
+    const mode = searchParams.get('interviewMode')
+    if (mode === 'practice') setInterviewMode('practice')
 
     fetch(`/api/interview/session?${new URLSearchParams({ sessionId })}`)
       .then((r) => {
@@ -77,13 +86,13 @@ function InterviewContent() {
       .catch(() => {
         router.replace('/resume')
       })
-  }, [sessionId, router])
+  }, [sessionId, router, searchParams])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSubmit = async (answer: string) => {
+  const handleRealAnswer = async (answer: string) => {
     if (submittingRef.current) return
     submittingRef.current = true
     setSubmitting(true)
@@ -116,6 +125,77 @@ function InterviewContent() {
       submittingRef.current = false
       setSubmitting(false)
     }
+  }
+
+  const handlePracticeFeedback = async (answer: string) => {
+    if (practiceSubmitting) return
+    const isRetry = practiceStep === 'retry'
+
+    // 현재 질문 추출 (마지막 question 메시지)
+    const lastQuestion = [...messages].reverse().find((m) => m.type === 'question')
+    if (!lastQuestion || lastQuestion.type !== 'question') return
+    const currentQuestion = lastQuestion.data.question
+
+    setPracticeSubmitting(true)
+    setSubmitError(null)
+    setMessages((prev) => [...prev, { id: nextMsgId(), type: 'answer', text: answer }])
+
+    try {
+      const body: Record<string, string> = { question: currentQuestion, answer }
+      if (isRetry) body.previousAnswer = currentAnswer
+
+      const res = await fetch('/api/practice/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setMessages((prev) => prev.slice(0, -1))
+        setSubmitError(data?.error ?? '피드백 요청에 실패했습니다. 다시 시도해 주세요.')
+        return
+      }
+
+      setPracticeFeedback(data)
+      if (isRetry) {
+        setPracticeStep('done')
+      } else {
+        setCurrentAnswer(answer)
+        setPracticeStep('feedback')
+      }
+    } catch {
+      setMessages((prev) => prev.slice(0, -1))
+      setSubmitError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.')
+    } finally {
+      setPracticeSubmitting(false)
+    }
+  }
+
+  const handleSubmit = async (answer: string) => {
+    if (interviewMode === 'practice') {
+      await handlePracticeFeedback(answer)
+    } else {
+      await handleRealAnswer(answer)
+    }
+  }
+
+  const handleNextQuestion = async () => {
+    const finalAnswer = practiceStep === 'done'
+      ? (messages.filter((m) => m.type === 'answer').slice(-1)[0] as { id: string; type: 'answer'; text: string } | undefined)?.text ?? currentAnswer
+      : currentAnswer
+
+    // 상태 초기화
+    setPracticeStep('idle')
+    setPracticeFeedback(null)
+    setCurrentAnswer('')
+
+    await handleRealAnswer(finalAnswer)
+  }
+
+  const handleRetry = () => {
+    // AnswerInput을 다시 보이게 하기 위해 practiceStep을 'retry'로
+    setPracticeStep('retry')
   }
 
   const handleReport = async () => {
@@ -165,6 +245,12 @@ function InterviewContent() {
           onRestart={handleRestart}
           onReport={handleReport}
           isGeneratingReport={isGeneratingReport}
+          interviewMode={interviewMode}
+          practiceFeedback={practiceFeedback}
+          practiceStep={practiceStep}
+          onRetry={handleRetry}
+          onNextQuestion={handleNextQuestion}
+          practiceSubmitting={practiceSubmitting}
         />
         {submitError && (
           <p role="alert" className="text-sm text-red-600 text-center px-4">
@@ -178,8 +264,8 @@ function InterviewContent() {
         )}
         <AnswerInput
           onSubmit={handleSubmit}
-          disabled={submitting}
-          hidden={sessionComplete}
+          disabled={submitting || practiceSubmitting}
+          hidden={sessionComplete || (interviewMode === 'practice' && (practiceStep === 'feedback' || practiceStep === 'done'))}
         />
         <div ref={bottomRef} />
       </main>

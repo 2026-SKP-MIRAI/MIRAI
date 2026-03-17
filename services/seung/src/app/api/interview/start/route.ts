@@ -8,14 +8,14 @@ const ENGINE_FETCH_TIMEOUT_MS = 55_000
 const DEFAULT_PERSONAS: PersonaType[] = ['hr', 'tech_lead', 'executive']
 
 export async function POST(request: NextRequest) {
-  let body: { resumeId?: string; mode?: string; personas?: PersonaType[] }
+  let body: { resumeId?: string; mode?: string; personas?: PersonaType[]; interviewMode?: 'real' | 'practice' }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: '요청을 읽을 수 없습니다.' }, { status: 400 })
   }
 
-  const { resumeId, personas = DEFAULT_PERSONAS } = body
+  const { resumeId, personas = DEFAULT_PERSONAS, interviewMode } = body
 
   if (!resumeId) {
     return NextResponse.json({ error: 'resumeId가 필요합니다.' }, { status: 400 })
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         currentPersona: firstQuestion.persona,
         currentPersonaLabel: firstQuestion.personaLabel,
         currentQuestionType: firstQuestion.type,
+        interviewMode: interviewMode ?? 'real',
       },
     })
   } catch (err) {

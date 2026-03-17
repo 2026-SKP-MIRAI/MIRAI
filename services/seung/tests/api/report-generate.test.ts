@@ -34,6 +34,7 @@ const mockSession = {
     },
   ],
   resume: { resumeText: '자소서 내용입니다.' },
+  interviewMode: 'real',
 }
 
 const mockEngineResponse = {
