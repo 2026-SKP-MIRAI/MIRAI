@@ -34,7 +34,8 @@ export async function POST(request: Request) {
   let resumeText = ""
   try {
     resumeText = await parsePdf(buffer)
-  } catch {
+  } catch (err) {
+    console.error("[parsePdf error]", err)
     return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.corruptedPdf }, { status: 422 })
   }
 
