@@ -53,6 +53,12 @@ jobs:
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
               docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
+            # env 파일 존재 확인 — 없으면 배포 중단
+            if [ ! -f ~/.env.siw ]; then
+              echo "ERROR: ~/.env.siw not found on host" >&2
+              exit 1
+            fi
+
             # 기존 컨테이너 정리
             docker stop siw || true && docker rm siw || true
 

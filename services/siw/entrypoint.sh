@@ -8,7 +8,7 @@ if [ -z "$DATABASE_URL" ] || [ -z "$DIRECT_URL" ]; then
 fi
 
 # Prisma 마이그레이션 실행
-./node_modules/.bin/prisma migrate deploy
+node node_modules/prisma/build/index.js migrate deploy
 
 # Next.js 서버 시작
 exec node server.js
