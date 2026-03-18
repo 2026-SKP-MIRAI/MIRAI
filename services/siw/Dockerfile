@@ -54,7 +54,7 @@ RUN chmod +x ./entrypoint.sh
 
 # 헬스체크: 30초 후 시작, 30초 간격, 5초 타임아웃, 3회 실패 시 unhealthy
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget -qO- http://localhost:3000/ > /dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1
 
 USER nextjs
 
