@@ -25,12 +25,17 @@
 - [ ] `ENGINE_BASE_URL` — EC2 env-file에 engine 호스트 주소로 설정 (**블로커**: engine 담당자 IP 대기 중)
 
 ### 인프라 (수동 작업)
-- [ ] Elastic IP 할당 → EC2에 연결 (`SIW_EC2_HOST` Secrets에 등록)
+> **참고**: 000064에서 engine/lww용 ALB 2개, Route53(`engine.mirainterview.com`, `mirainterview.com`), ACM, WAF가 이미 구성됨. siw용으로 추가 필요.
+
+- [ ] Elastic IP 할당 → EC2에 연결 (`SIW_EC2_HOST` Secrets에 등록, EC2 재시작 시 IP 고정)
 - [ ] GitHub Secrets 등록 (9개)
-- [ ] ALB 생성 + 타겟 그룹(포트 3000, 헬스체크 `/`) + EC2 등록
+- [ ] ALB 생성 (siw용) + 타겟 그룹(포트 3000, 헬스체크 `/`) + EC2 등록
+  - EC2 보안 그룹: 포트 3000을 ALB 보안 그룹에서만 허용 (퍼블릭 직접 오픈 금지)
+  - EC2 보안 그룹: SSH(22), HTTP(80), HTTPS(443) 만 퍼블릭 오픈
 - [ ] ACM 인증서 발급 + ALB HTTPS 리스너 연결
-- [ ] Route53 A 레코드(Alias) → ALB 연결
+- [ ] Route53 A 레코드(Alias) → ALB 연결 (예: `siw.mirainterview.com`)
 - [ ] WAF Web ACL 생성 (`AWSManagedRulesCommonRuleSet`) → ALB 연결
+  - ⚠️ **`SizeRestrictions_BODY` → Count로 변경 필수** (이력서 PDF 업로드. 000064에서 동일하게 처리한 선례 있음)
 
 ---
 
@@ -302,3 +307,190 @@ docker stop siw-test && docker rm siw-test
 **.ai.md 최신화:**
 - `services/siw/.ai.md` — Dockerfile, entrypoint.sh, Docker 빌드/네트워크 관련 내용 추가
 - `.github/workflows/.ai.md` — deploy-siw.yml 설명 추가/생성
+--------------------------------------------------------------------------------------
+ AWS 인프라 세팅 상세 가이드
+
+  ---
+  1단계. Elastic IP 할당 → EC2 연결
+
+  목적: EC2 재시작해도 IP 고정
+
+  1. AWS 콘솔 → 상단 검색창에 EC2 검색 → 클릭
+  2. 왼쪽 메뉴 → 네트워크 및 보안 → 탄력적 IP
+  3. 오른쪽 상단 탄력적 IP 주소 할당 클릭
+  4. 그냥 할당 클릭 (기본값 유지)
+  5. 방금 만들어진 IP 선택 → 작업 → 탄력적 IP 주소 연결
+  6. 인스턴스 칸 클릭 → siw EC2 선택 → 연결
+
+  ▎ 이 IP가 SIW_EC2_HOST에 등록할 값입니다. 메모해두세요.
+
+  ---
+  2단계. GitHub Secrets 등록
+
+  목적: GitHub Actions가 AWS/EC2에 접근할 수 있게 인증 정보 저장  
+
+  1. GitHub → 2026-SKP-MIRAI/MIRAI 레포 → Settings 탭
+  2. 왼쪽 메뉴 → Secrets and variables → Actions
+  3. New repository secret 클릭해서 아래 9개 하나씩 등록
+
+  ┌────────────────────────┬──────────────────────────────────┐   
+  │          Name          │              Value               │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ AWS_ACCESS_KEY_ID      │ IAM 액세스 키                    │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ AWS_SECRET_ACCESS_KEY  │ IAM 시크릿 키                    │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ AWS_REGION             │ ap-northeast-2                   │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ ECR_REGISTRY           │ 648955503445.dkr.ecr.ap-northeas │   
+  │                        │ t-2.amazonaws.com                │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │                        │ mirai_key.pem 파일 전체 내용     │   
+  │ EC2_SSH_KEY            │ (-----BEGIN RSA PRIVATE KEY----- │   
+  │                        │  포함)                           │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ SIW_EC2_HOST           │ 1단계에서 받은 Elastic IP        │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ SIW_EC2_USER           │ ubuntu                           │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ SIW_NEXT_PUBLIC_SUPABA │ https://snkkprkqzoaodxirqjjx.sup │   
+  │ SE_URL                 │ abase.co                         │   
+  ├────────────────────────┼──────────────────────────────────┤   
+  │ SIW_NEXT_PUBLIC_SUPABA │ .env의                           │   
+  │ SE_ANON_KEY            │ NEXT_PUBLIC_SUPABASE_ANON_KEY 값 │   
+  └────────────────────────┴──────────────────────────────────┘   
+
+  ---
+  3단계. EC2 보안 그룹 수정
+
+  목적: 포트 3000을 ALB에서만 받고 외부 직접 접근 차단
+
+  1. AWS 콘솔 → EC2 → 인스턴스
+  2. siw EC2 클릭 → 하단 보안 탭 → 보안 그룹 링크 클릭
+  3. 인바운드 규칙 편집 클릭
+  4. 현재 규칙 확인:
+    - 포트 3000이 0.0.0.0/0 (전체 공개)로 열려 있으면 → 삭제      
+    - SSH(22), HTTP(80), HTTPS(443) 는 유지
+  5. 규칙 저장
+
+  ▎ ⚠️ 포트 3000은 ALB 만들고 나서 ALB 보안 그룹에서만 허용하도록 
+  다시 추가합니다 (4단계에서)
+
+  ---
+  4단계. ALB 생성
+
+  목적: 인터넷 → ALB(80/443) → EC2:3000 트래픽 라우팅
+
+  4-1. 타겟 그룹 먼저 생성
+
+  1. EC2 → 왼쪽 메뉴 → 로드 밸런싱 → 대상 그룹
+  2. 대상 그룹 생성 클릭
+  3. 설정:
+    - 대상 유형: 인스턴스
+    - 대상 그룹 이름: mirai-siw-tg
+    - 프로토콜: HTTP
+    - 포트: 3000
+    - VPC: siw EC2와 같은 VPC 선택
+    - 헬스 체크 경로: /
+  4. 다음 → siw EC2 인스턴스 체크 → 아래에 보류 중인 항목으로 포함
+   클릭 → 대상 그룹 생성
+
+  4-2. ALB 생성
+
+  1. EC2 → 로드 밸런싱 → 로드 밸런서
+  2. 로드 밸런서 생성 → Application Load Balancer 선택
+  3. 설정:
+    - 이름: mirai-siw-alb
+    - 체계: 인터넷 경계
+    - IP 주소 유형: IPv4
+    - VPC: siw EC2와 같은 VPC
+    - 가용 영역: 체크박스 2개 이상 선택
+  4. 보안 그룹 → 새 보안 그룹 생성 클릭:
+    - 이름: mirai-siw-alb-sg
+    - 인바운드: HTTP(80) 0.0.0.0/0, HTTPS(443) 0.0.0.0/0
+    - 생성 후 이 보안 그룹 선택
+  5. 리스너:
+    - HTTP:80 → 대상 그룹: mirai-siw-tg
+  6. 로드 밸런서 생성
+
+  4-3. EC2 보안 그룹에 ALB만 허용
+
+  1. EC2 보안 그룹 → 인바운드 규칙 편집
+  2. 규칙 추가:
+    - 유형: 사용자 지정 TCP
+    - 포트: 3000
+    - 소스: mirai-siw-alb-sg (ALB 보안 그룹 ID 검색해서 선택)     
+  3. 규칙 저장
+
+  ---
+  5단계. ALB 동작 확인 (여기서 먼저 테스트)
+
+  1. EC2 → 로드 밸런서 → mirai-siw-alb 클릭
+  2. DNS 이름 복사 (예:
+  mirai-siw-alb-123456.ap-northeast-2.elb.amazonaws.com)
+  3. 브라우저에서 http://<DNS이름> 접속 → siw 페이지 뜨면 성공    
+
+  ▎ 이 단계에서 먼저 서비스 동작 확인 후 도메인 연결로 넘어가세요.
+
+  ---
+  6단계. ACM 인증서 발급
+
+  목적: HTTPS 적용을 위한 SSL 인증서
+
+  1. AWS 콘솔 상단 검색 → Certificate Manager → 클릭
+  2. 인증서 요청 → 퍼블릭 인증서 요청
+  3. 도메인 이름 입력: siw.mirainterview.com
+  4. 검증 방법: DNS 검증 선택
+  5. 요청
+  6. 인증서 클릭 → Route53에서 레코드 생성 버튼 클릭 (자동으로    
+  CNAME 추가됨)
+  7. 상태가 발급됨으로 바뀔 때까지 대기 (5~10분)
+
+  ---
+  7단계. ALB HTTPS 리스너 추가
+
+  1. EC2 → 로드 밸런서 → mirai-siw-alb
+  2. 리스너 및 규칙 탭 → 리스너 추가
+  3. 설정:
+    - 프로토콜: HTTPS, 포트: 443
+    - 대상 그룹: mirai-siw-tg
+    - SSL 인증서: 6단계에서 발급한 인증서 선택
+  4. 추가
+  5. HTTP:80 리스너 클릭 → 규칙 편집 → HTTPS로 리다이렉트로 변경  
+
+  ---
+  8단계. Route53 도메인 연결
+
+  목적: siw.mirainterview.com → ALB 연결
+
+  1. AWS 콘솔 → Route53 검색
+  2. 호스팅 영역 → mirainterview.com 클릭
+  3. 레코드 생성:
+    - 레코드 이름: siw
+    - 레코드 유형: A
+    - 별칭 토글 ON
+    - 트래픽 라우팅 대상: Application/Classic Load Balancer →     
+  ap-northeast-2 → mirai-siw-alb 선택
+  4. 레코드 생성
+
+  ---
+  9단계. WAF 설정
+
+  목적: SQL 인젝션·XSS 방어 + PDF 업로드 허용
+
+  1. AWS 콘솔 → WAF 검색 → AWS WAF 클릭
+  2. Web ACL 생성:
+    - 이름: mirai-siw-waf
+    - 리소스 유형: Regional (ALB용)
+    - 리전: ap-northeast-2
+  3. AWS 관리형 규칙 추가 → AWSManagedRulesCommonRuleSet 추가     
+  4. ⚠️ 중요: AWSManagedRulesCommonRuleSet 펼치기 →
+  SizeRestrictions_BODY 찾기 → 작업을 Count로 변경 (PDF 업로드    
+  차단 방지)
+  5. 다음 → 다음 → AWS 리소스 연결: mirai-siw-alb 선택
+  6. Web ACL 생성
+
+  ---
+  10단계. 최종 확인
+
+  https://siw.mirainterview.com → 정상 응답 확인
