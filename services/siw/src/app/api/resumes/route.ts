@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { resumeRepository } from "@/lib/resume-repository"
 import { uploadResumePdf } from "@/lib/resume-storage"
-import { parsePdf } from "@/lib/pdf-parser"
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages"
 import { cookies } from "next/headers"
 
@@ -31,32 +30,38 @@ export async function POST(request: Request) {
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  let resumeText = ""
-  try {
-    resumeText = await parsePdf(buffer)
-  } catch (err) {
-    console.error("[parsePdf error]", err)
-    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.corruptedPdf }, { status: 422 })
+  const engineParseForm = new FormData()
+  engineParseForm.append("file", file, file.name)
+  const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
+    method: "POST",
+    body: engineParseForm,
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!parseResp.ok) {
+    const body = await parseResp.json().catch(() => ({ detail: "" }))
+    const key = mapDetailToKey(body.detail ?? "", parseResp.status)
+    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES[key] }, { status: parseResp.status })
   }
-
-  const engineForm = new FormData()
-  engineForm.append("file", file, file.name)
+  const { resumeText } = await parseResp.json()
 
   try {
-    const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
-      method: "POST",
-      body: engineForm,
-      signal: AbortSignal.timeout(30000),
-    })
+    const [storageKey, engineData] = await Promise.all([
+      uploadResumePdf(user.id, buffer, file.name),
+      fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText }),
+        signal: AbortSignal.timeout(30000),
+      }).then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({ detail: "" }))
+          const key = mapDetailToKey(body.detail ?? "", r.status)
+          throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: r.status, key })
+        }
+        return r.json()
+      }),
+    ])
 
-    if (!resp.ok) {
-      const body = await resp.json().catch(() => ({ detail: "" }))
-      const key = mapDetailToKey(body.detail ?? "", resp.status)
-      return NextResponse.json({ message: ENGINE_ERROR_MESSAGES[key] }, { status: resp.status })
-    }
-
-    const engineData = await resp.json()
-    const storageKey = await uploadResumePdf(user.id, buffer, file.name)
     const resumeId = await resumeRepository.create({
       userId: user.id,
       fileName: file.name,
@@ -67,9 +72,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ...engineData, resumeId })
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error("[POST /api/resumes] error:", message)
-    return NextResponse.json({ message, detail: message }, { status: 500 })
+    if (err instanceof Error && 'status' in err) {
+      return NextResponse.json({ message: err.message }, { status: (err as { status: number }).status })
+    }
+    console.error("[POST /api/resumes] error:", err instanceof Error ? err.message : String(err))
+    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 500 })
   }
 }
 

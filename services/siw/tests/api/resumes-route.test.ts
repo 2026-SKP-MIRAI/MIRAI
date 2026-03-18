@@ -27,12 +27,9 @@ vi.mock("@/lib/resume-repository", () => ({
   },
 }));
 
+const mockUploadResumePdf = vi.fn().mockResolvedValue("user-123/abc.pdf");
 vi.mock("@/lib/resume-storage", () => ({
-  uploadResumePdf: vi.fn().mockResolvedValue("user-123/abc.pdf"),
-}));
-
-vi.mock("@/lib/pdf-parser", () => ({
-  parsePdf: vi.fn().mockResolvedValue("mock resume text"),
+  uploadResumePdf: (...args: unknown[]) => mockUploadResumePdf(...args),
 }));
 
 // --- helpers ---
@@ -46,6 +43,15 @@ function setUnauthenticated() {
   mockGetUser.mockResolvedValue({ data: { user: null } });
 }
 
+function makePdfRequest() {
+  const formData = new FormData();
+  formData.append(
+    "file",
+    new File([new Uint8Array([1, 2, 3])], "resume.pdf", { type: "application/pdf" })
+  );
+  return new Request("http://localhost/api/resumes", { method: "POST", body: formData });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ENGINE_BASE_URL = "http://localhost:8000";
@@ -53,57 +59,114 @@ beforeEach(() => {
 });
 
 // ============================================================
-// POST /api/resumes
+// POST /api/resumes — TDD RED: 새 동작 검증
 // ============================================================
 describe("POST /api/resumes", () => {
-  it("200: 정상 업로드", async () => {
+  it("engine /api/resume/parse 를 fetch로 호출한다", async () => {
     setAuthenticated();
     mockCreate.mockResolvedValue("new-resume-id");
 
-    const engineData = {
-      questions: [{ category: "직무 역량", question: "질문?" }],
-      meta: { extractedLength: 100, categoriesUsed: ["직무 역량"] },
-    };
+    // parse 응답
     mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(engineData), { status: 200 })
+      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
+    );
+    // questions 응답
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
+        { status: 200 }
+      )
     );
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File([new Uint8Array([1, 2, 3])], "resume.pdf", { type: "application/pdf" })
-    );
-
-    const req = new Request("http://localhost/api/resumes", { method: "POST", body: formData });
     const { POST } = await import("@/app/api/resumes/route");
-    const res = await POST(req);
+    const res = await POST(makePdfRequest());
+
+    // /api/resume/parse 가 첫 번째로 호출되어야 한다
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:8000/api/resume/parse",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("resumeText 획득 후 upload + /api/resume/questions JSON을 Promise.all로 병렬 호출한다", async () => {
+    setAuthenticated();
+    mockCreate.mockResolvedValue("new-resume-id");
+
+    // parse 응답
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
+    );
+    // questions 응답
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
+        { status: 200 }
+      )
+    );
+
+    const { POST } = await import("@/app/api/resumes/route");
+    await POST(makePdfRequest());
+
+    // /api/resume/questions 가 JSON body로 호출되어야 한다
+    const questionsFetchCall = mockFetch.mock.calls.find(
+      (args) => args[0] === "http://localhost:8000/api/resume/questions"
+    );
+    expect(questionsFetchCall).toBeDefined();
+    const questionsInit = questionsFetchCall![1] as RequestInit;
+    expect(questionsInit.headers).toEqual(
+      expect.objectContaining({ "Content-Type": "application/json" })
+    );
+    const bodyParsed = JSON.parse(questionsInit.body as string);
+    expect(bodyParsed).toHaveProperty("resumeText", "추출된 이력서 텍스트");
+
+    // upload 도 호출되어야 한다
+    expect(mockUploadResumePdf).toHaveBeenCalled();
+  });
+
+  it("engine /parse 422 응답 시 422를 반환한다", async () => {
+    setAuthenticated();
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ detail: "PDF에 텍스트가 포함되어 있지 않습니다." }),
+        { status: 422 }
+      )
+    );
+
+    const { POST } = await import("@/app/api/resumes/route");
+    const res = await POST(makePdfRequest());
+
+    expect(res.status).toBe(422);
+  });
+
+  it("응답에 { questions, resumeId } 포함", async () => {
+    setAuthenticated();
+    mockCreate.mockResolvedValue("new-resume-id");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
+        { status: 200 }
+      )
+    );
+
+    const { POST } = await import("@/app/api/resumes/route");
+    const res = await POST(makePdfRequest());
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.resumeId).toBe("new-resume-id");
-    expect(body.questions).toHaveLength(1);
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: "user-123",
-        fileName: "resume.pdf",
-        storageKey: "user-123/abc.pdf",
-        resumeText: "mock resume text",
-      })
-    );
+    expect(body).toHaveProperty("questions");
+    expect(body).toHaveProperty("resumeId", "new-resume-id");
   });
 
   it("401: 미인증", async () => {
     setUnauthenticated();
 
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File([new Uint8Array([1])], "resume.pdf", { type: "application/pdf" })
-    );
-
-    const req = new Request("http://localhost/api/resumes", { method: "POST", body: formData });
     const { POST } = await import("@/app/api/resumes/route");
-    const res = await POST(req);
+    const res = await POST(makePdfRequest());
 
     expect(res.status).toBe(401);
   });
@@ -116,8 +179,8 @@ describe("POST /api/resumes", () => {
       "file",
       new File([new Uint8Array([1])], "resume.txt", { type: "text/plain" })
     );
-
     const req = new Request("http://localhost/api/resumes", { method: "POST", body: formData });
+
     const { POST } = await import("@/app/api/resumes/route");
     const res = await POST(req);
 
@@ -143,7 +206,6 @@ describe("GET /api/resumes", () => {
       },
     ]);
 
-    const req = new Request("http://localhost/api/resumes", { method: "GET" });
     const { GET } = await import("@/app/api/resumes/route");
     const res = await GET();
 
