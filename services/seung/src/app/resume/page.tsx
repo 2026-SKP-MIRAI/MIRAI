@@ -7,14 +7,23 @@ import QuestionList from '@/components/QuestionList'
 import type { UploadState, QuestionsResponse } from '@/lib/types'
 import { ERROR_MESSAGES, DEFAULT_ERROR_MESSAGE } from '@/lib/types'
 
+type NextAction = null | 'interview' | 'diagnosis'
+
 export default function ResumePage() {
   const router = useRouter()
   const [state, setState] = useState<UploadState>('idle')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [result, setResult] = useState<QuestionsResponse | null>(null)
+
+  // 면접 시작
+  const [selectedAction, setSelectedAction] = useState<NextAction>(null)
   const [startingInterview, setStartingInterview] = useState(false)
-  const [showModeSelect, setShowModeSelect] = useState(false)
   const [selectedMode, setSelectedMode] = useState<'real' | 'practice' | null>(null)
+
+  // 서류 진단
+  const [targetRole, setTargetRole] = useState('')
+  const [isDiagnosing, setIsDiagnosing] = useState(false)
+  const [diagnosisError, setDiagnosisError] = useState('')
 
   const handleSubmit = async (file: File) => {
     setState('uploading')
@@ -34,7 +43,6 @@ export default function ResumePage() {
       const data = await response.json()
 
       if (!response.ok) {
-        // 엔진이 내려준 메시지(detail/error) 우선 — 5MB 초과 등 구체 메시지가 그대로 노출됨
         const serverMsg =
           data && typeof data === 'object' && (data.error ?? data.detail)
         const msg =
@@ -58,6 +66,10 @@ export default function ResumePage() {
     setState('idle')
     setErrorMessage('')
     setResult(null)
+    setSelectedAction(null)
+    setSelectedMode(null)
+    setTargetRole('')
+    setDiagnosisError('')
   }
 
   const handleStartInterview = async (interviewMode: 'real' | 'practice') => {
@@ -82,6 +94,29 @@ export default function ResumePage() {
     } catch {
       setErrorMessage('면접 세션을 시작할 수 없습니다.')
       setStartingInterview(false)
+    }
+  }
+
+  const handleDiagnosis = async () => {
+    if (!result?.resumeId || !targetRole.trim()) return
+    setIsDiagnosing(true)
+    setDiagnosisError('')
+    try {
+      const res = await fetch('/api/resume/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeId: result.resumeId, targetRole: targetRole.trim() }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setDiagnosisError(data.error ?? '진단에 실패했습니다.')
+        return
+      }
+      router.push(`/diagnosis?resumeId=${result.resumeId}`)
+    } catch {
+      setDiagnosisError('진단에 실패했습니다.')
+    } finally {
+      setIsDiagnosing(false)
     }
   }
 
@@ -110,22 +145,50 @@ export default function ResumePage() {
           result && (
             <div>
               <QuestionList questions={result.questions} onReset={handleReset} />
+
               {result.resumeId && (
-                <div className="mt-6 text-center">
-                  {errorMessage && (
-                    <p className="mb-3 text-sm text-red-600" role="alert">{errorMessage}</p>
-                  )}
-                  {!showModeSelect ? (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-3 text-center">다음 단계를 선택하세요</p>
+
+                  {/* 액션 선택 카드 */}
+                  <div className="flex gap-3">
                     <button
-                      onClick={() => setShowModeSelect(true)}
-                      disabled={startingInterview}
-                      className="rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+                      onClick={() => setSelectedAction(selectedAction === 'interview' ? null : 'interview')}
+                      disabled={startingInterview || isDiagnosing}
+                      className={`flex-1 rounded-xl border px-4 py-4 text-left transition-colors disabled:opacity-50 ${
+                        selectedAction === 'interview'
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 bg-white hover:border-gray-400'
+                      }`}
                     >
-                      면접 시작
+                      <p className="font-semibold text-sm">🎤 면접 시작하기</p>
+                      <p className={`mt-1 text-xs ${selectedAction === 'interview' ? 'text-gray-300' : 'text-gray-500'}`}>
+                        AI 패널 면접 시뮬레이션
+                      </p>
                     </button>
-                  ) : (
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-left">
-                      <p className="mb-4 text-sm font-semibold text-gray-700 text-center">면접 모드를 선택해주세요</p>
+                    <button
+                      onClick={() => setSelectedAction(selectedAction === 'diagnosis' ? null : 'diagnosis')}
+                      disabled={startingInterview || isDiagnosing}
+                      className={`flex-1 rounded-xl border px-4 py-4 text-left transition-colors disabled:opacity-50 ${
+                        selectedAction === 'diagnosis'
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-blue-200 bg-blue-50 hover:border-blue-400'
+                      }`}
+                    >
+                      <p className="font-semibold text-sm">📋 서류 진단받기</p>
+                      <p className={`mt-1 text-xs ${selectedAction === 'diagnosis' ? 'text-blue-100' : 'text-blue-600'}`}>
+                        5개 항목 강점·약점 분석
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* 면접 시작 세부 UI */}
+                  {selectedAction === 'interview' && (
+                    <div className="mt-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                      {errorMessage && (
+                        <p className="mb-3 text-sm text-red-600" role="alert">{errorMessage}</p>
+                      )}
+                      <p className="mb-3 text-sm font-semibold text-gray-700">면접 모드를 선택해주세요</p>
                       <div className="flex gap-3">
                         <button
                           onClick={() => setSelectedMode('real')}
@@ -163,6 +226,33 @@ export default function ResumePage() {
                       >
                         {startingInterview ? '면접 준비 중...' : '확인'}
                       </button>
+                    </div>
+                  )}
+
+                  {/* 서류 진단 세부 UI */}
+                  {selectedAction === 'diagnosis' && (
+                    <div className="mt-3 rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+                      <p className="mb-3 text-sm font-semibold text-gray-700">지원 직무를 입력하세요</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={targetRole}
+                          onChange={(e) => setTargetRole(e.target.value)}
+                          placeholder="예: 백엔드 개발자"
+                          disabled={isDiagnosing}
+                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+                        />
+                        <button
+                          onClick={handleDiagnosis}
+                          disabled={!targetRole.trim() || isDiagnosing}
+                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-40"
+                        >
+                          {isDiagnosing ? '진단 중...' : '진단하기'}
+                        </button>
+                      </div>
+                      {diagnosisError && (
+                        <p className="mt-2 text-sm text-red-600" role="alert">{diagnosisError}</p>
+                      )}
                     </div>
                   )}
                 </div>

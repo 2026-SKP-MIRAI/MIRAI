@@ -50,7 +50,7 @@ describe('POST /api/resume/questions', () => {
       status: 200,
       json: async () => mockData,
     })
-    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-1' })
+    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-1', diagnosisResult: null })
 
     const formData = new FormData()
     const file = new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' })
@@ -127,7 +127,7 @@ describe('POST /api/resume/questions', () => {
       status: 200,
       json: async () => mockData,
     })
-    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-abc' })
+    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-abc', diagnosisResult: null })
 
     const formData = new FormData()
     formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
@@ -148,7 +148,7 @@ describe('POST /api/resume/questions', () => {
       status: 200,
       json: async () => mockData,
     })
-    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-xyz' })
+    mockPrisma.resume.create.mockResolvedValueOnce({ id: 'resume-xyz', diagnosisResult: null })
 
     const formData = new FormData()
     formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))

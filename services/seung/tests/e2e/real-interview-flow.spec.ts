@@ -29,10 +29,12 @@ test('이슈 #57: 자소서 업로드 → 패널 면접 → 꼬리질문 전체 
   // 3. 질문 생성 완료 대기 (LLM 호출)
   await expect(page.getByText('예상 면접 질문')).toBeVisible({ timeout: LLM_TIMEOUT })
 
-  // 4. "면접 시작" 버튼 확인 및 클릭
-  const startBtn = page.getByRole('button', { name: /면접 시작/ })
-  await expect(startBtn).toBeVisible({ timeout: LLM_TIMEOUT })
-  await startBtn.click()
+  // 4. "면접 시작하기" 카드 클릭 → 모드 선택 → 확인
+  const startCard = page.getByRole('button', { name: /면접 시작하기/ })
+  await expect(startCard).toBeVisible({ timeout: LLM_TIMEOUT })
+  await startCard.click()
+  await page.getByRole('button', { name: '실전 모드' }).click()
+  await page.getByRole('button', { name: '확인' }).click()
 
   // 5. /interview 페이지 이동 + 첫 질문 버블 대기 (엔진 호출)
   await expect(page).toHaveURL(/\/interview\?sessionId=/, { timeout: LLM_TIMEOUT })

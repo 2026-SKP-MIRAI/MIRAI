@@ -99,12 +99,13 @@ test.describe('연습 모드 플로우', () => {
     // 질문 목록 표시 확인
     await expect(page.getByText('예상 면접 질문')).toBeVisible()
 
-    // 면접 시작 클릭 → 모드 선택 UI 표시
-    await page.getByRole('button', { name: /면접 시작/ }).click()
+    // 면접 시작 카드 클릭 → 모드 선택 UI 표시
+    await page.getByRole('button', { name: /면접 시작하기/ }).click()
     await expect(page.getByText('면접 모드를 선택해주세요')).toBeVisible()
 
-    // 연습 모드 선택
+    // 연습 모드 선택 후 확인
     await page.getByRole('button', { name: /연습 모드/ }).click()
+    await page.getByRole('button', { name: '확인' }).click()
 
     // 면접 페이지로 이동 + 첫 질문 표시
     await expect(page.getByText('자기소개를 해주세요.')).toBeVisible()
@@ -171,7 +172,7 @@ test.describe('연습 모드 플로우', () => {
 
     // comparisonDelta 표시
     await expect(page.getByText(/향상도.*\+12점/)).toBeVisible()
-    await expect(page.getByText('결론을 먼저 제시했습니다.')).toBeVisible()
+    await expect(page.getByText('결론을 먼저 제시했습니다.').first()).toBeVisible()
   })
 
   test('"다음 질문" → /api/interview/answer 호출 → 다음 질문 표시', async ({ page }) => {

@@ -9,11 +9,12 @@ generator client {
 }
 
 model Resume {
-  id         String             @id @default(cuid())
-  resumeText String
-  questions  Json
-  createdAt  DateTime           @default(now())
-  sessions   InterviewSession[]
+  id              String             @id @default(cuid())
+  resumeText      String
+  questions       Json
+  diagnosisResult Json?
+  createdAt       DateTime           @default(now())
+  sessions        InterviewSession[]
 }
 
 model InterviewSession {
