@@ -9,6 +9,7 @@ export const ENGINE_ERROR_MESSAGES = {
   interviewStartFailed: "면접 시작에 실패했습니다. 다시 시도해주세요.",
   interviewAnswerFailed: "답변 처리 중 오류가 발생했습니다.",
   sessionNotFound: "면접 세션을 찾을 수 없습니다.",
+  sessionNotComplete: "면접이 완료되지 않은 세션입니다.",
 } as const;
 
 export type ErrorKey = keyof typeof ENGINE_ERROR_MESSAGES;

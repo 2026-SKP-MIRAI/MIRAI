@@ -27,6 +27,9 @@ export async function POST(request: Request) {
       return Response.json(session.reportJson);
     }
 
+    if (!session.sessionComplete)
+      return Response.json({ message: ENGINE_ERROR_MESSAGES.sessionNotComplete }, { status: 400 });
+
     if (session.history.length < 5)
       return Response.json(
         { message: "질문을 더 진행해 주세요 (최소 5개 필요합니다)." },
@@ -55,12 +58,14 @@ export async function POST(request: Request) {
         } catch (err) {
           console.error("[report/generate] saveReport failed, retrying in 2s:", err);
           await new Promise(r => setTimeout(r, 2000));
-          interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data).catch((err2) => {
+          try {
+            await interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data);
+          } catch (err2) {
             console.error("[report/generate] saveReport retry failed:", err2);
-          });
+          }
         }
       };
-      saveWithRetry();
+      await saveWithRetry();
     }
 
     return Response.json(data, { status: engineRes.status });
