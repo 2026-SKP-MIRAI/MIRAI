@@ -7,9 +7,9 @@
 ## 완료 기준
 
 - [x] Docker 빌드 성공 (로컬 검증 완료)
-- [ ] EC2 배포 후 컨테이너 크래시 없이 기동
-- [ ] `docker logs siw`에서 `prisma migrate deploy` 성공 확인
-- [ ] HEALTHCHECK 동작 확인 (`docker inspect siw | grep Health`)
+- [x] EC2 배포 후 컨테이너 크래시 없이 기동 — `docker ps`에서 `Up` 확인, ALB 통해 HTML 응답 확인
+- [x] `docker logs siw`에서 `prisma migrate deploy` 성공 확인 — `No pending migrations to apply.` 확인
+- [x] HEALTHCHECK 동작 확인 — `Status: healthy` 확인 (localhost → 127.0.0.1 수정 후)
 
 ---
 
@@ -34,8 +34,9 @@
 - `HEALTHCHECK` 추가 → Docker가 unhealthy 컨테이너 감지 가능
   ```
   HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD wget -qO- http://localhost:3000/ > /dev/null || exit 1
+    CMD wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1
   ```
+  - 주의: `localhost` 사용 시 Alpine 컨테이너에서 `::1`(IPv6)로 resolve → 서버가 IPv4만 리스닝하므로 Connection refused 발생 → `127.0.0.1` 명시 필요
 - OpenSSL 주석 개선 → 실수로 제거 시 DB 연결 불가 명시
 
 ### 3. `services/siw/prisma.config.ts` ✅
