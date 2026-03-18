@@ -70,10 +70,10 @@ def parse_pdf(
                 if ocr_text:
                     return ParsedResume(text=ocr_text, extracted_length=len(ocr_text))
                 raise ImageOnlyPDFError(
-                    "이미지는 있으나 텍스트를 추출할 수 없는 PDF입니다. 텍스트가 선명한 PDF를 업로드해 주세요."
+                    "이미지는 있으나 텍스트를 추출할 수 없는 PDF입니다. 글자가 선명한 PDF나 다른 PDF를 업로드해 주세요."
                 )
             raise EmptyPDFError(
-                "PDF에 텍스트가 포함되어 있지 않습니다. 텍스트가 있는 PDF를 업로드해 주세요."
+                "내용을 확인할 수 없는 PDF입니다. 다른 PDF를 업로드해 주세요."
             )
 
         return ParsedResume(text=full_text, extracted_length=len(full_text))
