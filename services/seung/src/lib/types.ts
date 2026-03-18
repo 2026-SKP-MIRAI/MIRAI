@@ -91,6 +91,27 @@ export const ERROR_MESSAGES: Record<number, string> = {
 
 export const DEFAULT_ERROR_MESSAGE = '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
 
+export type FeedbackScores = {
+  specificity: number
+  achievementClarity: number
+  logicStructure: number
+  roleAlignment: number
+  differentiation: number
+}
+
+export type SuggestionItem = {
+  section: string
+  issue: string
+  suggestion: string
+}
+
+export type ResumeFeedbackResponse = {
+  scores: FeedbackScores
+  strengths: string[]
+  weaknesses: string[]
+  suggestions: SuggestionItem[]
+}
+
 export type FeedbackDetail = {
   good: string[]
   improve: string[]
