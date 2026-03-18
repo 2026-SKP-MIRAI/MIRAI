@@ -48,6 +48,7 @@ const { mockSession, mockReportResponse } = vi.hoisted(() => ({
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
     findById: vi.fn().mockResolvedValue({ ...mockSession, userId: "user-123" }),
+    saveReport: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -67,6 +68,7 @@ describe("POST /api/report/generate", () => {
   beforeEach(() => {
     vi.resetModules();
     global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
       status: 200,
       json: async () => mockReportResponse,
     } as Response);
@@ -87,6 +89,7 @@ describe("POST /api/report/generate", () => {
     const data = await res.json();
     expect(data.totalScore).toBe(76);
     expect(data.axisFeedbacks).toHaveLength(8);
+    expect(interviewRepository.saveReport).toHaveBeenCalledOnce();
   });
 
   it("400: sessionId 없을 때", async () => {
@@ -151,5 +154,25 @@ describe("POST /api/report/generate", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(500);
+  });
+
+  it("400: sessionComplete === false 세션 (면접 미완료)", async () => {
+    const { interviewRepository } = await import("@/lib/interview/interview-repository");
+    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ...mockSession,
+      userId: "user-123",
+      sessionComplete: false,
+    });
+
+    const { POST } = await import("@/app/api/report/generate/route");
+    const req = new Request("http://localhost/api/report/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "test-session-id" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.message).toBe("면접이 완료되지 않은 세션입니다.");
   });
 });
