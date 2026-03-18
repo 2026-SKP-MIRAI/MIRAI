@@ -16,6 +16,8 @@ class ParseResponse(BaseModel):
 
 
 class QuestionsRequest(BaseModel):
+    # max_length=50_000: 5MB PDF 기준 최대 ~16K자이나 여유 있게 설정
+    # 내부적으로 llm_service가 16,000자로 잘라 LLM에 전달 (묵시적 잘림)
     resumeText: str = Field(..., min_length=1, max_length=50_000)
 
 

@@ -67,6 +67,29 @@ async def test_400_empty_resume_text():
 
 
 @pytest.mark.asyncio
+async def test_400_resume_text_too_long():
+    """resumeText 50,001자 → 400"""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/resume/questions",
+            json={"resumeText": "가" * 50_001},
+        )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_200_resume_text_max_length():
+    """resumeText 정확히 50,000자 → 200 (경계값)"""
+    with patch("app.services.llm_service.OpenAI", return_value=mock_llm_success()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/resume/questions",
+                json={"resumeText": "가" * 50_000},
+            )
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_500_llm_error():
     fake = MagicMock()
     fake.chat.completions.create.side_effect = Exception("API 오류")

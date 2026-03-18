@@ -1,4 +1,5 @@
 import shutil
+from unittest.mock import patch
 
 import fitz
 import pytest
@@ -129,3 +130,28 @@ async def test_parse_422_unreadable_image_pdf(unreadable_image_pdf_bytes):
             files={"file": ("noise.pdf", unreadable_image_pdf_bytes, "application/pdf")},
         )
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_parse_400_corrupted_pdf():
+    """손상된 PDF(fitz 파싱 실패) → ParseError → 400"""
+    corrupted_bytes = b"%PDF-1.4 corrupted content \x00\x01\x02"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/resume/parse",
+            files={"file": ("corrupted.pdf", corrupted_bytes, "application/pdf")},
+        )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_parse_500_unexpected_parser_error():
+    """parse_pdf가 예기치 않은 예외(비ParseError) 발생 → 500"""
+    pdf_bytes = make_valid_pdf()
+    with patch("app.routers.resume.parse_pdf", side_effect=RuntimeError("unexpected")):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/resume/parse",
+                files={"file": ("resume.pdf", pdf_bytes, "application/pdf")},
+            )
+    assert resp.status_code == 500
