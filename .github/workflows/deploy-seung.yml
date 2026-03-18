@@ -1,0 +1,70 @@
+name: Deploy seung to EC2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/seung/**'
+  workflow_dispatch:  # GitHub Actions 탭에서 수동 트리거 가능
+    inputs:
+      skip_build:
+        description: '빌드 생략하고 재시작만 (서버 재시작용)'
+        type: boolean
+        default: false
+
+jobs:
+  build-and-push-seung:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || inputs.skip_build == false }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+      - name: Build and push seung
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SEUNG_NEXT_PUBLIC_SUPABASE_URL }} \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SEUNG_NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
+            -t $ECR_REGISTRY/mirai-seung:latest \
+            -t $ECR_REGISTRY/mirai-seung:${{ github.sha }} \
+            -f services/seung/Dockerfile \
+            services/seung
+          docker push $ECR_REGISTRY/mirai-seung --all-tags
+
+  deploy:
+    needs: [build-and-push-seung]
+    if: ${{ always() && (needs.build-and-push-seung.result == 'success' || needs.build-and-push-seung.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SEUNG_EC2_HOST }}
+          username: ${{ secrets.SEUNG_EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # ECR 로그인
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+              docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+            # 기존 컨테이너 정리
+            docker stop seung || true && docker rm seung || true
+
+            # 최신 이미지 pull
+            docker pull ${{ secrets.ECR_REGISTRY }}/mirai-seung:latest
+
+            # 사용하지 않는 이미지 정리 (디스크 용량 확보)
+            docker image prune -f
+
+            # seung 시작
+            docker run -d --name seung \
+              --restart unless-stopped \
+              --env-file ~/.env.seung \
+              -p 3000:3000 \
+              ${{ secrets.ECR_REGISTRY }}/mirai-seung:latest
