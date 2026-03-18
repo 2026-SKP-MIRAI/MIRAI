@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Users, Code2, Briefcase } from "lucide-react"
@@ -68,7 +68,7 @@ const PERSONAS: Persona[] = [
 
 type ResumeItem = { id: string; fileName: string }
 
-export default function InterviewNewPage() {
+function InterviewNewPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedResumeId = searchParams.get("resumeId")
@@ -250,5 +250,13 @@ export default function InterviewNewPage() {
         </motion.div>
       </motion.div>
     </div>
+  )
+}
+
+export default function InterviewNewPage() {
+  return (
+    <Suspense>
+      <InterviewNewPageContent />
+    </Suspense>
   )
 }
