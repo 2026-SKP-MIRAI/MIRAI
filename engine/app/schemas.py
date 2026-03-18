@@ -9,6 +9,16 @@ class ParsedResume(BaseModel):
     text: str
     extracted_length: int
 
+
+class ParseResponse(BaseModel):
+    resumeText: str
+    extractedLength: int
+
+
+class QuestionsRequest(BaseModel):
+    resumeText: str = Field(..., min_length=1, max_length=50_000)
+
+
 class QuestionItem(BaseModel):
     category: Category
     question: str

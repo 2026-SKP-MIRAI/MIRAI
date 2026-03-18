@@ -1,6 +1,14 @@
 import logging
+import os
+import sys
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+# Windows: Tesseract가 PATH에 없을 경우 자동 추가
+_TESSERACT_WIN = Path("C:/Program Files/Tesseract-OCR")
+if sys.platform == "win32" and _TESSERACT_WIN.exists():
+    os.environ["PATH"] = str(_TESSERACT_WIN) + os.pathsep + os.environ.get("PATH", "")
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse

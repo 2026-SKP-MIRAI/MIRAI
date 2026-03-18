@@ -1,8 +1,15 @@
 import io
+import os
+import sys
 from pathlib import Path
 
 import fitz  # PyMuPDF
 import pytest
+
+# Windows: Tesseract가 PATH에 없을 경우 자동 추가
+_TESSERACT_WIN = Path("C:/Program Files/Tesseract-OCR")
+if sys.platform == "win32" and _TESSERACT_WIN.exists():
+    os.environ["PATH"] = str(_TESSERACT_WIN) + os.pathsep + os.environ.get("PATH", "")
 
 FIXTURES_INPUT = Path(__file__).parent / "fixtures/input"
 
