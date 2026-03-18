@@ -5,6 +5,12 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Tesseract OCR 시스템 패키지 (캐시 계층 분리)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tesseract-ocr tesseract-ocr-kor && \
+    rm -rf /var/lib/apt/lists/*
+
 # 의존성만 먼저 복사 → 캐시 레이어 최적화
 # (코드만 변경 시 pip install 재실행 안 함)
 COPY pyproject.toml .
