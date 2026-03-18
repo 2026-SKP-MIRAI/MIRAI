@@ -39,5 +39,9 @@
 - 2026-03-18: `engine/app/routers/.ai.md` — resume.py 엔드포인트 목록 최신화
 - 2026-03-18: `engine/tests/.ai.md` — `test_resume_parse_route.py` 목록 추가
 - 2026-03-18: `engine/app/.ai.md` — ANTHROPIC_API_KEY → OPENROUTER_API_KEY 수정
-- 비고: 서비스 4개(siw/kwan/seung/lww)의 `/questions` FormData → JSON 전환은 별도 PR 예정
+- 2026-03-18: `engine/app/main.py` — Windows Tesseract PATH 자동 추가 (서버 실행 시 OCR 정상 동작)
+- 2026-03-18: `engine/tests/conftest.py` — Windows Tesseract PATH 자동 추가 (pytest 실행 시 OCR 테스트 PASS)
+- 2026-03-18: `engine/app/routers/resume.py` — MIME 검증을 `file.read()` 이전으로 이동 (DoS 방어), Content-Length 버퍼 +1KB
+- 2026-03-18: `engine/tests/.ai.md` — mock 경로 오류 수정 (llm_client → llm_service)
+- 비고: 서비스 4개(siw/kwan/seung/lww)의 `/questions` FormData → JSON 전환은 별도 PR 예정 (#119/#120/#121)
 
