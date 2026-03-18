@@ -35,6 +35,7 @@ const mockSession = {
   currentQuestionType: 'main',
   history: [],
   questionsQueue: [{ persona: 'tech_lead', type: 'main' }],
+  interviewMode: 'real',
   updatedAt: new Date('2024-01-01T00:00:00Z'),
 }
 

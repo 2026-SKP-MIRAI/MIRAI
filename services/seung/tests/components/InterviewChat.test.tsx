@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import InterviewChat from '@/components/InterviewChat'
-import type { QuestionWithPersona } from '@/lib/types'
+import type { QuestionWithPersona, PracticeFeedbackResponse } from '@/lib/types'
 
 type Message =
   | { id: string; type: 'question'; data: QuestionWithPersona }
@@ -72,6 +72,33 @@ describe('InterviewChat', () => {
     expect(screen.getByText('저는 개발자입니다.')).toBeInTheDocument()
   })
 
+  it('onReport prop 전달 시 "리포트 생성하기" 버튼이 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={true}
+        onReport={vi.fn()}
+        isGeneratingReport={false}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: '리포트 생성하기' })).toBeInTheDocument()
+  })
+
+  it('isGeneratingReport=true 시 버튼이 disabled되고 "리포트 생성 중..." 텍스트가 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={true}
+        onReport={vi.fn()}
+        isGeneratingReport={true}
+      />
+    )
+
+    const button = screen.getByRole('button', { name: /리포트 생성 중/ })
+    expect(button).toBeDisabled()
+  })
+
   it('main 타입 질문에는 꼬리질문 배지가 없다', () => {
     const messages: Message[] = [
       {
@@ -91,5 +118,92 @@ describe('InterviewChat', () => {
     )
 
     expect(screen.queryByText('꼬리질문')).not.toBeInTheDocument()
+  })
+})
+
+describe('practice 모드 피드백 UI', () => {
+  const mockMessages: Message[] = [
+    {
+      id: 'q1',
+      type: 'question',
+      data: { persona: 'hr', personaLabel: 'HR 면접관', question: '자기소개해주세요.', type: 'main' },
+    },
+    { id: 'a1', type: 'answer', text: '저는 개발자입니다.' },
+  ]
+
+  const mockFeedback: PracticeFeedbackResponse = {
+    score: 72,
+    feedback: {
+      good: ['구체적인 경험을 제시했습니다.'],
+      improve: ['결론을 먼저 말하면 효과적입니다.'],
+    },
+    keywords: ['리더십', '협업'],
+    improvedAnswerGuide: '결론 → 이유 → 사례 순서로 답변해 보세요.',
+    comparisonDelta: null,
+  }
+
+  it('interviewMode="practice", practiceStep="feedback" → 피드백 블록 표시', () => {
+    render(
+      <InterviewChat
+        messages={mockMessages}
+        sessionComplete={false}
+        interviewMode="practice"
+        practiceFeedback={mockFeedback}
+        practiceStep="feedback"
+      />
+    )
+    expect(screen.getByText(/72점/)).toBeInTheDocument()
+    expect(screen.getByText(/구체적인 경험을 제시했습니다\./)).toBeInTheDocument()
+    expect(screen.getByText(/결론을 먼저 말하면 효과적입니다\./)).toBeInTheDocument()
+    expect(screen.getByText(/리더십/)).toBeInTheDocument()
+  })
+
+  it('practiceStep="feedback" → "다시 답변하기" 버튼 표시 + onRetry 호출', () => {
+    const onRetry = vi.fn()
+    render(
+      <InterviewChat
+        messages={mockMessages}
+        sessionComplete={false}
+        interviewMode="practice"
+        practiceFeedback={mockFeedback}
+        practiceStep="feedback"
+        onRetry={onRetry}
+      />
+    )
+    const retryBtn = screen.getByRole('button', { name: '다시 답변하기' })
+    expect(retryBtn).toBeInTheDocument()
+    retryBtn.click()
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  it('practiceStep="done", comparisonDelta 있음 → 향상도 표시', () => {
+    const feedbackWithDelta: PracticeFeedbackResponse = {
+      ...mockFeedback,
+      score: 84,
+      comparisonDelta: { scoreDelta: 12, improvements: ['결론을 먼저 제시했습니다.'] },
+    }
+    render(
+      <InterviewChat
+        messages={mockMessages}
+        sessionComplete={false}
+        interviewMode="practice"
+        practiceFeedback={feedbackWithDelta}
+        practiceStep="done"
+      />
+    )
+    expect(screen.getByText(/향상도/)).toBeInTheDocument()
+    expect(screen.getByText(/결론을 먼저 제시했습니다\./)).toBeInTheDocument()
+  })
+
+  it('interviewMode="real" (기본값) → 피드백 블록 없음', () => {
+    render(
+      <InterviewChat
+        messages={mockMessages}
+        sessionComplete={false}
+        practiceFeedback={mockFeedback}
+        practiceStep="feedback"
+      />
+    )
+    expect(screen.queryByText(/72점/)).not.toBeInTheDocument()
   })
 })

@@ -27,6 +27,19 @@ model InterviewSession {
   currentPersona      String
   currentPersonaLabel String
   currentQuestionType String   @default("main")
+  interviewMode       String   @default("real")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  report              Report?
+}
+
+model Report {
+  id            String           @id @default(cuid())
+  sessionId     String           @unique
+  session       InterviewSession @relation(fields: [sessionId], references: [id])
+  totalScore    Int
+  scores        Json
+  summary       String
+  axisFeedbacks Json
+  createdAt     DateTime         @default(now())
 }

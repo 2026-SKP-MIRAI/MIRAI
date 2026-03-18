@@ -111,4 +111,38 @@ describe('POST /api/interview/start', () => {
     const body = await response.json()
     expect(body.error).toContain('서버 설정')
   })
+
+  it('interviewMode="practice" 전달 시 create 호출에 반영', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      resumeText: '자소서 텍스트',
+    })
+
+    const engineData = {
+      firstQuestion: {
+        persona: 'hr',
+        personaLabel: 'HR 면접관',
+        question: '자기소개를 해주세요.',
+        type: 'main',
+      },
+      questionsQueue: [],
+    }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => engineData,
+    })
+
+    mockPrisma.interviewSession.create.mockResolvedValueOnce({
+      id: 'session-practice-1',
+    })
+
+    const response = await POST(makeRequest({ resumeId: 'resume-1', interviewMode: 'practice' }))
+    expect(response.status).toBe(200)
+
+    expect(mockPrisma.interviewSession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ interviewMode: 'practice' }),
+      })
+    )
+  })
 })
