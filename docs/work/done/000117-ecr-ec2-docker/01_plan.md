@@ -1,6 +1,6 @@
 # [#117] chore: ECR + EC2 Docker CI/CD 파이프라인 구축 (siw) — 구현 계획
 
-> 작성: 2026-03-17 | 개정: 2026-03-17 (Architect/Critic 피드백 반영)
+> 작성: 2026-03-17 | 개정: 2026-03-18 (코드 리뷰 반영 — entrypoint.sh Prisma 경로, workflow_dispatch skip_build, README Secrets 이름, EC2 IAM Role 전환)
 
 ---
 
@@ -9,10 +9,10 @@
 ### 코드 작업
 - [x] `services/siw/next.config.ts`에 `output: 'standalone'` 추가 (기존 `serverExternalPackages` 유지)
 - [x] `services/siw/Dockerfile` 생성 — Next.js standalone 멀티스테이지 빌드 (`node:20-alpine`), non-root user, Prisma runner-stage 복사 적용
-- [x] `services/siw/entrypoint.sh` 생성 — `set -e`, env guard, `prisma migrate deploy`, `exec node server.js`
+- [x] `services/siw/entrypoint.sh` 생성 — `set -e`, env guard, `prisma migrate deploy`, `exec node server.js` (2026-03-18: Prisma 실행 경로를 내부 빌드 경로에서 `./node_modules/.bin/prisma`로 수정)
 - [x] `services/siw/.dockerignore` 생성 — `.next`, `node_modules`, `.env*` 제외
-- [x] `.github/workflows/deploy-siw.yml` 생성 — main push 시 ECR 빌드·푸시 → EC2 SSH 접속 → 컨테이너 cleanup → 재시작, `--restart unless-stopped` 포함
-- [x] `services/siw/README.md` 작성 — 로컬 빌드·구동·환경변수 운영·네트워크 가이드 포함
+- [x] `.github/workflows/deploy-siw.yml` 생성 — main push 시 ECR 빌드·푸시 → EC2 SSH 접속 → 컨테이너 cleanup → 재시작, `--restart unless-stopped` 포함 (2026-03-18: `workflow_dispatch`에 `skip_build` input 추가 — 서버 재시작 시 빌드 생략 가능)
+- [x] `services/siw/README.md` 작성 — 로컬 빌드·구동·환경변수 운영·네트워크 가이드 포함 (2026-03-18: GitHub Secrets 이름 `SIW_` prefix 누락 수정 — `EC2_HOST` → `SIW_EC2_HOST` 등)
 
 ### 로컬 검증
 - [x] `docker build` 로컬 빌드 성공 확인 (`mirai-siw:test`, 532MB, 2026-03-17 18:47)
@@ -27,7 +27,8 @@
 ### 인프라 (수동 작업)
 > **참고**: 000064에서 engine/lww용 ALB 2개, Route53(`engine.mirainterview.com`, `mirainterview.com`), ACM, WAF가 이미 구성됨. siw용으로 추가 필요.
 
-- [ ] Elastic IP 할당 → EC2에 연결 (`SIW_EC2_HOST` Secrets에 등록, EC2 재시작 시 IP 고정)
+- [x] EC2 IAM Role(`mirai-siw-ec2-role`) 생성 → 인스턴스에 연결, `~/.aws/credentials` 삭제 — Instance Profile 방식으로 전환 완료 (2026-03-18)
+- [x] Elastic IP 할당 → EC2에 연결 (`SIW_EC2_HOST` Secrets에 등록, EC2 재시작 시 IP 고정)
 - [ ] GitHub Secrets 등록 (9개)
 - [ ] ALB 생성 (siw용) + 타겟 그룹(포트 3000, 헬스체크 `/`) + EC2 등록
   - EC2 보안 그룹: 포트 3000을 ALB 보안 그룹에서만 허용 (퍼블릭 직접 오픈 금지)
@@ -342,8 +343,8 @@ docker stop siw-test && docker rm siw-test
   ├────────────────────────┼──────────────────────────────────┤   
   │ AWS_REGION             │ ap-northeast-2                   │   
   ├────────────────────────┼──────────────────────────────────┤   
-  │ ECR_REGISTRY           │ 648955503445.dkr.ecr.ap-northeas │   
-  │                        │ t-2.amazonaws.com                │   
+  │ ECR_REGISTRY           │ 64**********.dkr.ecr.ap-******** │   
+  │                        │ ***.amazonaws.com                │   
   ├────────────────────────┼──────────────────────────────────┤   
   │                        │ mirai_key.pem 파일 전체 내용     │   
   │ EC2_SSH_KEY            │ (-----BEGIN RSA PRIVATE KEY----- │   

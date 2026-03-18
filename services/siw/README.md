@@ -93,8 +93,8 @@ GitHub → repo → Settings → Secrets and variables → Actions
 | `AWS_SECRET_ACCESS_KEY` | IAM 유저 시크릿 키 |
 | `AWS_REGION` | `ap-northeast-2` |
 | `ECR_REGISTRY` | `{account_id}.dkr.ecr.ap-northeast-2.amazonaws.com` |
-| `EC2_HOST` | EC2 퍼블릭 IP (또는 탄력적 IP) |
-| `EC2_USER` | `ubuntu` |
+| `SIW_EC2_HOST` | EC2 퍼블릭 IP (또는 탄력적 IP) |
+| `SIW_EC2_USER` | `ubuntu` |
 | `EC2_SSH_KEY` | `.pem` 파일 전체 내용 |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SIW_NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `SIW_NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
