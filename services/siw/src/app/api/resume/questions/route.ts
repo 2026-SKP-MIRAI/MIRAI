@@ -1,5 +1,4 @@
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages";
-import { parsePdf } from "@/lib/pdf-parser";
 
 export const runtime = "nodejs";
 export const maxDuration = 35;
@@ -17,25 +16,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  let resumeText = "";
-  try {
-    resumeText = await parsePdf(buffer);
-  } catch {
+  if (file.type !== "application/pdf") {
     return Response.json(
-      { message: ENGINE_ERROR_MESSAGES.corruptedPdf },
-      { status: 422 }
+      { message: ENGINE_ERROR_MESSAGES.noFile },
+      { status: 400 }
     );
   }
 
-  const engineForm = new FormData();
-  engineForm.append("file", file, file.name);
+  const engineParseForm = new FormData();
+  engineParseForm.append("file", file, file.name);
+  const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
+    method: "POST",
+    body: engineParseForm,
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!parseResp.ok) {
+    const body = await parseResp.json().catch(() => ({ detail: "" }));
+    const key = mapDetailToKey(body.detail ?? "", parseResp.status);
+    return Response.json(
+      { message: ENGINE_ERROR_MESSAGES[key] },
+      { status: parseResp.status }
+    );
+  }
+  const { resumeText } = await parseResp.json();
 
   try {
     const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
       method: "POST",
-      body: engineForm,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeText }),
       signal: AbortSignal.timeout(30000),
     });
 
