@@ -9,7 +9,9 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    searchParams.get('error') === 'invalid_code' ? '인증 링크가 만료되었거나 이미 사용된 링크입니다. 다시 로그인해 주세요.' : ''
+  )
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {

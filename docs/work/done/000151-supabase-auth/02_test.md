@@ -123,6 +123,14 @@ Duration    2.77s
 
 ---
 
+### `auth/callback/route.ts` — exchangeCodeForSession 실패 무시 (코드리뷰 #1)
+
+- **현상**: `exchangeCodeForSession` 실패 시 에러를 무시하고 `/resume`로 리다이렉트
+- **원인**: `{ error }` 미구조분해 — 에러 여부 확인 없이 항상 성공 경로 실행
+- **해결**: `{ error }` 구조분해 후 에러 시 `/login?error=invalid_code`로 리다이렉트, `login/page.tsx`에서 URL 파라미터 감지해 에러 메시지 표시
+
+---
+
 ### Next.js 16 middleware 파일명 경고
 
 - **현상**: `"middleware" file convention is deprecated. Please use "proxy" instead.` 경고 출력
