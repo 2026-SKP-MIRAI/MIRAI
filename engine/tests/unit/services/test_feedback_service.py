@@ -148,7 +148,7 @@ def test_generate_resume_feedback_empty_strengths_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 16 ─────────────────────────────────────────────────────────────────
+# ── 테스트 11 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_empty_weaknesses_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -159,7 +159,7 @@ def test_generate_resume_feedback_empty_weaknesses_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 17 ─────────────────────────────────────────────────────────────────
+# ── 테스트 12 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_empty_suggestions_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -170,7 +170,7 @@ def test_generate_resume_feedback_empty_suggestions_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 11 ─────────────────────────────────────────────────────────────────
+# ── 테스트 13 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_llm_error_raises_llm_error():
     from app.parsers.exceptions import LLMError
@@ -182,7 +182,7 @@ def test_generate_resume_feedback_llm_error_raises_llm_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 12 ─────────────────────────────────────────────────────────────────
+# ── 테스트 14 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_invalid_json_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -192,7 +192,7 @@ def test_generate_resume_feedback_invalid_json_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 13 ─────────────────────────────────────────────────────────────────
+# ── 테스트 15 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_missing_scores_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -207,7 +207,7 @@ def test_generate_resume_feedback_missing_scores_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 14 ─────────────────────────────────────────────────────────────────
+# ── 테스트 16 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_partial_scores_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -224,7 +224,7 @@ def test_generate_resume_feedback_partial_scores_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 15 ─────────────────────────────────────────────────────────────────
+# ── 테스트 17 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_null_score_value_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -239,3 +239,59 @@ def test_generate_resume_feedback_null_score_value_raises_parse_error():
         from app.services.feedback_service import generate_resume_feedback
         with pytest.raises(ResumeFeedbackParseError):
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 18-19: 프롬프트 내용 검증 ─────────────────────────────────────────
+# 테스트 1~17은 app.services.llm_client.OpenAI를 패치해 LLM 응답 내용을 제어한다.
+# 테스트 18~19는 프롬프트 내용 자체를 캡처해야 하므로 call_llm을 직접 패치한다.
+# (feedback_service는 from app.services.llm_client import call_llm으로 바인딩하므로
+#  app.services.feedback_service.call_llm 경로가 올바른 패치 타깃이다.)
+
+def test_generate_resume_feedback_none_target_role_uses_default_label():
+    """target_role=None 시 프롬프트에 '미지정 직무'가 포함되는지 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", None)
+
+    assert "미지정 직무" in captured_prompt["value"]
+
+
+# ── 테스트 19 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_empty_target_role_uses_default_label():
+    """target_role="" 시 프롬프트에 '미지정 직무'가 포함되는지 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", "")
+
+    assert "미지정 직무" in captured_prompt["value"]
+
+
+# ── 테스트 20 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_target_role_angle_brackets_escaped():
+    """target_role에 <> 포함 시 HTML 엔티티로 이스케이프되어 프롬프트에 삽입."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", "<script>alert(1)</script>")
+
+    assert "<script>" not in captured_prompt["value"]
+    assert "&lt;script&gt;" in captured_prompt["value"]
