@@ -208,6 +208,42 @@ Airflow DAG이 하루치를 읽고 feature_type으로 groupby.
 
 ---
 
+## Phase C — Airflow 컨테이너화 + EC2 배포 자동화 ✅ 완료
+
+### Step 6: Dockerfile + docker-compose
+
+**파일:** `services/siw/airflow/Dockerfile`
+
+```dockerfile
+FROM apache/airflow:2.9.0
+USER airflow
+COPY requirements.txt /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
+COPY dags/ /opt/airflow/dags/
+COPY sql/ /opt/airflow/sql/
+```
+
+**파일:** `services/siw/airflow/docker-compose.yml` — 로컬 검증용
+
+### Step 7: GitHub Actions 배포 워크플로우
+
+**파일:** `.github/workflows/deploy-siw-airflow.yml`
+
+- 트리거: `services/siw/airflow/**` push 또는 workflow_dispatch
+- ECR `mirai-airflow` 이미지 빌드 + push
+- SSH로 Airflow EC2(`SIW_AIRFLOW_EC2_HOST`, `SIW_AIRFLOW_EC2_USER`) 접속 → docker pull + run
+- `~/.env.airflow` 파일로 환경변수 주입
+- siw 배포(`deploy-siw.yml`)와 완전 독립 — Airflow EC2 별도 운용
+
+**GitHub Secrets:**
+| 이름 | 값 |
+|------|-----|
+| SIW_AIRFLOW_EC2_HOST | Airflow EC2 Elastic IP |
+| SIW_AIRFLOW_EC2_USER | `ubuntu` |
+| EC2_SSH_KEY | 기존 siw 키 공유 |
+
+---
+
 ## 불변식
 
 1. 로깅 실패가 본 기능 흐름에 영향 주지 않음 (`try/catch` 내부 에러 삼킴)

@@ -43,8 +43,8 @@ jobs:
     steps:
       - uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.AIRFLOW_EC2_HOST }}
-          username: ${{ secrets.AIRFLOW_EC2_USER }}
+          host: ${{ secrets.SIW_AIRFLOW_EC2_HOST }}
+          username: ${{ secrets.SIW_AIRFLOW_EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # ECR 로그인

@@ -134,6 +134,20 @@ Duration:   ~5s
 
 ---
 
+## 6. 로컬 docker-compose 검증
+
+**일시:** 2026-03-19
+**방법:** `cd services/siw/airflow && docker compose up`
+
+**결과:**
+- `Airflow is ready` 확인
+- `localhost:8080` 로그인 성공 (admin / 자동생성 비밀번호)
+- `llm_quality_dag` DAG 목록에 표시
+- `airflow variables set S3_LOG_BUCKET mirai-llm-logs-siw` 설정 후 Trigger 실행
+- `extract_events` 태스크 실행 진입 확인 (Variables 설정 전 `KeyError: 'Variable S3_LOG_BUCKET does not exist'` 에러 → 설정 후 정상)
+
+---
+
 ## 환경변수 (로컬 테스트용)
 
 ```bash

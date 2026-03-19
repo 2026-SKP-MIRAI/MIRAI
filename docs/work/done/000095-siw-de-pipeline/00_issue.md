@@ -112,7 +112,19 @@ CREATE TABLE llm_events_daily (
 - vitest: event_logger 단위 테스트 10개 + api-instrumentation 테스트
 
 **미완료 항목**:
-- (없음 — Phase A 완료)
+- (없음 — 전체 완료)
 
-**변경 파일**: 10개+ (interview-service.ts, resumes/route.ts, resume/questions/route.ts, report/generate/route.ts, practice/feedback/route.ts, event-logger.ts, event-logger.test.ts, api-instrumentation.test.ts, airflow/, package.json)
+**변경 파일**: 15개+ (interview-service.ts, resumes/route.ts, resume/questions/route.ts, report/generate/route.ts, practice/feedback/route.ts, event-logger.ts, event-logger.test.ts, api-instrumentation.test.ts, airflow/Dockerfile, airflow/docker-compose.yml, airflow/requirements.txt, airflow/dags/llm_quality_dag.py, airflow/sql/001_create_llm_events_daily.sql, .github/workflows/deploy-siw-airflow.yml, package.json)
+
+### 2026-03-19 (Phase B + C 추가 작업)
+
+**완료된 항목**:
+- `mode` 필드 추가 — LLMEvent에 `"interview" | "practice" | "resume"` 자동 파생 (FEATURE_MODE lookup table, 9개 call site 변경 없음)
+- Airflow 컨테이너화 — `airflow/Dockerfile` + `docker-compose.yml` + `requirements.txt` 생성
+- GitHub Actions 배포 워크플로우 — `.github/workflows/deploy-siw-airflow.yml` (ECR + 별도 Airflow EC2)
+- 파일명 변경 — `deploy-airflow.yml` → `deploy-siw-airflow.yml`
+- GitHub Secrets 이름 변경 — `AIRFLOW_EC2_HOST` → `SIW_AIRFLOW_EC2_HOST`, `AIRFLOW_EC2_USER` → `SIW_AIRFLOW_EC2_USER`
+- S3 end-to-end 검증 — 브라우저 면접 → report_generate 이벤트 S3 실 확인
+- 로컬 docker-compose 검증 — Airflow UI + llm_quality_dag Trigger 실행 확인
+- code-reviewer 지적 반영 — analytics 스키마 prefix, NUMERIC(10,2), try/finally, requirements.txt
 
