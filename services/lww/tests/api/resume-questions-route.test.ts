@@ -64,13 +64,13 @@ describe("POST /api/resume/questions", () => {
     expect(res.status).toBe(500);
   });
 
-  it("타임아웃 시 500 반환", async () => {
+  it("타임아웃 시 504 반환", async () => {
     mockFetch.mockRejectedValueOnce(new DOMException("signal timed out", "AbortError"));
     const formData = new FormData();
     formData.append("file", new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" }));
     const req = new Request("http://localhost/api/resume/questions", { method: "POST", body: formData });
     const { POST: handler } = await import("../../src/app/api/resume/questions/route");
     const res = await handler(req);
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(504);
   });
 });

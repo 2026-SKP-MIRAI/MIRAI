@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lww 브랜드 컬러 비교 목업</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gray-50:  #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --white:    #FFFFFF;
+      --coin:     #F59E0B;
+      --coin-bg:  #FEF3C7;
+      --success:  #22C55E;
+      --page-bg:  #F0F0F0;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--page-bg);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 24px 32px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-900);
+      letter-spacing: -0.3px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* ── Confirm Bar ── */
+    .confirm-bar {
+      background: var(--white);
+      border-top: 1px solid var(--gray-200);
+      padding: 16px 32px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    }
+    .confirm-bar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .confirm-bar .selected-label {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+    .confirm-bar .selected-label strong {
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .confirm-btn {
+      padding: 14px 32px;
+      border-radius: 9999px;
+      border: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      color: #fff;
+    }
+    .confirm-btn:hover { opacity: 0.88; }
+    .confirm-btn:active { transform: scale(0.97); }
+    .confirm-btn[data-palette="A"] { background: #7C3AED; }
+    .confirm-btn[data-palette="B"] { background: #0D9488; }
+    .confirm-btn[data-palette="C"] { background: #E11D48; }
+    .confirm-btn.none { background: var(--gray-400); cursor: not-allowed; }
+
+    /* ── Columns Layout ── */
+    .columns-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 24px 100px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── Column ── */
+    .col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      cursor: pointer;
+      border-radius: 28px;
+      padding: 16px;
+      border: 3px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .col:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .col.selected { border-color: var(--col-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--col-primary) 15%, transparent); }
+
+    /* per-palette vars injected inline */
+    .col-A { --col-primary: #7C3AED; --col-secondary: #E9D5FF; --col-secondary-fg: #4C1D95; }
+    .col-B { --col-primary: #0D9488; --col-secondary: #CCFBF1; --col-secondary-fg: #134E4A; }
+    .col-C { --col-primary: #E11D48; --col-secondary: #FFE4E6; --col-secondary-fg: #881337; }
+
+    /* ── Column Label ── */
+    .col-label {
+      text-align: center;
+      margin-bottom: 16px;
+      width: 100%;
+    }
+    .col-label .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 9999px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      background: var(--col-primary);
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .col-label h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .col-label .hex-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 6px;
+    }
+    .hex-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-700);
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+    .hex-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .selected-check {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--col-primary);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .col.selected .selected-check { display: flex; }
+
+    /* ── Phone Frame ── */
+    .phone {
+      width: 100%;
+      max-width: 340px;
+      border-radius: 40px;
+      background: var(--white);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 2px rgba(0,0,0,0.06);
+      position: relative;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      background: var(--col-primary);
+      padding: 10px 20px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .status-time { font-size: 12px; font-weight: 700; color: #fff; }
+    .status-icons { display: flex; gap: 5px; align-items: center; }
+    .status-icons svg { width: 14px; height: 14px; fill: #fff; }
+
+    /* ── Screen Sections ── */
+    .screen-section {
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .screen-section:last-child { border-bottom: none; }
+
+    /* section label */
+    .section-tag {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gray-400);
+      padding: 6px 16px 0;
+    }
+
+    /* ── 1. Hero Section ── */
+    .hero {
+      padding: 24px 16px 20px;
+      background: linear-gradient(160deg, var(--col-secondary) 0%, var(--white) 60%);
+      text-align: center;
+    }
+    .hero-logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--col-primary);
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .hero-headline {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.35;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+    .hero-sub {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+    .hero-cta {
+      display: inline-block;
+      width: 100%;
+      padding: 14px 24px;
+      border-radius: 9999px;
+      background: var(--col-primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: inherit;
+    }
+    .hero-cta:hover { opacity: 0.88; }
+    .hero-cta-sub {
+      display: inline-block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1.5px solid var(--col-primary);
+      color: var(--col-primary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .trust-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+    /* ── 2. Chat Section ── */
+    .chat-top-bar {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .chat-top-left { display: flex; align-items: center; gap: 8px; }
+    .chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--col-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .chat-name { font-size: 13px; font-weight: 700; color: var(--gray-900); }
+    .chat-status { font-size: 10px; color: var(--success); }
+    .coin-badge-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--coin-bg);
+      color: var(--coin);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+    .chat-body {
+      padding: 12px 12px;
+      background: var(--gray-50);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .bubble-row { display: flex; align-items: flex-end; gap: 6px; }
+    .bubble-row.user { justify-content: flex-end; }
+    .bubble-row.ai { justify-content: flex-start; }
+    .bubble {
+      max-width: 200px;
+      padding: 10px 13px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .bubble.ai {
+      background: var(--white);
+      color: var(--gray-900);
+      border-radius: 18px 18px 18px 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .bubble.user {
+      background: var(--col-primary);
+      color: #fff;
+      border-radius: 18px 18px 4px 18px;
+    }
+    .bubble-time { font-size: 10px; color: var(--gray-400); flex-shrink: 0; }
+    .ai-avatar-sm {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--col-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      align-self: flex-end;
+    }
+
+    /* ── 3. Upload Card ── */
+    .upload-wrap {
+      padding: 14px;
+      background: var(--white);
+    }
+    .upload-card {
+      border: 2px dashed var(--col-primary);
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      background: color-mix(in srgb, var(--col-primary) 4%, white);
+    }
+    .upload-icon-ring {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--col-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 20px;
+    }
+    .upload-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 4px;
+    }
+    .upload-desc {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .upload-btn {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 9999px;
+      background: var(--col-primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .file-preview {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .file-icon { font-size: 16px; }
+    .file-name { font-size: 11px; font-weight: 600; color: var(--gray-900); flex: 1; }
+    .file-size { font-size: 10px; color: var(--gray-400); }
+    .file-check { width: 16px; height: 16px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; }
+    .file-check svg { width: 10px; height: 10px; }
+
+    /* ── 4. Coin & Nav ── */
+    .bottom-area {
+      padding: 12px 16px 8px;
+      background: var(--white);
+    }
+    .coin-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .coin-label { font-size: 12px; font-weight: 600; color: var(--gray-700); }
+    .coin-badge-lg {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--coin-bg);
+      border: 1.5px solid rgba(245,158,11,0.3);
+      color: var(--coin);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 9999px;
+    }
+    .streak-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .streak-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .streak-dot.done { background: var(--col-primary); color: #fff; }
+    .streak-dot.today { background: var(--white); border: 2px solid var(--col-primary); color: var(--col-primary); }
+    .streak-dot.empty { background: var(--gray-100); color: var(--gray-400); }
+    .streak-label { font-size: 10px; color: var(--gray-500); font-weight: 600; margin-left: 4px; }
+
+    /* ── Navigation Bar ── */
+    .nav-bar {
+      background: var(--white);
+      border-top: 1px solid var(--gray-200);
+      padding: 6px 4px 10px;
+      display: flex;
+      align-items: center;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-icon svg { width: 22px; height: 22px; }
+    .nav-label { font-size: 9px; font-weight: 600; }
+    .nav-item.active .nav-icon svg { stroke: var(--col-primary); }
+    .nav-item.active .nav-label { color: var(--col-primary); }
+    .nav-item:not(.active) .nav-icon svg { stroke: var(--gray-400); }
+    .nav-item:not(.active) .nav-label { color: var(--gray-400); }
+    .nav-item.disabled .nav-icon svg { stroke: var(--gray-200); }
+    .nav-item.disabled .nav-label { color: var(--gray-200); }
+
+    /* mood tags */
+    .mood-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px 16px 14px;
+      background: var(--white);
+    }
+    .mood-chip {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--col-secondary);
+      color: var(--col-secondary-fg);
+    }
+
+    /* responsive */
+    @media (max-width: 900px) {
+      .columns-wrap { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .columns-wrap { grid-template-columns: 1fr; padding: 16px 12px 100px; }
+      .page-header { padding: 16px 20px 14px; }
+      .page-header h1 { font-size: 18px; }
+    }
+
+    /* scroll-bar slim */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 99px; }
+
+    /* ── Selection animation ── */
+    @keyframes pop-in { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .col.selected .selected-check { animation: pop-in 0.2s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════ -->
+<header class="page-header">
+  <div class="header-inner">
+    <div>
+      <h1>lww 브랜드 컬러 비교 목업</h1>
+      <p>컬럼을 클릭하여 선호하는 컬러를 선택하세요. 하단 버튼으로 최종 결정합니다.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;color:var(--gray-400);">옵션</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:9999px;background:#7C3AED;color:#fff;font-size:12px;font-weight:700;">A 바이올렛</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:9999px;background:#0D9488;color:#fff;font-size:12px;font-weight:700;">B 틸</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:9999px;background:#E11D48;color:#fff;font-size:12px;font-weight:700;">C 로즈</span>
+    </div>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════════
+     THREE COLUMNS
+══════════════════════════════════════════ -->
+<main class="columns-wrap">
+
+  <!-- ─────────── OPTION A: VIOLET ─────────── -->
+  <div class="col col-A" data-palette="A" onclick="selectPalette('A', this)">
+    <div class="selected-check">✓</div>
+
+    <div class="col-label">
+      <div class="badge">옵션 A</div>
+      <h2>바이올렛 포커스</h2>
+      <p style="font-size:11px;color:var(--gray-500);margin-top:4px;">집중 · 성장 · 프리미엄 에듀테크</p>
+      <div class="hex-row">
+        <span class="hex-chip"><span class="hex-swatch" style="background:#7C3AED;"></span>#7C3AED</span>
+        <span class="hex-chip"><span class="hex-swatch" style="background:#E9D5FF;border:1px solid #ccc;"></span>#E9D5FF</span>
+      </div>
+    </div>
+
+    <div class="phone">
+      <!-- Status Bar -->
+      <div class="status-bar" style="background:#7C3AED;">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg viewBox="0 0 24 24"><path d="M1 6l6 6 4-4 6 6 6-6"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M22 11v2"/></svg>
+        </div>
+      </div>
+
+      <!-- 1. HERO -->
+      <div class="screen-section">
+        <div class="section-tag">① 랜딩 히어로</div>
+        <div class="hero" style="--col-primary:#7C3AED;--col-secondary:#E9D5FF;">
+          <div class="hero-logo">lww</div>
+          <div class="hero-headline">이렇게 쉬워도 돼?</div>
+          <div class="hero-sub">AI 면접관이랑 대화하다 보면<br>어느새 합격 준비 완료</div>
+          <button class="hero-cta" style="background:#7C3AED;">면접 시작하기</button>
+          <button class="hero-cta-sub" style="border-color:#7C3AED;color:#7C3AED;">나중에 할게요</button>
+          <div class="trust-row">
+            <span class="trust-item"><span class="trust-dot"></span>무료 시작</span>
+            <span class="trust-item"><span class="trust-dot"></span>AI 맞춤 피드백</span>
+            <span class="trust-item"><span class="trust-dot"></span>코인 적립</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. CHAT -->
+      <div class="screen-section">
+        <div class="section-tag">② 채팅 UI</div>
+        <div class="chat-top-bar" style="--col-primary:#7C3AED;--col-secondary:#E9D5FF;">
+          <div class="chat-top-left">
+            <div class="chat-avatar" style="background:#E9D5FF;">🤖</div>
+            <div>
+              <div class="chat-name">삼성전자 개발팀장</div>
+              <div class="chat-status">● 면접 진행 중</div>
+            </div>
+          </div>
+          <div class="coin-badge-sm">🪙 45</div>
+        </div>
+        <div class="chat-body" style="--col-primary:#7C3AED;">
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#E9D5FF;">🤖</div>
+            <div class="bubble ai">반갑습니다! 오늘 어떤 직무 면접을 연습해볼까요?</div>
+            <span class="bubble-time">2:30</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:31</span>
+            <div class="bubble user" style="background:#7C3AED;">안녕하세요, 백엔드 개발자 직무로 준비 중입니다.</div>
+          </div>
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#E9D5FF;">🤖</div>
+            <div class="bubble ai">좋아요! 자기소개부터 시작해볼까요?</div>
+            <span class="bubble-time">2:31</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:32</span>
+            <div class="bubble user" style="background:#7C3AED;">네, 저는 3년차 개발자로...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. UPLOAD -->
+      <div class="screen-section">
+        <div class="section-tag">③ 파일 업로드</div>
+        <div class="upload-wrap" style="--col-primary:#7C3AED;--col-secondary:#E9D5FF;">
+          <div class="upload-card" style="border-color:#7C3AED;">
+            <div class="upload-icon-ring" style="background:#E9D5FF;">📄</div>
+            <div class="upload-title">자소서를 업로드해주세요</div>
+            <div class="upload-desc">PDF, HWP, DOCX 파일 지원<br>최대 10MB</div>
+            <button class="upload-btn" style="background:#7C3AED;">파일 선택하기</button>
+          </div>
+          <div class="file-preview">
+            <span class="file-icon">📄</span>
+            <span class="file-name">삼성전자_자소서_최종.pdf</span>
+            <span class="file-size">2.3MB</span>
+            <div class="file-check">
+              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. COIN + NAV -->
+      <div class="screen-section">
+        <div class="section-tag">④ 코인 배지 · 스트릭</div>
+        <div class="bottom-area" style="--col-primary:#7C3AED;">
+          <div class="coin-row">
+            <span class="coin-label">🔥 3일 연속 면접 중</span>
+            <div class="coin-badge-lg">🪙 45</div>
+          </div>
+          <div class="streak-row">
+            <div class="streak-dot done" style="background:#7C3AED;">✓</div>
+            <div class="streak-dot done" style="background:#7C3AED;">✓</div>
+            <div class="streak-dot done" style="background:#7C3AED;">✓</div>
+            <div class="streak-dot today" style="border-color:#7C3AED;color:#7C3AED;">오</div>
+            <div class="streak-dot empty">목</div>
+            <div class="streak-dot empty">금</div>
+            <div class="streak-dot empty">토</div>
+            <span class="streak-label">이번 주</span>
+          </div>
+        </div>
+        <div class="mood-row" style="--col-primary:#7C3AED;--col-secondary:#E9D5FF;--col-secondary-fg:#4C1D95;">
+          <span class="mood-chip" style="background:#E9D5FF;color:#4C1D95;">집중</span>
+          <span class="mood-chip" style="background:#E9D5FF;color:#4C1D95;">성장</span>
+          <span class="mood-chip" style="background:#E9D5FF;color:#4C1D95;">프리미엄</span>
+          <span class="mood-chip" style="background:#E9D5FF;color:#4C1D95;">에듀테크</span>
+        </div>
+      </div>
+
+      <!-- 5. NAV BAR -->
+      <div class="section-tag" style="padding:6px 16px 0;">⑤ 네비게이션</div>
+      <div class="nav-bar" style="--col-primary:#7C3AED;">
+        <div class="nav-item active">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="nav-label" style="color:#7C3AED;">홈</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 003 3H6a3 3 0 003-3z"/><path d="M12 1v11M12 19v4M8 19h8"/><rect x="5" y="4" width="14" height="14" rx="4"/></svg>
+          </div>
+          <span class="nav-label">면접</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          </div>
+          <span class="nav-label">마켓</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <span class="nav-label">커뮤</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="nav-label">나</span>
+        </div>
+      </div>
+    </div><!-- /phone -->
+  </div><!-- /col-A -->
+
+
+  <!-- ─────────── OPTION B: TEAL ─────────── -->
+  <div class="col col-B" data-palette="B" onclick="selectPalette('B', this)">
+    <div class="selected-check">✓</div>
+
+    <div class="col-label">
+      <div class="badge" style="background:#0D9488;">옵션 B</div>
+      <h2>틸 에너지</h2>
+      <p style="font-size:11px;color:var(--gray-500);margin-top:4px;">신선함 · 성장 · 가능성</p>
+      <div class="hex-row">
+        <span class="hex-chip"><span class="hex-swatch" style="background:#0D9488;"></span>#0D9488</span>
+        <span class="hex-chip"><span class="hex-swatch" style="background:#CCFBF1;border:1px solid #ccc;"></span>#CCFBF1</span>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="status-bar" style="background:#0D9488;">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg viewBox="0 0 24 24"><path d="M1 6l6 6 4-4 6 6 6-6"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M22 11v2"/></svg>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">① 랜딩 히어로</div>
+        <div class="hero" style="--col-primary:#0D9488;--col-secondary:#CCFBF1;">
+          <div class="hero-logo" style="color:#0D9488;">lww</div>
+          <div class="hero-headline">이렇게 쉬워도 돼?</div>
+          <div class="hero-sub">AI 면접관이랑 대화하다 보면<br>어느새 합격 준비 완료</div>
+          <button class="hero-cta" style="background:#0D9488;">면접 시작하기</button>
+          <button class="hero-cta-sub" style="border-color:#0D9488;color:#0D9488;">나중에 할게요</button>
+          <div class="trust-row">
+            <span class="trust-item"><span class="trust-dot"></span>무료 시작</span>
+            <span class="trust-item"><span class="trust-dot"></span>AI 맞춤 피드백</span>
+            <span class="trust-item"><span class="trust-dot"></span>코인 적립</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">② 채팅 UI</div>
+        <div class="chat-top-bar" style="--col-primary:#0D9488;--col-secondary:#CCFBF1;">
+          <div class="chat-top-left">
+            <div class="chat-avatar" style="background:#CCFBF1;">🤖</div>
+            <div>
+              <div class="chat-name">삼성전자 개발팀장</div>
+              <div class="chat-status">● 면접 진행 중</div>
+            </div>
+          </div>
+          <div class="coin-badge-sm">🪙 45</div>
+        </div>
+        <div class="chat-body">
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#CCFBF1;">🤖</div>
+            <div class="bubble ai">반갑습니다! 오늘 어떤 직무 면접을 연습해볼까요?</div>
+            <span class="bubble-time">2:30</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:31</span>
+            <div class="bubble user" style="background:#0D9488;">안녕하세요, 백엔드 개발자 직무로 준비 중입니다.</div>
+          </div>
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#CCFBF1;">🤖</div>
+            <div class="bubble ai">좋아요! 자기소개부터 시작해볼까요?</div>
+            <span class="bubble-time">2:31</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:32</span>
+            <div class="bubble user" style="background:#0D9488;">네, 저는 3년차 개발자로...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">③ 파일 업로드</div>
+        <div class="upload-wrap">
+          <div class="upload-card" style="border-color:#0D9488;background:color-mix(in srgb,#0D9488 4%,white);">
+            <div class="upload-icon-ring" style="background:#CCFBF1;">📄</div>
+            <div class="upload-title">자소서를 업로드해주세요</div>
+            <div class="upload-desc">PDF, HWP, DOCX 파일 지원<br>최대 10MB</div>
+            <button class="upload-btn" style="background:#0D9488;">파일 선택하기</button>
+          </div>
+          <div class="file-preview">
+            <span class="file-icon">📄</span>
+            <span class="file-name">삼성전자_자소서_최종.pdf</span>
+            <span class="file-size">2.3MB</span>
+            <div class="file-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">④ 코인 배지 · 스트릭</div>
+        <div class="bottom-area">
+          <div class="coin-row">
+            <span class="coin-label">🔥 3일 연속 면접 중</span>
+            <div class="coin-badge-lg">🪙 45</div>
+          </div>
+          <div class="streak-row">
+            <div class="streak-dot done" style="background:#0D9488;">✓</div>
+            <div class="streak-dot done" style="background:#0D9488;">✓</div>
+            <div class="streak-dot done" style="background:#0D9488;">✓</div>
+            <div class="streak-dot today" style="border-color:#0D9488;color:#0D9488;">오</div>
+            <div class="streak-dot empty">목</div>
+            <div class="streak-dot empty">금</div>
+            <div class="streak-dot empty">토</div>
+            <span class="streak-label">이번 주</span>
+          </div>
+        </div>
+        <div class="mood-row">
+          <span class="mood-chip" style="background:#CCFBF1;color:#134E4A;">신선함</span>
+          <span class="mood-chip" style="background:#CCFBF1;color:#134E4A;">성장</span>
+          <span class="mood-chip" style="background:#CCFBF1;color:#134E4A;">가능성</span>
+          <span class="mood-chip" style="background:#CCFBF1;color:#134E4A;">에너지</span>
+        </div>
+      </div>
+
+      <div class="section-tag" style="padding:6px 16px 0;">⑤ 네비게이션</div>
+      <div class="nav-bar" style="--col-primary:#0D9488;">
+        <div class="nav-item active" style="--col-primary:#0D9488;">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="nav-label" style="color:#0D9488;">홈</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="14" rx="4"/><path d="M9 9h6M9 13h4"/></svg></div>
+          <span class="nav-label">면접</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+          <span class="nav-label">마켓</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <span class="nav-label">커뮤</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="nav-label">나</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /col-B -->
+
+
+  <!-- ─────────── OPTION C: ROSE ─────────── -->
+  <div class="col col-C" data-palette="C" onclick="selectPalette('C', this)">
+    <div class="selected-check">✓</div>
+
+    <div class="col-label">
+      <div class="badge" style="background:#E11D48;">옵션 C</div>
+      <h2>코랄 챌린지</h2>
+      <p style="font-size:11px;color:var(--gray-500);margin-top:4px;">도전 · 열정 · 활력</p>
+      <div class="hex-row">
+        <span class="hex-chip"><span class="hex-swatch" style="background:#E11D48;"></span>#E11D48</span>
+        <span class="hex-chip"><span class="hex-swatch" style="background:#FFE4E6;border:1px solid #ccc;"></span>#FFE4E6</span>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="status-bar" style="background:#E11D48;">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg viewBox="0 0 24 24"><path d="M1 6l6 6 4-4 6 6 6-6"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M22 11v2"/></svg>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">① 랜딩 히어로</div>
+        <div class="hero" style="--col-primary:#E11D48;--col-secondary:#FFE4E6;">
+          <div class="hero-logo" style="color:#E11D48;">lww</div>
+          <div class="hero-headline">이렇게 쉬워도 돼?</div>
+          <div class="hero-sub">AI 면접관이랑 대화하다 보면<br>어느새 합격 준비 완료</div>
+          <button class="hero-cta" style="background:#E11D48;">면접 시작하기</button>
+          <button class="hero-cta-sub" style="border-color:#E11D48;color:#E11D48;">나중에 할게요</button>
+          <div class="trust-row">
+            <span class="trust-item"><span class="trust-dot"></span>무료 시작</span>
+            <span class="trust-item"><span class="trust-dot"></span>AI 맞춤 피드백</span>
+            <span class="trust-item"><span class="trust-dot"></span>코인 적립</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">② 채팅 UI</div>
+        <div class="chat-top-bar">
+          <div class="chat-top-left">
+            <div class="chat-avatar" style="background:#FFE4E6;">🤖</div>
+            <div>
+              <div class="chat-name">삼성전자 개발팀장</div>
+              <div class="chat-status">● 면접 진행 중</div>
+            </div>
+          </div>
+          <div class="coin-badge-sm">🪙 45</div>
+        </div>
+        <div class="chat-body">
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#FFE4E6;">🤖</div>
+            <div class="bubble ai">반갑습니다! 오늘 어떤 직무 면접을 연습해볼까요?</div>
+            <span class="bubble-time">2:30</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:31</span>
+            <div class="bubble user" style="background:#E11D48;">안녕하세요, 백엔드 개발자 직무로 준비 중입니다.</div>
+          </div>
+          <div class="bubble-row ai">
+            <div class="ai-avatar-sm" style="background:#FFE4E6;">🤖</div>
+            <div class="bubble ai">좋아요! 자기소개부터 시작해볼까요?</div>
+            <span class="bubble-time">2:31</span>
+          </div>
+          <div class="bubble-row user">
+            <span class="bubble-time">2:32</span>
+            <div class="bubble user" style="background:#E11D48;">네, 저는 3년차 개발자로...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">③ 파일 업로드</div>
+        <div class="upload-wrap">
+          <div class="upload-card" style="border-color:#E11D48;background:color-mix(in srgb,#E11D48 4%,white);">
+            <div class="upload-icon-ring" style="background:#FFE4E6;">📄</div>
+            <div class="upload-title">자소서를 업로드해주세요</div>
+            <div class="upload-desc">PDF, HWP, DOCX 파일 지원<br>최대 10MB</div>
+            <button class="upload-btn" style="background:#E11D48;">파일 선택하기</button>
+          </div>
+          <div class="file-preview">
+            <span class="file-icon">📄</span>
+            <span class="file-name">삼성전자_자소서_최종.pdf</span>
+            <span class="file-size">2.3MB</span>
+            <div class="file-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-section">
+        <div class="section-tag">④ 코인 배지 · 스트릭</div>
+        <div class="bottom-area">
+          <div class="coin-row">
+            <span class="coin-label">🔥 3일 연속 면접 중</span>
+            <div class="coin-badge-lg">🪙 45</div>
+          </div>
+          <div class="streak-row">
+            <div class="streak-dot done" style="background:#E11D48;">✓</div>
+            <div class="streak-dot done" style="background:#E11D48;">✓</div>
+            <div class="streak-dot done" style="background:#E11D48;">✓</div>
+            <div class="streak-dot today" style="border-color:#E11D48;color:#E11D48;">오</div>
+            <div class="streak-dot empty">목</div>
+            <div class="streak-dot empty">금</div>
+            <div class="streak-dot empty">토</div>
+            <span class="streak-label">이번 주</span>
+          </div>
+        </div>
+        <div class="mood-row">
+          <span class="mood-chip" style="background:#FFE4E6;color:#881337;">도전</span>
+          <span class="mood-chip" style="background:#FFE4E6;color:#881337;">열정</span>
+          <span class="mood-chip" style="background:#FFE4E6;color:#881337;">활력</span>
+          <span class="mood-chip" style="background:#FFE4E6;color:#881337;">챌린지</span>
+        </div>
+      </div>
+
+      <div class="section-tag" style="padding:6px 16px 0;">⑤ 네비게이션</div>
+      <div class="nav-bar">
+        <div class="nav-item active" style="--col-primary:#E11D48;">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="nav-label" style="color:#E11D48;">홈</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="14" rx="4"/><path d="M9 9h6M9 13h4"/></svg></div>
+          <span class="nav-label">면접</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
+          <span class="nav-label">마켓</span>
+        </div>
+        <div class="nav-item disabled">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <span class="nav-label">커뮤</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="nav-label">나</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /col-C -->
+
+</main><!-- /columns-wrap -->
+
+
+<!-- ══════════════════════════════════════════
+     CONFIRM BAR
+══════════════════════════════════════════ -->
+<div class="confirm-bar">
+  <div class="confirm-bar-inner">
+    <div class="selected-label" id="selected-label">
+      컬럼을 클릭하여 컬러를 선택해주세요.
+    </div>
+    <button class="confirm-btn none" id="confirm-btn" disabled onclick="confirmPalette()">
+      이 컬러로 결정
+    </button>
+  </div>
+</div>
+
+
+<script>
+  let currentSelected = null;
+
+  const paletteMeta = {
+    A: { name: '옵션 A — 바이올렛 포커스', color: '#7C3AED', hex: '#7C3AED / #E9D5FF' },
+    B: { name: '옵션 B — 틸 에너지',       color: '#0D9488', hex: '#0D9488 / #CCFBF1' },
+    C: { name: '옵션 C — 코랄 챌린지',     color: '#E11D48', hex: '#E11D48 / #FFE4E6' },
+  };
+
+  function selectPalette(key, el) {
+    // deselect all
+    document.querySelectorAll('.col').forEach(c => c.classList.remove('selected'));
+
+    if (currentSelected === key) {
+      // toggle off
+      currentSelected = null;
+      document.getElementById('selected-label').innerHTML = '컬럼을 클릭하여 컬러를 선택해주세요.';
+      const btn = document.getElementById('confirm-btn');
+      btn.className = 'confirm-btn none';
+      btn.disabled = true;
+      btn.removeAttribute('data-palette');
+      return;
+    }
+
+    currentSelected = key;
+    el.classList.add('selected');
+
+    const meta = paletteMeta[key];
+    document.getElementById('selected-label').innerHTML =
+      `선택됨: <strong>${meta.name}</strong> <span style="font-size:12px;color:#9CA3AF;">(${meta.hex})</span>`;
+
+    const btn = document.getElementById('confirm-btn');
+    btn.className = `confirm-btn`;
+    btn.setAttribute('data-palette', key);
+    btn.style.background = meta.color;
+    btn.disabled = false;
+    btn.textContent = `${meta.name.split('—')[0].trim()} 으로 결정`;
+  }
+
+  function confirmPalette() {
+    if (!currentSelected) return;
+    const meta = paletteMeta[currentSelected];
+    const msg = `"${meta.name}" 을(를) lww 브랜드 컬러로 결정하시겠어요?\n\nPrimary: ${meta.hex.split('/')[0].trim()}\nSecondary: ${meta.hex.split('/')[1].trim()}\n\n확인을 누르면 팀에 공유해주세요.`;
+    if (confirm(msg)) {
+      alert(`✓ ${meta.name} 선정 완료!\n\n이 결과를 docs/specs/lww/branding.md 에 반영해주세요.`);
+    }
+  }
+</script>
+</body>
+</html>
