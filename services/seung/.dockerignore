@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.env*
+coverage/
+tests/
+*.test.ts
+*.test.tsx
+*.spec.ts
+playwright-report/
+test-results/
+.git/
+CHANGELOG.md
+.ai.md
+vitest.config.ts
+playwright.config.ts
