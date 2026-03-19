@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { extractPdfText } from '@/lib/pdf-utils'
+import { callEngineParse, callEngineQuestions } from '@/lib/engine-client'
 import { prisma } from '@/lib/prisma'
 
-export const maxDuration = 35
-
-const ENGINE_FETCH_TIMEOUT_MS = 30_000
+export const maxDuration = 70
 
 export async function POST(request: NextRequest) {
   let formData: FormData
@@ -19,77 +17,91 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '파일을 선택해 주세요.' }, { status: 400 })
   }
 
-  const engineUrl = process.env.ENGINE_BASE_URL
-  if (!engineUrl) {
+  if (!process.env.ENGINE_BASE_URL) {
     return NextResponse.json({ error: '서버 설정 오류입니다.' }, { status: 500 })
   }
 
-  // Read once as ArrayBuffer
-  const arrayBuffer = await file.arrayBuffer()
-
-  // Rebuild File for engine (stream consumed)
-  const engineFile = new File([arrayBuffer], file.name, { type: file.type })
-  const engineFormData = new FormData()
-  engineFormData.append('file', engineFile)
-
+  // Step 1: Parse PDF via engine
+  let parseRes: Response
   try {
-    // Run engine call + PDF extraction in parallel
-    const [engineResponse, resumeText] = await Promise.all([
-      fetch(`${engineUrl}/api/resume/questions`, {
-        method: 'POST',
-        body: engineFormData,
-        signal: AbortSignal.timeout(ENGINE_FETCH_TIMEOUT_MS),
-      }),
-      extractPdfText(arrayBuffer),
-    ])
-
-    let data: unknown
-    try {
-      data = await engineResponse.json()
-    } catch (err) {
-      console.error('[resume/questions] engine response parse failed', { err })
-      return NextResponse.json(
-        { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
-        { status: 500 }
-      )
-    }
-
-    if (!engineResponse.ok) {
-      return NextResponse.json(data, { status: engineResponse.status })
-    }
-
-    // Save to DB (best-effort — failure does not block response)
-    let resumeId: string | null = null
-    const questions = (data as Record<string, unknown>)?.questions
-    if (!Array.isArray(questions)) {
-      return NextResponse.json(
-        { error: '엔진 응답이 올바르지 않습니다.' },
-        { status: 502 }
-      )
-    }
-    if (!resumeText.trim()) {
-      console.warn('[resume/questions] PDF text extraction returned empty - skipping DB save')
-    } else {
-      try {
-        const resume = await prisma.resume.create({
-          data: {
-            resumeText,
-            questions: questions as object[],
-          },
-        })
-        resumeId = resume.id
-      } catch (err) {
-        console.error('[resume/questions] DB save failed', { err })
-        // continue without resumeId — client will not show "면접 시작"
-      }
-    }
-
-    return NextResponse.json({ ...(data as object), resumeId }, { status: 200 })
+    parseRes = await callEngineParse(file)
   } catch (err) {
-    console.error('[resume/questions] engine fetch failed', { err })
+    console.error('[resume/questions] engine parse fetch failed', { err })
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
       { status: 500 }
     )
   }
+
+  let parseData: unknown
+  try {
+    parseData = await parseRes.json()
+  } catch (err) {
+    console.error('[resume/questions] parse response parse failed', { err })
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+
+  if (!parseRes.ok) {
+    return NextResponse.json(parseData, { status: parseRes.status })
+  }
+
+  const resumeText = (parseData as { resumeText?: unknown }).resumeText
+  if (typeof resumeText !== 'string' || !resumeText.trim()) {
+    console.error('[resume/questions] parse response missing resumeText', { parseData })
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+
+  // Step 2: questions + DB save in parallel
+  let engineResponse: Response
+  let resumeId: string | null = null
+  try {
+    const [qRes, resume] = await Promise.all([
+      callEngineQuestions(resumeText),
+      // questions: []로 먼저 저장해 /questions 호출과 병렬 처리.
+      // Resume.questions는 downstream(interview/start, feedback)에서 읽지 않으므로 빈 배열로 유지됨.
+      prisma.resume.create({ data: { resumeText, questions: [] } }).catch((err) => {
+        console.error('[resume/questions] DB save failed', { err })
+        return null
+      }),
+    ])
+    engineResponse = qRes
+    resumeId = resume?.id ?? null
+  } catch (err) {
+    console.error('[resume/questions] engine questions fetch failed', { err })
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+
+  let data: unknown
+  try {
+    data = await engineResponse.json()
+  } catch (err) {
+    console.error('[resume/questions] questions response parse failed', { err })
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    )
+  }
+
+  if (!engineResponse.ok) {
+    return NextResponse.json(data, { status: engineResponse.status })
+  }
+
+  const questions = (data as Record<string, unknown>)?.questions
+  if (!Array.isArray(questions)) {
+    return NextResponse.json(
+      { error: '엔진 응답이 올바르지 않습니다.' },
+      { status: 502 }
+    )
+  }
+
+  return NextResponse.json({ ...(data as object), resumeId }, { status: 200 })
 }
