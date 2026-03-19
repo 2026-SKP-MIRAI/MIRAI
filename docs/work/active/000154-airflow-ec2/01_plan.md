@@ -126,6 +126,19 @@ Lambda 실행 역할에 부여할 최소 권한 정책.
 
 ---
 
+## 코드 리뷰 반영 내역 (2026-03-19)
+
+code-reviewer 검토 후 수정한 항목:
+
+| 심각도 | 항목 | 처리 |
+|--------|------|------|
+| CRITICAL | `docker-compose.yml` 하드코딩된 `AIRFLOW__WEBSERVER__SECRET_KEY` | `${AIRFLOW_SECRET_KEY}` 환경변수로 교체 |
+| HIGH | moto mock 중첩 컨텍스트 — fixture `with mock_aws()` + 테스트 `@mock_aws` 이중 적용 | conftest에 `with mock_aws()` 유지, 테스트 함수에 `@mock_aws` 유지 (moto 공유 상태 활용, 4/4 통과 검증) |
+| HIGH | `deploy.sh` update 간 race condition — `update-function-code` 직후 `update-function-configuration` 호출 | `aws lambda wait function-updated` 추가 |
+| LOW | `conftest.py` unused import `os` | 제거 |
+
+---
+
 ## 주의사항
 
 - Lambda IAM 실행 역할은 AWS 콘솔/CLI에서 사전 생성 필요 (레포에 포함 불가)
