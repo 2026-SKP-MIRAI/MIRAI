@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
   try {
     await prisma.resume.update({
       where: { id: resumeId },
-      data: { diagnosisResult: data as Prisma.JsonObject },
+      data: { diagnosisResult: data as Prisma.InputJsonValue },
     })
   } catch (err) {
     console.error('[resume/feedback] DB update failed', { err })
