@@ -149,7 +149,7 @@ describe("event-logger", () => {
     const result = await withEventLogging(
       "interview_answer",
       "session-abc",
-      async () => ({ data: { answer: "mock result" } }),
+      async () => ({ answer: "mock result" }),
     );
 
     expect(result).toEqual({ answer: "mock result" });
@@ -241,7 +241,7 @@ describe("event-logger", () => {
 
     await withEventLogging("interview_start", null, async (meta) => {
       meta.retry_count = 2;
-      return { data: "ok" };
+      return "ok";
     });
 
     const content = vi.mocked(fs.appendFile).mock.calls[0][1] as string;
@@ -260,7 +260,7 @@ describe("event-logger", () => {
 
     const { withEventLogging } = await import("@/lib/observability/event-logger");
 
-    await withEventLogging("interview_followup", "session-xyz", async () => ({ data: "ok" }));
+    await withEventLogging("interview_followup", "session-xyz", async () => "ok");
 
     const content = vi.mocked(fs.appendFile).mock.calls[0][1] as string;
     const parsed = JSON.parse(content.trim());
@@ -292,10 +292,10 @@ describe("event-logger", () => {
 
     const { withEventLogging } = await import("@/lib/observability/event-logger");
 
-    await withEventLogging("resume_parse", "session-usage", async () => ({
-      data: "parsed",
-      usage: { prompt_tokens: 100, completion_tokens: 50, model: "google/gemini-2.5-flash" },
-    }));
+    await withEventLogging("resume_parse", "session-usage", async (meta) => {
+      meta.usage = { prompt_tokens: 100, completion_tokens: 50, model: "google/gemini-2.5-flash" };
+      return "parsed";
+    });
 
     const content = vi.mocked(fs.appendFile).mock.calls[0][1] as string;
     const parsed = JSON.parse(content.trim());

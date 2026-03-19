@@ -50,6 +50,7 @@ const FEATURE_MODE: Record<LLMEvent["feature_type"], LLMEvent["mode"]> = {
 
 export interface LLMEventMeta {
   retry_count: number;
+  usage?: EngineUsage;
 }
 
 let s3Client: S3Client | null = null;
@@ -89,12 +90,12 @@ export async function logLLMEvents(events: LLMEvent[]): Promise<void> {
 export async function withEventLogging<T>(
   featureType: LLMEvent["feature_type"],
   sessionId: string | null,
-  fn: (meta: LLMEventMeta) => Promise<{ data: T; usage?: EngineUsage }>,
+  fn: (meta: LLMEventMeta) => Promise<T>,
 ): Promise<T> {
   const meta: LLMEventMeta = { retry_count: 0 };
   const start = Date.now();
   try {
-    const { data, usage } = await fn(meta);
+    const data = await fn(meta);
     await logLLMEvents([{
       timestamp: new Date().toISOString(),
       feature_type: featureType,
@@ -103,9 +104,9 @@ export async function withEventLogging<T>(
       success: true,
       session_id: sessionId,
       retry_count: meta.retry_count,
-      prompt_tokens: usage?.prompt_tokens,
-      completion_tokens: usage?.completion_tokens,
-      model: usage?.model,
+      prompt_tokens: meta.usage?.prompt_tokens,
+      completion_tokens: meta.usage?.completion_tokens,
+      model: meta.usage?.model,
     }]);
     return data;
   } catch (err) {
