@@ -125,3 +125,13 @@ POST /feedback  ||  POST /questions                           (~15s, 병렬)
 - `targetRole` 추론 실패 시 에러 대신 `"미지정"` 반환 — 프론트엔드 흐름을 막지 않고 사용자 수동 입력으로 유도.
 - `extract_target_role` 반환값 `[:100]` 트런케이션 — Pydantic max_length 제약과 LLM 출력 길이 불일치로 인한 500 오류 방지.
 - `llm_service.py`를 `call_llm()` 기반으로 리팩토링하여 `OPENROUTER_BASE_URL` 상수 중복 제거 및 에러 처리 일원화.
+
+### 멘토 리뷰 반영 (6차 수정)
+
+- **`engine/app/services/llm_service.py`**: `target_role` postfix 삽입 전 `<`/`>` → `&lt;`/`&gt;` 이스케이프 추가 (프롬프트 인젝션 방지).
+- **`engine/app/services/llm_client.py`**: `content=None` 시 `LLMError` 발생 + `except LLMError: raise` 가드로 이중 래핑 방지.
+- **`engine/app/schemas.py`**: `ResumeFeedbackRequest.resumeText`에 `max_length=50_000` 추가 (다른 엔드포인트와 일관성).
+- **테스트 6개 추가** (`test_llm_client.py` +2, `test_llm_service.py` +2, `test_feedback_service.py` +1, `test_role_service.py` +1): 이스케이프 적용 여부·content=None·LLMError 재전파·empty target_role postfix 미주입 검증.
+- **`engine/.ai.md`**: `/feedback` 계약에 max_length 제약 명시.
+- **`engine/app/prompts/.ai.md`**: 구조 블록에 `question_generation_v1.md` 누락 항목 추가.
+- 최종 테스트: **154 passed, 0 failed**.

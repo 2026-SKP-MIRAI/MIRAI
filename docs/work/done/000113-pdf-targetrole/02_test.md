@@ -9,8 +9,8 @@
 ## 최종 결과
 
 ```
-148 passed, 0 failed, 0 errors
-실행 시간: 3.29s
+154 passed, 0 failed, 0 errors
+실행 시간: 7.36s
 ```
 
 ---
@@ -19,7 +19,7 @@
 
 ### 단위 테스트
 
-#### `tests/unit/services/test_role_service.py` (9개)
+#### `tests/unit/services/test_role_service.py` (10개)
 
 | # | 테스트명 | 검증 내용 | 결과 |
 |---|---------|---------|------|
@@ -32,20 +32,31 @@
 | 7 | `test_extract_target_role_api_error` | LLM API 오류 → LLMError 전파 | PASS |
 | 8 | `test_extract_target_role_truncates_long_text` | 16,000자 초과 입력 → 프롬프트에 16,001자 이상 미삽입 | PASS |
 | 9 | `test_extract_target_role_truncates_output_to_100` | LLM이 120자 반환 → 100자로 트런케이션 | PASS |
+| 10 | `test_extract_target_role_resume_text_angle_brackets_escaped` | `<tag>` → 프롬프트에 `&lt;tag&gt;`로 이스케이프 | PASS |
 
-#### `tests/unit/services/test_feedback_service.py` — 추가 2개 (총 19개)
+#### `tests/unit/services/test_feedback_service.py` — 추가 3개 (총 20개)
 
 | # | 테스트명 | 검증 내용 | 결과 |
 |---|---------|---------|------|
 | 18 | `test_generate_resume_feedback_none_target_role_uses_default_label` | target_role=None → 프롬프트에 "미지정 직무" 포함 | PASS |
 | 19 | `test_generate_resume_feedback_empty_target_role_uses_default_label` | target_role="" → 프롬프트에 "미지정 직무" 포함 | PASS |
+| 20 | `test_generate_resume_feedback_target_role_angle_brackets_escaped` | `<script>` → 프롬프트에 `&lt;script&gt;`로 이스케이프 | PASS |
 
-#### `tests/unit/services/test_llm_service.py` — 추가 2개 (총 7개)
+#### `tests/unit/services/test_llm_service.py` — 추가 4개 (총 9개)
 
 | # | 테스트명 | 검증 내용 | 결과 |
 |---|---------|---------|------|
 | 6 | `test_generate_questions_with_target_role_injects_prompt` | target_role 전달 시 프롬프트에 직무명 포함 | PASS |
 | 7 | `test_generate_questions_without_target_role_no_injection` | target_role 미전달 시 "지원 직무가" postfix 없음 | PASS |
+| 8 | `test_generate_questions_empty_target_role_no_injection` | target_role="" 시 postfix 없음 | PASS |
+| 9 | `test_generate_questions_target_role_angle_brackets_escaped` | `<백엔드>` → 프롬프트에 `&lt;백엔드&gt;`로 이스케이프 | PASS |
+
+#### `tests/unit/services/test_llm_client.py` — 추가 2개 (총 5개)
+
+| # | 테스트명 | 검증 내용 | 결과 |
+|---|---------|---------|------|
+| 4 | `test_call_llm_content_none_raises_llm_error` | content=None → LLMError | PASS |
+| 5 | `test_call_llm_llm_error_not_double_wrapped` | LLMError 재전파 — __cause__ 없음 | PASS |
 
 ### 통합 테스트
 
@@ -106,14 +117,14 @@
 | `test_resume_questions_route.py` | 10 | 10 |
 | `test_resume_target_role_route.py` | 7 | 7 |
 | `test_pdf_parser.py` | 14 | 14 |
-| `test_feedback_service.py` | 19 | 19 |
+| `test_feedback_service.py` | 20 | 20 |
 | `test_interview_service.py` | 16 | 16 |
-| `test_llm_client.py` | 3 | 3 |
-| `test_llm_service.py` | 7 | 7 |
+| `test_llm_client.py` | 5 | 5 |
+| `test_llm_service.py` | 9 | 9 |
 | `test_output_parser.py` | 11 | 11 |
 | `test_practice_service.py` | 13 | 13 |
-| `test_role_service.py` | 9 | 9 |
-| **합계** | **148** | **148** |
+| `test_role_service.py` | 10 | 10 |
+| **합계** | **154** | **154** |
 
 > **제외 파일** (fixture 파일 부재 — 브랜치 환경 이슈, #113 범위 외):
 > - `test_practice_router.py` — `mock_practice_feedback_single.json` 없음
@@ -131,6 +142,7 @@
 | 3차 (/questions targetRole 추가 후) | 0 | 0 | 0 | 0 |
 | 4차 (코드리뷰 반영 — escape/scope/tests) | 0 | 0 | 0 | 0 |
 | 5차 (MEDIUM/LOW 전수 수정 — llm_client None, 경계값 테스트, .ai.md) | 0 | 0 | 0 | 0 |
+| 6차 (멘토 리뷰 반영 — target_role escape, double-wrap, resumeText max_length, 이스케이프 테스트 추가) | 0 | 0 | 0 | 0 |
 
 > 모든 IMPORTANT/MEDIUM/LOW 항목 수정 완료. 최종 CRITICAL 0개.
 

@@ -173,7 +173,7 @@ class SuggestionItem(BaseModel):
 
 
 class ResumeFeedbackRequest(BaseModel):
-    resumeText: str = Field(..., min_length=1)
+    resumeText: str = Field(..., min_length=1, max_length=50_000)
     targetRole: str | None = Field(None, max_length=100, description="지원 직무. 미입력 시 '미지정 직무'로 처리")
 
 

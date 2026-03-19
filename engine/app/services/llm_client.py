@@ -37,6 +37,8 @@ def call_llm(
         if content is None:
             raise LLMError(error_message)
         return content
+    except LLMError:
+        raise
     except Exception as e:
         raise LLMError(error_message) from e
 

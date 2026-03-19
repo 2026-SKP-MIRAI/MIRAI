@@ -69,3 +69,18 @@ def test_extract_target_role_truncates_output_to_100():
         result = extract_target_role("자소서 내용입니다.")
     assert len(result) == 100
     assert result == long_role[:100]
+
+
+def test_extract_target_role_resume_text_angle_brackets_escaped():
+    """resume_text에 <> 포함 시 HTML 엔티티로 이스케이프되어 프롬프트에 삽입."""
+    captured = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return '{"targetRole": "개발자"}'
+
+    with patch("app.services.role_service.call_llm", side_effect=fake_call_llm):
+        extract_target_role("<tag>이력서 내용</tag>")
+
+    assert "<tag>" not in captured["prompt"]
+    assert "&lt;tag&gt;" in captured["prompt"]

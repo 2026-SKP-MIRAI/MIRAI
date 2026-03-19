@@ -19,12 +19,13 @@ def _validate_score(key: str, val: int | None) -> int:
 def _build_prompt(resume_text: str, target_role: str) -> str:
     template = (PROMPT_DIR / "resume_feedback_v1.md").read_text(encoding="utf-8")
     # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
-    # 현재는 사용자 입력의 </resume> 태그를 HTML 엔티티로 치환해 XML 경계 탈출을 방지한다.
-    safe_resume = resume_text[:16000].replace("</resume>", "&lt;/resume&gt;")
+    # < > 전체를 HTML 엔티티로 치환해 XML 태그 인젝션(여는 태그·닫는 태그 모두)을 방지한다.
+    safe_resume = resume_text[:16000].replace("<", "&lt;").replace(">", "&gt;")
+    safe_role = target_role.replace("<", "&lt;").replace(">", "&gt;")
     return (
         template
         .replace("{resume_text}", safe_resume)
-        .replace("{target_role}", target_role)
+        .replace("{target_role}", safe_role)
     )
 
 

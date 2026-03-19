@@ -95,3 +95,40 @@ def test_generate_questions_without_target_role_no_injection():
         generate_questions("이력서 내용")
 
     assert "지원 직무가" not in captured["content"]
+
+
+def test_generate_questions_empty_target_role_no_injection():
+    """target_role="" 시 프롬프트에 직무 postfix 없음"""
+    captured = {}
+
+    def capture_create(**kwargs):
+        msg = kwargs.get("messages", [{}])[0]
+        captured["content"] = msg.get("content", "")
+        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+
+    fake = MagicMock()
+    fake.chat.completions.create.side_effect = capture_create
+
+    with patch("app.services.llm_client.OpenAI", return_value=fake):
+        generate_questions("이력서 내용", target_role="")
+
+    assert "지원 직무가" not in captured["content"]
+
+
+def test_generate_questions_target_role_angle_brackets_escaped():
+    """target_role에 <> 포함 시 HTML 엔티티로 이스케이프되어 프롬프트에 삽입"""
+    captured = {}
+
+    def capture_create(**kwargs):
+        msg = kwargs.get("messages", [{}])[0]
+        captured["content"] = msg.get("content", "")
+        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+
+    fake = MagicMock()
+    fake.chat.completions.create.side_effect = capture_create
+
+    with patch("app.services.llm_client.OpenAI", return_value=fake):
+        generate_questions("이력서 내용", target_role="<백엔드>")
+
+    assert "<백엔드>" not in captured["content"]
+    assert "&lt;백엔드&gt;" in captured["content"]

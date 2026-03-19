@@ -15,12 +15,13 @@ def generate_questions(
     timeout_seconds: float = 30.0,
 ) -> list[QuestionItem]:
     # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
-    # 현재는 사용자 입력의 </resume> 태그를 HTML 엔티티로 치환해 XML 경계 탈출을 방지한다.
-    truncated_text = resume_text[:max_input_chars].replace("</resume>", "&lt;/resume&gt;")
+    # < > 전체를 HTML 엔티티로 치환해 XML 태그 인젝션(여는 태그·닫는 태그 모두)을 방지한다.
+    truncated_text = resume_text[:max_input_chars].replace("<", "&lt;").replace(">", "&gt;")
     prompt = PROMPT_FILE.read_text(encoding="utf-8").replace("{resume_text}", truncated_text)
     if target_role and target_role.strip():
+        safe_role = target_role.strip().replace("<", "&lt;").replace(">", "&gt;")
         prompt += (
-            f"\n\n지원 직무가 '{target_role.strip()}'로 확정되었습니다. "
+            f"\n\n지원 직무가 '{safe_role}'로 확정되었습니다. "
             f"이 직무에 맞춤화된 질문을 생성하세요."
         )
     raw = call_llm(

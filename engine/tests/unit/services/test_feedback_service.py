@@ -277,3 +277,21 @@ def test_generate_resume_feedback_empty_target_role_uses_default_label():
         generate_resume_feedback("자소서 내용", "")
 
     assert "미지정 직무" in captured_prompt["value"]
+
+
+# ── 테스트 20 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_target_role_angle_brackets_escaped():
+    """target_role에 <> 포함 시 HTML 엔티티로 이스케이프되어 프롬프트에 삽입."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", "<script>alert(1)</script>")
+
+    assert "<script>" not in captured_prompt["value"]
+    assert "&lt;script&gt;" in captured_prompt["value"]
