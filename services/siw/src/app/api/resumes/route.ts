@@ -4,6 +4,7 @@ import { resumeRepository } from "@/lib/resume-repository"
 import { uploadResumePdf } from "@/lib/resume-storage"
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages"
 import { cookies } from "next/headers"
+import { withEventLogging } from "@/lib/observability/event-logger"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -32,35 +33,47 @@ export async function POST(request: Request) {
 
   const engineParseForm = new FormData()
   engineParseForm.append("file", file, file.name)
-  const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
-    method: "POST",
-    body: engineParseForm,
-    signal: AbortSignal.timeout(30000),
-  })
-  if (!parseResp.ok) {
-    const body = await parseResp.json().catch(() => ({ detail: "" }))
-    const key = mapDetailToKey(body.detail ?? "", parseResp.status)
-    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES[key] }, { status: parseResp.status })
+  let resumeText: string;
+  try {
+    const parsed = await withEventLogging('resume_parse', null, async () => {
+      const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
+        method: "POST",
+        body: engineParseForm,
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!parseResp.ok) {
+        const body = await parseResp.json().catch(() => ({ detail: "" }));
+        const key = mapDetailToKey(body.detail ?? "", parseResp.status);
+        throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: parseResp.status });
+      }
+      return parseResp.json() as Promise<{ resumeText: string }>;
+    });
+    resumeText = parsed.resumeText;
+  } catch (err) {
+    if (err instanceof Error && 'status' in err) {
+      return NextResponse.json({ message: err.message }, { status: (err as { status: number }).status });
+    }
+    throw err;
   }
-  const { resumeText } = await parseResp.json()
 
   const targetRole = (formData.get("targetRole") as string | null) ?? "소프트웨어 개발자"
 
   try {
     const [storageKey, engineData, feedbackJson] = await Promise.all([
       uploadResumePdf(user.id, buffer, file.name),
-      fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText }),
-        signal: AbortSignal.timeout(30000),
-      }).then(async (r) => {
+      withEventLogging('resume_questions', null, async () => {
+        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText }),
+          signal: AbortSignal.timeout(30000),
+        });
         if (!r.ok) {
-          const body = await r.json().catch(() => ({ detail: "" }))
-          const key = mapDetailToKey(body.detail ?? "", r.status)
-          throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: r.status, key })
+          const body = await r.json().catch(() => ({ detail: "" }));
+          const key = mapDetailToKey(body.detail ?? "", r.status);
+          throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: r.status, key });
         }
-        return r.json()
+        return r.json();
       }),
       fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
         method: "POST",

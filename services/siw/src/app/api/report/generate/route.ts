@@ -1,5 +1,6 @@
 import { ENGINE_ERROR_MESSAGES } from "@/lib/error-messages";
 import { interviewRepository } from "@/lib/interview/interview-repository";
+import { withEventLogging } from "@/lib/observability/event-logger";
 import { createServerClient } from "@/lib/supabase/server";
 import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
@@ -41,25 +42,41 @@ export async function POST(request: Request) {
     const engineUrl =
       (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/report/generate";
 
-    const engineRes = await fetch(engineUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeText: session.resumeText, history }),
-      signal: AbortSignal.timeout(90000),
-    });
-
-    const data = await engineRes.json();
+    let engineData: unknown;
+    let engineStatus: number;
+    try {
+      const result = await withEventLogging('report_generate', sessionId, async () => {
+        const engineRes = await fetch(engineUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText: session.resumeText, history }),
+          signal: AbortSignal.timeout(90000),
+        });
+        const d = await engineRes.json();
+        if (!engineRes.ok)
+          throw Object.assign(new Error("engine_report_failed"), { data: d, status: engineRes.status });
+        return { data: d, status: engineRes.status };
+      });
+      engineData = result.data;
+      engineStatus = result.status;
+    } catch (err) {
+      if (err instanceof Error && 'data' in err) {
+        return Response.json((err as { data: unknown }).data, { status: (err as unknown as { status: number }).status });
+      }
+      throw err;
+    }
 
     // best-effort: 리포트 전체 JSON + 점수 저장 (실패 시 1회 재시도)
-    if (engineRes.ok && data.scores && typeof data.totalScore === "number") {
+    const data = engineData as Record<string, unknown>;
+    if (data.scores && typeof data.totalScore === "number") {
       const saveWithRetry = async () => {
         try {
-          await interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data);
+          await interviewRepository.saveReport(sessionId, user.id, data.scores as unknown as import("@/lib/types").AxisScores, data.totalScore as number, data);
         } catch (err) {
           console.error("[report/generate] saveReport failed, retrying in 2s:", err);
           await new Promise(r => setTimeout(r, 2000));
           try {
-            await interviewRepository.saveReport(sessionId, user.id, data.scores, data.totalScore, data);
+            await interviewRepository.saveReport(sessionId, user.id, data.scores as unknown as import("@/lib/types").AxisScores, data.totalScore as number, data);
           } catch (err2) {
             console.error("[report/generate] saveReport retry failed:", err2);
           }
@@ -68,7 +85,7 @@ export async function POST(request: Request) {
       await saveWithRetry();
     }
 
-    return Response.json(data, { status: engineRes.status });
+    return Response.json(engineData, { status: engineStatus });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025")
       return Response.json({ message: ENGINE_ERROR_MESSAGES.sessionNotFound }, { status: 404 });

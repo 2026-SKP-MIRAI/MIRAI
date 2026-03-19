@@ -1,3 +1,5 @@
+import { withEventLogging } from "@/lib/observability/event-logger";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -9,23 +11,27 @@ export async function POST(request: Request) {
     (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/practice/feedback";
 
   try {
-    const engineRes = await fetch(engineUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, answer, previousAnswer }),
-      signal: AbortSignal.timeout(30000),
+    const data = await withEventLogging('practice_feedback', null, async () => {
+      const engineRes = await fetch(engineUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer, previousAnswer }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const d = await engineRes.json();
+      if (!engineRes.ok)
+        throw Object.assign(new Error("engine_practice_failed"), { data: d, status: engineRes.status });
+      return d;
     });
-
-    const data = await engineRes.json();
-
-    if (engineRes.status === 400)
-      return Response.json({ message: data.detail ?? "잘못된 요청입니다." }, { status: 400 });
-
-    if (!engineRes.ok)
-      return Response.json({ message: "피드백 생성에 실패했습니다." }, { status: 500 });
-
     return Response.json(data, { status: 200 });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && 'data' in err) {
+      const errData = (err as { data: { detail?: string } }).data;
+      const status = (err as unknown as { status: number }).status;
+      if (status === 400)
+        return Response.json({ message: errData.detail ?? "잘못된 요청입니다." }, { status: 400 });
+      return Response.json({ message: "피드백 생성에 실패했습니다." }, { status: 500 });
+    }
     return Response.json({ message: "피드백 생성에 실패했습니다." }, { status: 500 });
   }
 }
