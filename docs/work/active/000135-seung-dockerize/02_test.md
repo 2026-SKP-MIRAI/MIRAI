@@ -100,15 +100,28 @@ ERROR: DATABASE_URL, DIRECT_URL, and ENGINE_BASE_URL must be set
 
 ---
 
-## 미검증 항목 (EC2 배포 후 확인 필요)
+## EC2 배포 검증
 
-| 항목 | 확인 방법 |
-|------|-----------|
-| `prisma migrate deploy` 성공 | `docker logs seung` 에서 `All migrations have been applied` 확인 |
-| Next.js 서버 기동 | `http://seung.mirainterview.com` 접속 |
-| HEALTHCHECK 동작 | `docker inspect seung \| grep -A5 Health` |
-| ALB 헬스체크 통과 | AWS 콘솔 → 타겟그룹 → `healthy` 상태 확인 |
-| pdf-parse 런타임 동작 | PDF 업로드 기능 실제 사용 테스트 |
+```
+docker logs seung
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "postgres", schema "public" at "..."
+
+5 migrations found in prisma/migrations
+No pending migrations to apply.
+▲ Next.js 16.1.6
+✓ Ready in 245ms
+```
+
+| 항목 | 결과 |
+|------|------|
+| `prisma migrate deploy` 성공 (`No pending migrations to apply.`) | ✅ |
+| Next.js 서버 기동 (`✓ Ready in 245ms`) | ✅ |
+| HEALTHCHECK 동작 (`Status: healthy`, `FailingStreak: 0`) | ✅ |
+| ALB 헬스체크 통과 (`healthy`) | ✅ |
+| `seung.mirainterview.com` 접속 | ✅ |
+
+> pdf-parse 런타임 동작은 PDF 업로드 기능 실제 사용 테스트로 별도 확인 필요
 
 ---
 
