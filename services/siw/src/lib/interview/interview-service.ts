@@ -2,6 +2,7 @@ import { interviewRepository } from "./interview-repository";
 import { resumeRepository } from "@/lib/resume-repository";
 import { EngineStartResponseSchema, EngineAnswerResponseSchema } from "./schemas";
 import type { PersonaType, InterviewAnswerResponse } from "@/lib/types";
+import { withEventLogging } from "@/lib/observability/event-logger";
 
 const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000";
 
@@ -16,19 +17,22 @@ export const interviewService = {
     const resume = await resumeRepository.findById(resumeId);
     const resumeText = resume.resumeText;
     const engineText = resumeText.slice(0, 1200);
-    let resp: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      resp = await fetch(`${ENGINE_BASE_URL}/api/interview/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText: engineText, personas, mode: "panel" }),
-        signal: AbortSignal.timeout(30000),
-      });
-      if (resp.ok) break;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-    }
-    if (!resp?.ok) throw new Error("engine_start_failed");
-
+    const resp = await withEventLogging('interview_start', null, async (meta) => {
+      let r: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        meta.retry_count = attempt;
+        r = await fetch(`${ENGINE_BASE_URL}/api/interview/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText: engineText, personas, mode: "panel" }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (r.ok) break;
+        if (attempt < 2) await new Promise(res => setTimeout(res, 1000));
+      }
+      if (!r?.ok) throw new Error("engine_start_failed");
+      return r;
+    });
     const parsed = EngineStartResponseSchema.parse(await resp.json());
 
     const sessionId = await interviewRepository.create({
@@ -54,27 +58,29 @@ export const interviewService = {
       engineResult = EngineAnswerResponseSchema.parse(session.engineResultCache);
     } else {
       const historyForEngine = session.history.map(({ type: _type, ...rest }) => rest);
-      let resp: Response | null = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        resp = await fetch(`${ENGINE_BASE_URL}/api/interview/answer`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            resumeText: session.resumeText,
-            history: historyForEngine,
-            questionsQueue: session.questionsQueue,
-            currentQuestion: session.currentQuestion,
-            currentPersona: session.currentPersona,
-            currentAnswer,
-          }),
-          signal: AbortSignal.timeout(55000),
-        });
-        if (resp.ok) break;
-        if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-      }
-      if (!resp?.ok) throw new Error("engine_answer_failed");
-
-      engineResult = EngineAnswerResponseSchema.parse(await resp.json());
+      engineResult = await withEventLogging('interview_answer', sessionId, async (meta) => {
+        let resp: Response | null = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          meta.retry_count = attempt;
+          resp = await fetch(`${ENGINE_BASE_URL}/api/interview/answer`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              resumeText: session.resumeText,
+              history: historyForEngine,
+              questionsQueue: session.questionsQueue,
+              currentQuestion: session.currentQuestion,
+              currentPersona: session.currentPersona,
+              currentAnswer,
+            }),
+            signal: AbortSignal.timeout(55000),
+          });
+          if (resp.ok) break;
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+        }
+        if (!resp?.ok) throw new Error("engine_answer_failed");
+        return EngineAnswerResponseSchema.parse(await resp.json());
+      });
       await interviewRepository.saveEngineResult(sessionId, engineResult);
     }
 
@@ -108,13 +114,16 @@ export const interviewService = {
 
   async followup(sessionId: string, question: string, answer: string, persona: PersonaType) {
     const { resumeText } = await interviewRepository.findById(sessionId);
-    const resp = await fetch(`${ENGINE_BASE_URL}/api/interview/followup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, answer, persona, resumeText }),
-      signal: AbortSignal.timeout(30000),
+    const resp = await withEventLogging('interview_followup', sessionId, async () => {
+      const r = await fetch(`${ENGINE_BASE_URL}/api/interview/followup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer, persona, resumeText }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!r.ok) throw new Error("engine_followup_failed");
+      return r.json();
     });
-    if (!resp.ok) throw new Error("engine_followup_failed");
-    return resp.json();
+    return resp;
   },
 };

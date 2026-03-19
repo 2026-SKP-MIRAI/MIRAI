@@ -1,0 +1,15 @@
+services:
+  airflow:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "local-dev-secret-change-in-prod"
+    volumes:
+      - ./dags:/opt/airflow/dags   # 로컬 DAG 수정 즉시 반영
+      - airflow_db:/home/airflow   # SQLite + logs 영속화
+    command: standalone
+
+volumes:
+  airflow_db:
