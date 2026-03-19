@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { StoredHistoryEntry, AxisScores, AxisFeedback } from '@/lib/types'
+import { createClient } from '@/lib/supabase/server'
 
 export const maxDuration = 100
 
 const ENGINE_FETCH_TIMEOUT_MS = 90_000
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { sessionId?: string }
   try {
     body = await request.json()
@@ -27,6 +34,7 @@ export async function POST(request: NextRequest) {
 
   let session: {
     id: string
+    userId: string | null
     sessionComplete: boolean
     history: unknown
     resume: { resumeText: string }
@@ -43,6 +51,10 @@ export async function POST(request: NextRequest) {
 
   if (!session) {
     return NextResponse.json({ error: '세션을 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (session.userId !== user.id) {
+    return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   if (!session.sessionComplete) {
@@ -121,6 +133,7 @@ export async function POST(request: NextRequest) {
         scores: engineData.scores as object,
         summary: engineData.summary,
         axisFeedbacks: engineData.axisFeedbacks as object[],
+        userId: user.id,
       },
     })
     return NextResponse.json({ reportId: report.id }, { status: 201 })

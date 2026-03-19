@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { PersonaType, QuestionType } from '@/lib/types'
+import { createClient } from '@/lib/supabase/server'
 
 export const maxDuration = 35
 
@@ -8,6 +9,12 @@ const ENGINE_FETCH_TIMEOUT_MS = 55_000
 const DEFAULT_PERSONAS: PersonaType[] = ['hr', 'tech_lead', 'executive']
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { resumeId?: string; mode?: string; personas?: PersonaType[]; interviewMode?: 'real' | 'practice' }
   try {
     body = await request.json()
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
   // Fetch resume from DB
   let resume: { resumeText: string } | null
   try {
-    resume = await prisma.resume.findUnique({ where: { id: resumeId } })
+    resume = await prisma.resume.findUnique({ where: { id: resumeId, userId: user.id } })
   } catch (err) {
     console.error('[interview/start] DB resume lookup failed', { resumeId, err })
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
@@ -83,6 +90,7 @@ export async function POST(request: NextRequest) {
         currentPersonaLabel: firstQuestion.personaLabel,
         currentQuestionType: firstQuestion.type,
         interviewMode: interviewMode ?? 'real',
+        userId: user.id,
       },
     })
   } catch (err) {

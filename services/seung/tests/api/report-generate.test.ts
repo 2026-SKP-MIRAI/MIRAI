@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockCreateClient } = vi.hoisted(() => ({
   mockPrisma: {
     interviewSession: { findUnique: vi.fn() },
     report: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
   },
+  mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch
@@ -23,6 +25,7 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
 
 const mockSession = {
   id: 'session-1',
+  userId: 'user-1',
   sessionComplete: true,
   history: [
     {
@@ -65,6 +68,9 @@ describe('POST /api/report/generate', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     process.env.ENGINE_BASE_URL = 'http://localhost:8000'
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
+    })
   })
 
   afterEach(() => {
@@ -164,6 +170,25 @@ describe('POST /api/report/generate', () => {
     expect(response.status).toBe(500)
     const body = await response.json()
     expect(body.error).toBe('서버 오류가 발생했습니다.')
+  })
+
+  it('미인증 시 401 반환', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    })
+    const response = await POST(makeRequest({ sessionId: 'session-1' }))
+    expect(response.status).toBe(401)
+    expect(mockPrisma.interviewSession.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('타인 세션 접근 시 403 반환', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce({
+      ...mockSession,
+      userId: 'other-user',
+    })
+    const response = await POST(makeRequest({ sessionId: 'session-1' }))
+    expect(response.status).toBe(403)
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('report.create P2002 → findUnique fallback → 기존 reportId (200)', async () => {

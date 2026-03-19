@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callEngineParse, callEngineQuestions } from '@/lib/engine-client'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 
 export const maxDuration = 70
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let formData: FormData
   try {
     formData = await request.formData()
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
       callEngineQuestions(resumeText),
       // questions: []로 먼저 저장해 /questions 호출과 병렬 처리.
       // Resume.questions는 downstream(interview/start, feedback)에서 읽지 않으므로 빈 배열로 유지됨.
-      prisma.resume.create({ data: { resumeText, questions: [] } }).catch((err: unknown) => {
+      prisma.resume.create({ data: { resumeText, questions: [], userId: user.id } }).catch((err: unknown) => {
         console.error('[resume/questions] DB save failed', { err })
         return null
       }),

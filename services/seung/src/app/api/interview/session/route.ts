@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { HistoryItem } from '@/lib/types'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   const sessionId = request.nextUrl.searchParams.get('sessionId')
 
   if (!sessionId) {
@@ -10,6 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   let session: {
+    userId: string | null
     currentQuestion: string
     currentPersona: string
     currentPersonaLabel: string
@@ -22,6 +30,7 @@ export async function GET(request: NextRequest) {
     session = await prisma.interviewSession.findUnique({
       where: { id: sessionId },
       select: {
+        userId: true,
         currentQuestion: true,
         currentPersona: true,
         currentPersonaLabel: true,
@@ -38,6 +47,10 @@ export async function GET(request: NextRequest) {
 
   if (!session) {
     return NextResponse.json({ error: '세션을 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (session.userId !== user.id) {
+    return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   return NextResponse.json({
