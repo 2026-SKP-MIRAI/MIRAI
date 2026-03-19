@@ -13,6 +13,29 @@ export interface LLMEvent {
   error_type?: string;
   session_id?: string | null;
   retry_count?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  model?: string;
+}
+
+export interface EngineUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  model?: string;
+}
+
+const MODEL_COST_PER_1K: Record<string, { input: number; output: number }> = {
+  "google/gemini-2.5-flash": { input: 0.00015, output: 0.0006 },
+};
+
+export function estimateCostUsd(
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+): number {
+  const cost = MODEL_COST_PER_1K[model];
+  if (!cost) return 0.0;
+  return (promptTokens / 1000) * cost.input + (completionTokens / 1000) * cost.output;
 }
 
 const FEATURE_MODE: Record<LLMEvent["feature_type"], LLMEvent["mode"]> = {
@@ -66,12 +89,12 @@ export async function logLLMEvents(events: LLMEvent[]): Promise<void> {
 export async function withEventLogging<T>(
   featureType: LLMEvent["feature_type"],
   sessionId: string | null,
-  fn: (meta: LLMEventMeta) => Promise<T>,
+  fn: (meta: LLMEventMeta) => Promise<{ data: T; usage?: EngineUsage }>,
 ): Promise<T> {
   const meta: LLMEventMeta = { retry_count: 0 };
   const start = Date.now();
   try {
-    const result = await fn(meta);
+    const { data, usage } = await fn(meta);
     await logLLMEvents([{
       timestamp: new Date().toISOString(),
       feature_type: featureType,
@@ -80,8 +103,11 @@ export async function withEventLogging<T>(
       success: true,
       session_id: sessionId,
       retry_count: meta.retry_count,
+      prompt_tokens: usage?.prompt_tokens,
+      completion_tokens: usage?.completion_tokens,
+      model: usage?.model,
     }]);
-    return result;
+    return data;
   } catch (err) {
     await logLLMEvents([{
       timestamp: new Date().toISOString(),

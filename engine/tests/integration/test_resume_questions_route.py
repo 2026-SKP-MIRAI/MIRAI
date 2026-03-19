@@ -17,6 +17,9 @@ def mock_llm_success():
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=VALID_LLM_RESPONSE))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
@@ -33,6 +36,7 @@ async def test_200_success():
     assert "questions" in data
     assert "meta" in data
     assert len(data["questions"]) >= 8
+    assert "usage" in data
 
 
 @pytest.mark.asyncio

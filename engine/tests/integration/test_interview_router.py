@@ -14,13 +14,17 @@ def mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
 def mock_llm_side_effect(contents: list[str]):
     fake = MagicMock()
+    usage_mock = MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15)
     fake.chat.completions.create.side_effect = [
-        MagicMock(choices=[MagicMock(message=MagicMock(content=c))]) for c in contents
+        MagicMock(choices=[MagicMock(message=MagicMock(content=c))], usage=usage_mock) for c in contents
     ]
     return fake
 
@@ -39,6 +43,7 @@ async def test_start_200_returns_first_question_and_queue():
     assert "firstQuestion" in data
     assert data["firstQuestion"]["persona"] == "hr"
     assert len(data["questionsQueue"]) == 9
+    assert "usage" in data
 
 
 @pytest.mark.asyncio

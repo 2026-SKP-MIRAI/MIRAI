@@ -15,6 +15,9 @@ def make_mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
@@ -75,7 +78,7 @@ def test_report_response_axis_feedbacks_count_is_8():
 def test_generate_report_returns_valid_response():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     assert result.scores is not None
     assert result.summary != ""
     assert len(result.axisFeedbacks) == 8
@@ -84,7 +87,7 @@ def test_generate_report_returns_valid_response():
 def test_generate_report_axes_scores_within_range():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     for field_name in result.scores.model_fields:
         val = getattr(result.scores, field_name)
         assert 0 <= val <= 100, f"{field_name} 점수 범위 위반: {val}"
@@ -93,14 +96,14 @@ def test_generate_report_axes_scores_within_range():
 def test_generate_report_total_score_within_range():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     assert 0 <= result.totalScore <= 100
 
 
 def test_generate_report_axis_feedbacks_all_8_axes_present():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report, AXIS_KEYS
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     axes = {fb.axis for fb in result.axisFeedbacks}
     expected = {key for key, _ in AXIS_KEYS}
     assert axes == expected
@@ -109,7 +112,7 @@ def test_generate_report_axis_feedbacks_all_8_axes_present():
 def test_generate_report_high_score_axis_type_is_strength():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     for fb in result.axisFeedbacks:
         if fb.score >= 75:
             assert fb.type == "strength", f"{fb.axis} score={fb.score} but type={fb.type}"
@@ -118,7 +121,7 @@ def test_generate_report_high_score_axis_type_is_strength():
 def test_generate_report_low_score_axis_type_is_improvement():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(MOCK_REPORT_JSON)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서 내용", make_history(5))
+        result, _ = generate_report("이력서 내용", make_history(5))
     for fb in result.axisFeedbacks:
         if fb.score < 75:
             assert fb.type == "improvement", f"{fb.axis} score={fb.score} but type={fb.type}"
@@ -155,7 +158,7 @@ def test_generate_report_score_clamped_when_out_of_range():
     raw = json.dumps(out_of_range)
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(raw)):
         from app.services.report_service import generate_report
-        result = generate_report("이력서", make_history(5))
+        result, _ = generate_report("이력서", make_history(5))
     assert result.scores.communication == 100
     assert result.scores.problemSolving == 0
 

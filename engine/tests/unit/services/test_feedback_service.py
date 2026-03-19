@@ -8,7 +8,15 @@ def make_mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
+
+
+def make_llm_result(content: str):
+    from app.services.llm_client import LLMResult
+    return LLMResult(content=content, usage=None, model="test-model")
 
 
 def _feedback_json(**overrides) -> str:
@@ -32,7 +40,7 @@ def _feedback_json(**overrides) -> str:
 def test_generate_resume_feedback_returns_valid_response():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(_feedback_json())):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, usage = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert result.scores is not None
     assert result.strengths is not None
     assert result.weaknesses is not None
@@ -44,7 +52,7 @@ def test_generate_resume_feedback_returns_valid_response():
 def test_generate_resume_feedback_scores_within_range():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(_feedback_json())):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert 0 <= result.scores.specificity <= 100
     assert 0 <= result.scores.achievementClarity <= 100
     assert 0 <= result.scores.logicStructure <= 100
@@ -57,7 +65,7 @@ def test_generate_resume_feedback_scores_within_range():
 def test_generate_resume_feedback_strengths_count():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(_feedback_json())):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert 2 <= len(result.strengths) <= 3
 
 
@@ -66,7 +74,7 @@ def test_generate_resume_feedback_strengths_count():
 def test_generate_resume_feedback_weaknesses_count():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(_feedback_json())):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert 2 <= len(result.weaknesses) <= 3
 
 
@@ -75,7 +83,7 @@ def test_generate_resume_feedback_weaknesses_count():
 def test_generate_resume_feedback_suggestions_structure():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(_feedback_json())):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert len(result.suggestions) >= 1
     sug = result.suggestions[0]
     assert hasattr(sug, "section")
@@ -123,7 +131,7 @@ def test_generate_resume_feedback_strengths_truncated_to_3():
     with patch("app.services.llm_client.OpenAI",
                return_value=make_mock_llm(_feedback_json(strengths=["A", "B", "C", "D"]))):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert len(result.strengths) == 3
 
 
@@ -133,7 +141,7 @@ def test_generate_resume_feedback_weaknesses_truncated_to_3():
     with patch("app.services.llm_client.OpenAI",
                return_value=make_mock_llm(_feedback_json(weaknesses=["A", "B", "C", "D"]))):
         from app.services.feedback_service import generate_resume_feedback
-        result = generate_resume_feedback("자소서 내용", "백엔드 개발자")
+        result, _ = generate_resume_feedback("자소서 내용", "백엔드 개발자")
     assert len(result.weaknesses) == 3
 
 
@@ -253,7 +261,7 @@ def test_generate_resume_feedback_none_target_role_uses_default_label():
 
     def fake_call_llm(prompt, **kwargs):
         captured_prompt["value"] = prompt
-        return _feedback_json()
+        return make_llm_result(_feedback_json())
 
     with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
         from app.services.feedback_service import generate_resume_feedback
@@ -270,7 +278,7 @@ def test_generate_resume_feedback_empty_target_role_uses_default_label():
 
     def fake_call_llm(prompt, **kwargs):
         captured_prompt["value"] = prompt
-        return _feedback_json()
+        return make_llm_result(_feedback_json())
 
     with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
         from app.services.feedback_service import generate_resume_feedback
@@ -287,7 +295,7 @@ def test_generate_resume_feedback_target_role_angle_brackets_escaped():
 
     def fake_call_llm(prompt, **kwargs):
         captured_prompt["value"] = prompt
-        return _feedback_json()
+        return make_llm_result(_feedback_json())
 
     with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
         from app.services.feedback_service import generate_resume_feedback

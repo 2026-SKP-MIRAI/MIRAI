@@ -8,13 +8,17 @@ def make_mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
 def make_mock_llm_side_effect(contents: list[str]):
     fake = MagicMock()
+    usage_mock = MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15)
     fake.chat.completions.create.side_effect = [
-        MagicMock(choices=[MagicMock(message=MagicMock(content=c))]) for c in contents
+        MagicMock(choices=[MagicMock(message=MagicMock(content=c))], usage=usage_mock) for c in contents
     ]
     return fake
 
@@ -80,7 +84,7 @@ NO_FOLLOWUP_JSON = '{"shouldFollowUp": false, "followupType": "CLARIFY", "follow
 def test_start_returns_first_hr_question():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(HR_QUESTION_JSON)):
         from app.services.interview_service import start_interview
-        result = start_interview("이력서 내용", ["hr", "tech_lead", "executive"])
+        result, usage = start_interview("이력서 내용", ["hr", "tech_lead", "executive"])
     assert result.firstQuestion.persona == "hr"
     assert result.firstQuestion.personaLabel == "HR 담당자"
     assert "팀워크" in result.firstQuestion.question
@@ -89,7 +93,7 @@ def test_start_returns_first_hr_question():
 def test_start_returns_questions_queue():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(HR_QUESTION_JSON)):
         from app.services.interview_service import start_interview
-        result = start_interview("이력서", ["hr", "tech_lead", "executive"])
+        result, _ = start_interview("이력서", ["hr", "tech_lead", "executive"])
     # MAX_TURNS=10 → 큐 9개
     assert len(result.questionsQueue) == 9
     assert result.questionsQueue[0].persona == "tech_lead"
@@ -103,7 +107,7 @@ def test_process_answer_returns_next_question():
     # LLM 2회: 1) followup check (shouldFollowUp=false), 2) next question
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm_side_effect([NO_FOLLOWUP_JSON, TECH_QUESTION_JSON])):
         from app.services.interview_service import process_answer
-        result = process_answer("이력서", history, queue, "현재 질문", "hr", "내 답변")
+        result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "내 답변")
     assert result.nextQuestion is not None
     assert result.nextQuestion.persona == "tech_lead"
     assert result.sessionComplete is False
@@ -111,7 +115,7 @@ def test_process_answer_returns_next_question():
 
 def test_process_answer_session_complete_when_queue_empty():
     from app.services.interview_service import process_answer
-    result = process_answer("이력서", [], [], "현재 질문", "hr", "마지막 답변")
+    result, usage = process_answer("이력서", [], [], "현재 질문", "hr", "마지막 답변")
     assert result.sessionComplete is True
     assert result.nextQuestion is None
     assert result.updatedQueue == []
@@ -119,7 +123,7 @@ def test_process_answer_session_complete_when_queue_empty():
 
 def test_process_answer_nextQuestion_is_none_when_session_complete():
     from app.services.interview_service import process_answer
-    result = process_answer("이력서", [], [], "현재 질문", "hr", "답변")
+    result, _ = process_answer("이력서", [], [], "현재 질문", "hr", "답변")
     assert result.nextQuestion is None
 
 
@@ -130,7 +134,7 @@ def test_process_answer_returns_followup_when_insufficient():
     # LLM 1회: shouldFollowUp=True → 꼬리질문 반환
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(FOLLOWUP_JSON)):
         from app.services.interview_service import process_answer
-        result = process_answer("이력서", history, queue, "현재 질문", "hr", "모호한 답변")
+        result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "모호한 답변")
     assert result.nextQuestion is not None
     assert result.nextQuestion.type == "follow_up"
     assert result.nextQuestion.persona == "hr"
@@ -152,7 +156,7 @@ def test_process_answer_skips_followup_at_max_followups():
     # LLM 1회만 호출 (followup check 스킵 → next question 생성만)
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(TECH_QUESTION_JSON)):
         from app.services.interview_service import process_answer
-        result = process_answer("이력서", history, queue, "현재 질문", "hr", "답변")
+        result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "답변")
     assert result.nextQuestion is not None
     assert result.nextQuestion.type == "main"
     assert result.nextQuestion.persona == "tech_lead"
@@ -169,7 +173,7 @@ def test_process_answer_session_complete_at_max_turns():
     ]
     queue = [QueueItem(persona="tech_lead", type="main")]
     from app.services.interview_service import process_answer
-    result = process_answer("이력서", history, queue, "현재 질문", "hr", "답변")
+    result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "답변")
     assert result.sessionComplete is True
     assert result.nextQuestion is None
 
@@ -179,7 +183,7 @@ def test_followup_type_parses_llm_output(followup_type):
     followup_json = f'{{"shouldFollowUp": true, "followupType": "{followup_type}", "followupQuestion": "꼬리질문", "reasoning": "이유"}}'
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(followup_json)):
         from app.services.interview_service import generate_followup
-        result = generate_followup("질문", "답변", "hr", "이력서")
+        result, _ = generate_followup("질문", "답변", "hr", "이력서")
     assert result.followupType == followup_type
     assert result.followupQuestion == "꼬리질문"
     assert result.reasoning == "이유"
