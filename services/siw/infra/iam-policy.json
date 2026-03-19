@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEC2ScheduledControl",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:<ACCOUNT_ID>:instance/<EC2_INSTANCE_ID>"
+    }
+  ]
+}
