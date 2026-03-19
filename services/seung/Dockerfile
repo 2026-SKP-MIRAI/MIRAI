@@ -40,14 +40,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # NOTE: services/seung/public/ 디렉토리가 없으므로 COPY 생략 (생기면 추가)
 
-# Prisma CLI + client + schema + migrations 복사 (entrypoint에서 migrate deploy 실행용)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+# node_modules 전체 복사 — prisma CLI(@prisma/config → effect → fast-check 등)의
+# 전이 의존성을 선택적 COPY로 추적하는 것은 Prisma 버전 업마다 깨질 위험이 있음.
+# 전체 복사로 누락 없이 보장한다. standalone은 자체 node_modules를 포함하므로
+# 이 node_modules는 entrypoint의 prisma migrate deploy 전용으로만 사용됨.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# NOTE: prisma.config.ts는 runner에 복사하지 않음
-# @prisma/config가 effect 패키지에 의존하며 runner에 미포함 → MODULE_NOT_FOUND 오류 발생
-# 대신 entrypoint.sh에서 DATABASE_URL=$DIRECT_URL로 직접 오버라이드
 
 # entrypoint 스크립트 복사 + CRLF 제거 (Windows 체크아웃 환경 대응)
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh

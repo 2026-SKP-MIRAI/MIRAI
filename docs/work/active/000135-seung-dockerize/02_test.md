@@ -64,27 +64,28 @@ docker build \
 | `✓ Compiled successfully (17개 라우트)` | ✅ |
 | 이미지 생성 (`mirai-seung:local`) | ✅ |
 
-### 컨테이너 내 파일 존재 확인
+### prisma migrate deploy 모듈 로딩 검증 (fake DB)
 
 ```bash
-docker run --rm --entrypoint sh mirai-seung:local -c "ls \
-  node_modules/prisma/build/prisma_schema_build_bg.wasm \
-  node_modules/.prisma/client/ \
-  node_modules/@prisma/ \
-  prisma/ prisma.config.ts \
-  node_modules/pdf-parse"
+docker run --rm \
+  -e DATABASE_URL=postgresql://fake:fake@fake:5432/fake \
+  -e DIRECT_URL=postgresql://fake:fake@fake:5432/fake \
+  -e ENGINE_BASE_URL=http://fake \
+  --entrypoint sh mirai-seung:local \
+  -c "node node_modules/prisma/build/index.js migrate deploy 2>&1"
 ```
 
-| 파일 | 결과 |
-|------|------|
-| `prisma_schema_build_bg.wasm` | ✅ |
-| `.prisma/client/` (linux-musl-openssl-3.0.x 바이너리 포함) | ✅ |
-| `@prisma/` (client, engines 등) | ✅ |
-| `prisma/` (schema.prisma, migrations/) | ✅ |
-| `prisma.config.ts` | ✅ |
-| `pdf-parse` | ✅ |
+**결과:**
+```
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "fake", schema "public" at "fake:5432"
 
-### entrypoint 동작 확인 (DB 없이)
+Error: P1001: Can't reach database server at `fake:5432`
+```
+
+→ `MODULE_NOT_FOUND` 없음. 모든 의존성 정상 로딩, DB 연결 단계까지 도달 ✅
+
+### entrypoint 동작 확인 (env 없이)
 
 ```bash
 docker run --rm mirai-seung:local
@@ -117,7 +118,7 @@ ERROR: DATABASE_URL, DIRECT_URL, and ENGINE_BASE_URL must be set
 
 - **현상**: 코드 리뷰 중 발견 (로컬 빌드 전 사전 분석)
 - **원인**: `schema.prisma`의 `url = DATABASE_URL`은 PgBouncer Transaction Pooler(port 6543, `?pgbouncer=true`)를 가리킴. Prisma CLI(`migrate deploy`)가 이 URL로 DDL을 실행하면 Transaction Pooler가 DDL을 지원하지 않아 마이그레이션 실패
-- **해결**: `prisma.config.ts` 신규 생성 — `datasource.url`을 `DIRECT_URL`(Session Pooler, port 5432)로 오버라이드. Prisma CLI가 `schema.prisma`보다 `prisma.config.ts`를 우선 참조. Dockerfile deps/runner 스테이지에 `COPY prisma.config.ts` 추가
+- **해결**: `prisma.config.ts` 신규 생성 — `datasource.url`을 `DIRECT_URL`(Session Pooler, port 5432)로 오버라이드. Dockerfile deps/builder 스테이지에서 `prisma generate` 시 참조. entrypoint.sh에서 `DATABASE_URL="$DIRECT_URL"` env 오버라이드로 runner에서도 DIRECT_URL 사용 보장
 - **참고**: siw 서비스가 동일 문제를 동일 방식으로 해결한 선례 존재
 
 #### `entrypoint.sh` `ENGINE_BASE_URL` 미검증 — 헬스체크 통과 후 API 전체 500
@@ -125,3 +126,10 @@ ERROR: DATABASE_URL, DIRECT_URL, and ENGINE_BASE_URL must be set
 - **현상**: 코드 리뷰 중 발견
 - **원인**: `ENGINE_BASE_URL` 없이도 컨테이너가 정상 기동하고 ALB 헬스체크를 통과하지만, 면접·자소서·리포트 등 핵심 API 6개 라우트가 모두 엔진 호출 실패로 500 반환 — "헬스체크 green, 서비스 dead" 상황
 - **해결**: entrypoint.sh 검증 조건에 `ENGINE_BASE_URL` 추가. 누락 시 컨테이너가 즉시 종료되어 ALB 헬스체크 실패 → 빠른 문제 감지 가능
+
+#### Prisma CLI 전이 의존성 누락 — `Cannot find module 'effect'` / `'fast-check'`
+
+- **현상**: EC2 배포 후 `docker logs seung`에서 `Cannot find module 'effect'`, 이후 `Cannot find module 'fast-check'` 연속 발생
+- **원인**: Prisma 6.x CLI 실행 경로: `prisma/build/index.js` → `@prisma/config` → `effect` → `fast-check` (그 외 추가 전이 의존성 존재 가능). runner 스테이지에서 `.prisma`, `@prisma`, `prisma`, `effect`만 선택적으로 COPY했으나 `fast-check` 등 하위 의존성이 누락됨
+- **해결**: runner 스테이지의 선택적 COPY를 제거하고 `COPY --from=builder /app/node_modules ./node_modules` 전체 복사로 교체. 전이 의존성을 버전별로 추적하는 비용과 리스크를 제거. standalone은 자체 node_modules를 포함하므로 이 node_modules는 `migrate deploy` 전용
+- **검증**: fake DB URL로 `migrate deploy` 실행 → `P1001` (DB 연결 오류, MODULE_NOT_FOUND 아님) 확인 ✅
