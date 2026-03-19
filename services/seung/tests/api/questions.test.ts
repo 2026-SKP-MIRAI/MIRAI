@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma, mockCallEngineParse, mockCallEngineQuestions } = vi.hoisted(() => ({
+const { mockPrisma, mockCallEngineParse, mockCallEngineQuestions, mockCreateClient } = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       create: vi.fn(),
@@ -9,6 +9,7 @@ const { mockPrisma, mockCallEngineParse, mockCallEngineQuestions } = vi.hoisted(
   },
   mockCallEngineParse: vi.fn(),
   mockCallEngineQuestions: vi.fn(),
+  mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
@@ -16,6 +17,7 @@ vi.mock('@/lib/engine-client', () => ({
   callEngineParse: mockCallEngineParse,
   callEngineQuestions: mockCallEngineQuestions,
 }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
 
 import { POST } from '@/app/api/resume/questions/route'
 
@@ -41,6 +43,9 @@ describe('POST /api/resume/questions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.ENGINE_BASE_URL = 'http://localhost:8000'
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
+    })
     mockCallEngineParse.mockResolvedValue(
       makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100 })
     )
@@ -170,8 +175,20 @@ describe('POST /api/resume/questions', () => {
       data: {
         resumeText: 'extracted text',
         questions: [],
+        userId: 'user-1',
       },
     })
+  })
+
+  it('미인증 시 401 반환', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    })
+    const formData = new FormData()
+    formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
+    const response = await POST(makeRequest(formData))
+    expect(response.status).toBe(401)
+    expect(mockCallEngineParse).not.toHaveBeenCalled()
   })
 
   it('DB 실패 시에도 엔진 결과 반환 (resumeId=null)', async () => {

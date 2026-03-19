@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 
 export const maxDuration = 45
-
-// TODO: 인증 구현 시 세션 검증 + 사용자별 rate limiting 추가 필요
-// 현재는 인증 미구현 단계이므로 임시 생략 (아키텍처 불변식 §1 참고)
 
 const ENGINE_FETCH_TIMEOUT_MS = 40_000
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { resumeId?: string; targetRole?: string }
   try {
     body = await request.json()
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '서버 설정 오류입니다.' }, { status: 500 })
   }
 
-  let resume: { id: string; resumeText: string; diagnosisResult: unknown } | null
+  let resume: { id: string; userId: string | null; resumeText: string; diagnosisResult: unknown } | null
   try {
     resume = await prisma.resume.findUnique({ where: { id: resumeId } })
   } catch (err) {
@@ -41,6 +45,10 @@ export async function POST(request: NextRequest) {
 
   if (!resume) {
     return NextResponse.json({ error: '이력서를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (resume.userId !== user.id) {
+    return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   let engineResponse: Response

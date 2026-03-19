@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockCreateClient } = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       findUnique: vi.fn(),
@@ -10,9 +10,11 @@ const { mockPrisma } = vi.hoisted(() => ({
       create: vi.fn(),
     },
   },
+  mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch
@@ -29,6 +31,9 @@ describe('POST /api/interview/start', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.ENGINE_BASE_URL = 'http://localhost:8000'
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
+    })
   })
 
   it('성공: sessionId + firstQuestion 반환', async () => {
@@ -97,6 +102,22 @@ describe('POST /api/interview/start', () => {
     const body = await response.json()
     expect(body.error).toBe('서버 오류가 발생했습니다.')
     expect(body.detail).toBeUndefined()
+  })
+
+  it('미인증 시 401 반환', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    })
+    const response = await POST(makeRequest({ resumeId: 'resume-1' }))
+    expect(response.status).toBe(401)
+    expect(mockPrisma.resume.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('타인 resume 접근 시 404 반환', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(null)
+    const response = await POST(makeRequest({ resumeId: 'resume-other' }))
+    expect(response.status).toBe(404)
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('ENGINE_BASE_URL 미설정 시 500 반환', async () => {

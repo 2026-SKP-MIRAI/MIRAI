@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { AxisScores, AxisFeedback } from '@/lib/types'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   const reportId = request.nextUrl.searchParams.get('reportId')
 
   if (!reportId) {
@@ -11,6 +18,7 @@ export async function GET(request: NextRequest) {
 
   let report: {
     id: string
+    userId: string | null
     sessionId: string
     totalScore: number
     scores: unknown
@@ -27,6 +35,10 @@ export async function GET(request: NextRequest) {
 
   if (!report) {
     return NextResponse.json({ error: '리포트를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (report.userId !== user.id) {
+    return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   return NextResponse.json(

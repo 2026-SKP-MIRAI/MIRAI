@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockCreateClient } = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
   },
+  mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch
@@ -42,6 +44,9 @@ describe('POST /api/resume/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.ENGINE_BASE_URL = 'http://localhost:8000'
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
+    })
   })
 
   it('resumeId 없으면 400 반환', async () => {
@@ -71,9 +76,31 @@ describe('POST /api/resume/feedback', () => {
     expect(res.status).toBe(404)
   })
 
+  it('미인증 시 401 반환', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    })
+    const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드' }))
+    expect(res.status).toBe(401)
+    expect(mockPrisma.resume.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('타인 resume 접근 시 403 반환', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      id: 'resume-1',
+      userId: 'other-user',
+      resumeText: '자소서',
+      diagnosisResult: null,
+    })
+    const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드' }))
+    expect(res.status).toBe(403)
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
   it('엔진 성공 시 200 + ResumeFeedbackResponse 반환', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서 내용',
       diagnosisResult: null,
     })
@@ -95,6 +122,7 @@ describe('POST /api/resume/feedback', () => {
   it('성공 시 prisma.resume.update로 diagnosisResult 저장', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서 내용',
       diagnosisResult: null,
     })
@@ -116,6 +144,7 @@ describe('POST /api/resume/feedback', () => {
   it('엔진에 resumeText와 targetRole을 전달', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서 내용 전문',
       diagnosisResult: null,
     })
@@ -138,6 +167,7 @@ describe('POST /api/resume/feedback', () => {
   it('AbortSignal.timeout(40000)으로 엔진 호출', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서',
       diagnosisResult: null,
     })
@@ -157,6 +187,7 @@ describe('POST /api/resume/feedback', () => {
   it('엔진 400 에러 그대로 전달', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서',
       diagnosisResult: null,
     })
@@ -173,6 +204,7 @@ describe('POST /api/resume/feedback', () => {
   it('엔진 500 에러 그대로 전달', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서',
       diagnosisResult: null,
     })
@@ -189,6 +221,7 @@ describe('POST /api/resume/feedback', () => {
   it('fetch 자체 실패 시 500 반환', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
       id: 'resume-1',
+      userId: 'user-1',
       resumeText: '자소서',
       diagnosisResult: null,
     })
