@@ -73,3 +73,25 @@ export type PracticeFeedback = {
   improvedAnswerGuide: string;
   comparisonDelta?: { scoreDelta: number; improvements: string[] } | null;
 };
+
+// 이력서 피드백 타입 (engine ResumeFeedbackResponse와 완전 일치)
+export type ResumeFeedbackScores = {
+  specificity: number        // 경험·사례의 구체성
+  achievementClarity: number // 성과의 명확성
+  logicStructure: number     // 논리 구조
+  roleAlignment: number      // 직무 연관성
+  differentiation: number    // 차별화
+}
+
+export type SuggestionItem = {
+  section: string
+  issue: string
+  suggestion: string
+}
+
+export type ResumeFeedback = {
+  scores: ResumeFeedbackScores
+  strengths: string[]
+  weaknesses: string[]
+  suggestions: SuggestionItem[]
+}

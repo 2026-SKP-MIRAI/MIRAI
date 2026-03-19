@@ -8,6 +8,8 @@ export type ResumeRecord = {
   storageKey: string;
   resumeText: string;
   questions: Prisma.JsonValue;
+  feedbackJson: Prisma.JsonValue | null;
+  inferredTargetRole: string | null;
   createdAt: Date;
 };
 
@@ -18,6 +20,8 @@ export const resumeRepository = {
     storageKey: string;
     resumeText: string;
     questions: Prisma.InputJsonValue;
+    feedbackJson?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+    inferredTargetRole?: string | null;
   }): Promise<string> {
     const resume = await prisma.resume.create({ data });
     return resume.id;

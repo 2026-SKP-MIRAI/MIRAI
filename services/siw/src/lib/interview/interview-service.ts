@@ -38,6 +38,7 @@ export const interviewService = {
       currentQuestionType: parsed.firstQuestion.type ?? "main",
       questionsQueue: parsed.questionsQueue,
       userId: userId ?? null,
+      resumeId,
     });
 
     return { sessionId, firstQuestion: parsed.firstQuestion };
