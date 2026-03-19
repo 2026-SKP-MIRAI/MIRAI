@@ -4,33 +4,13 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { ChevronLeft, Download, TrendingUp, TrendingDown, Lightbulb } from "lucide-react"
+import type { ResumeFeedback, ResumeFeedbackScores, SuggestionItem } from "@/lib/types"
 
 type InterviewSummary = {
   id: string
   createdAt: string
   reportTotalScore: number
   scores: Record<string, number>
-}
-
-type ResumeFeedbackScores = {
-  specificity: number
-  achievementClarity: number
-  logicStructure: number
-  roleAlignment: number
-  differentiation: number
-}
-
-type SuggestionItem = {
-  section: string
-  issue: string
-  suggestion: string
-}
-
-type ResumeFeedback = {
-  scores: ResumeFeedbackScores
-  strengths: string[]
-  weaknesses: string[]
-  suggestions: SuggestionItem[]
 }
 
 const SCORE_LABELS: Record<keyof ResumeFeedbackScores, string> = {

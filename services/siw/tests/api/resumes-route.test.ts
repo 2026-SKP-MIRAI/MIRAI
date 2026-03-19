@@ -77,6 +77,10 @@ describe("POST /api/resumes", () => {
         { status: 200 }
       )
     );
+    // feedback 병렬 호출 (실패해도 무시됨)
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 })
+    );
 
     const { POST } = await import("@/app/api/resumes/route");
     const res = await POST(makePdfRequest());
@@ -102,6 +106,10 @@ describe("POST /api/resumes", () => {
         JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
         { status: 200 }
       )
+    );
+    // feedback 병렬 호출 (실패해도 무시됨)
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 })
     );
 
     const { POST } = await import("@/app/api/resumes/route");
@@ -152,6 +160,10 @@ describe("POST /api/resumes", () => {
         { status: 200 }
       )
     );
+    // feedback 병렬 호출 (실패해도 무시됨)
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 })
+    );
 
     const { POST } = await import("@/app/api/resumes/route");
     const res = await POST(makePdfRequest());
@@ -185,6 +197,74 @@ describe("POST /api/resumes", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(400);
+  });
+
+  it("POST — /api/resume/feedback URL 호출 검증", async () => {
+    setAuthenticated();
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ resumeText: "이력서 텍스트" }) }) // parse
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ questions: [] }) })               // questions
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ scores: {}, strengths: [], weaknesses: [], suggestions: [] }) }) // feedback
+    mockCreate.mockResolvedValue("resume-id-1")
+
+    const { POST } = await import("@/app/api/resumes/route")
+    await POST(makePdfRequest())
+
+    const feedbackCall = (mockFetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c: unknown[]) => typeof c[0] === "string" && c[0].includes("/api/resume/feedback")
+    )
+    expect(feedbackCall).toBeDefined()
+  });
+
+  it("POST — create()에 feedbackJson 포함", async () => {
+    setAuthenticated();
+    const feedbackData = { scores: {}, strengths: ["강점"], weaknesses: [], suggestions: [] }
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ resumeText: "이력서 텍스트" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ questions: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => feedbackData })
+    mockCreate.mockResolvedValue("resume-id-1")
+
+    const { POST } = await import("@/app/api/resumes/route")
+    await POST(makePdfRequest())
+
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ feedbackJson: feedbackData }))
+  });
+
+  it("POST — feedback fetch 실패해도 200 응답", async () => {
+    setAuthenticated();
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ resumeText: "이력서 텍스트" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ questions: [] }) })
+      .mockRejectedValueOnce(new Error("feedback timeout"))
+    mockCreate.mockResolvedValue("resume-id-1")
+
+    const { POST } = await import("@/app/api/resumes/route")
+    const res = await POST(makePdfRequest())
+
+    expect(res.status).toBe(200)
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ feedbackJson: null }))
+  });
+
+  it("POST — targetRole이 feedback body에 포함", async () => {
+    setAuthenticated();
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ resumeText: "이력서 텍스트" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ questions: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    mockCreate.mockResolvedValue("resume-id-1")
+
+    const { POST } = await import("@/app/api/resumes/route")
+    const formData = new FormData()
+    formData.append("file", new File([new Uint8Array([1, 2, 3])], "resume.pdf", { type: "application/pdf" }))
+    formData.append("targetRole", "백엔드 개발자")
+    await POST(new Request("http://localhost/api/resumes", { method: "POST", body: formData }))
+
+    const feedbackCall = (mockFetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c: unknown[]) => typeof c[0] === "string" && c[0].includes("/api/resume/feedback")
+    )
+    const body = JSON.parse(feedbackCall?.[1]?.body ?? "{}")
+    expect(body.targetRole).toBe("백엔드 개발자")
   });
 });
 

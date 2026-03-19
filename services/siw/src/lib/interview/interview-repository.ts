@@ -25,6 +25,7 @@ export const interviewRepository = {
     currentQuestionType: "main" | "follow_up";
     questionsQueue: QueueItem[];
     userId?: string | null;
+    resumeId?: string | null;
   }): Promise<string> {
     const session = await prisma.interviewSession.create({
       data: { ...data, history: [] },

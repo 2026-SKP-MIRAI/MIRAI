@@ -15,8 +15,10 @@ model Resume {
   fileName    String
   storageKey  String
   resumeText  String
-  questions   Json     @default("[]")
-  createdAt   DateTime @default(now())
+  questions          Json     @default("[]")
+  feedbackJson       Json?
+  inferredTargetRole String?
+  createdAt          DateTime @default(now())
 
   interviewSessions InterviewSession[]
 

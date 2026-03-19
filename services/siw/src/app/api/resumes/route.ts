@@ -44,8 +44,10 @@ export async function POST(request: Request) {
   }
   const { resumeText } = await parseResp.json()
 
+  const targetRole = (formData.get("targetRole") as string | null) ?? "소프트웨어 개발자"
+
   try {
-    const [storageKey, engineData] = await Promise.all([
+    const [storageKey, engineData, feedbackJson] = await Promise.all([
       uploadResumePdf(user.id, buffer, file.name),
       fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
         method: "POST",
@@ -60,6 +62,15 @@ export async function POST(request: Request) {
         }
         return r.json()
       }),
+      fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText, targetRole }),
+        signal: AbortSignal.timeout(35000),
+      }).then(r => r.ok ? r.json() : null).catch((err) => {
+        console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err));
+        return null;
+      }),
     ])
 
     const resumeId = await resumeRepository.create({
@@ -68,6 +79,7 @@ export async function POST(request: Request) {
       storageKey,
       resumeText,
       questions: engineData.questions ?? [],
+      feedbackJson: feedbackJson ?? null,
     })
 
     return NextResponse.json({ ...engineData, resumeId })
@@ -96,7 +108,8 @@ export async function GET() {
       categories: [] as string[],
     }))
     return NextResponse.json(result)
-  } catch {
+  } catch (err) {
+    console.error("[GET /api/resumes] error:", err instanceof Error ? err.message : String(err))
     return NextResponse.json([], { status: 200 })
   }
 }

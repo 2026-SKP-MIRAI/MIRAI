@@ -125,7 +125,7 @@ export default function GrowthPage() {
     plugins: { legend: { display: true, position: "top" as const, labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } } },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 11 }, color: "#9CA3AF" } },
-      y: { min: 40, max: 100, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { stepSize: 20, font: { size: 11 }, color: "#9CA3AF", callback: (v: number | string) => `${v}점` } },
+      y: { min: 0, max: 100, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { stepSize: 20, font: { size: 11 }, color: "#9CA3AF", callback: (v: number | string) => `${v}점` } },
     },
   }
 
@@ -155,7 +155,7 @@ export default function GrowthPage() {
     plugins: { legend: { display: false } },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#9CA3AF" } },
-      y: { min: 40, max: 100, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { stepSize: 20, font: { size: 11 }, color: "#9CA3AF" } },
+      y: { min: 0, max: 100, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { stepSize: 20, font: { size: 11 }, color: "#9CA3AF" } },
     },
   }
 
