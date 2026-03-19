@@ -33,7 +33,10 @@ def call_llm(
             messages=[{"role": "user", "content": prompt}],
             timeout=timeout,
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        if content is None:
+            raise LLMError(error_message)
+        return content
     except Exception as e:
         raise LLMError(error_message) from e
 

@@ -18,9 +18,12 @@ def _validate_score(key: str, val: int | None) -> int:
 
 def _build_prompt(resume_text: str, target_role: str) -> str:
     template = (PROMPT_DIR / "resume_feedback_v1.md").read_text(encoding="utf-8")
+    # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
+    # 현재는 사용자 입력의 </resume> 태그를 HTML 엔티티로 치환해 XML 경계 탈출을 방지한다.
+    safe_resume = resume_text[:16000].replace("</resume>", "&lt;/resume&gt;")
     return (
         template
-        .replace("{resume_text}", resume_text[:16000])
+        .replace("{resume_text}", safe_resume)
         .replace("{target_role}", target_role)
     )
 
@@ -45,10 +48,10 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
 
     # strengths/weaknesses — truncate 후 2개 미만 시 에러
     def _require_str_list(key: str, min_count: int, max_count: int) -> list[str]:
-        raw = data.get(key, [])
-        if not isinstance(raw, list):
+        values = data.get(key, [])
+        if not isinstance(values, list):
             raise ResumeFeedbackParseError(f"{key}가 배열이 아닙니다")
-        items = [str(x) for x in raw if str(x).strip()][:max_count]
+        items = [str(x) for x in values if str(x).strip()][:max_count]
         if len(items) < min_count:
             raise ResumeFeedbackParseError(f"{key}는 최소 {min_count}개 필요합니다. 현재 {len(items)}개")
         return items

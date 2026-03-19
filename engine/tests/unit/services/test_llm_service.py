@@ -42,7 +42,7 @@ def test_generate_questions_unknown_category_raises_llm_error():
             generate_questions("이력서")
 
 def test_generate_questions_truncates_long_text():
-    long_text = "이력서 " * 10000  # 매우 긴 텍스트
+    long_text = "이력서 " * 10000  # 40,000자 — max_input_chars(16000) 초과
     captured = {}
 
     def capture_create(**kwargs):
@@ -56,8 +56,9 @@ def test_generate_questions_truncates_long_text():
     with patch("app.services.llm_client.OpenAI", return_value=fake):
         generate_questions(long_text, max_input_chars=16000)
 
-    # 프롬프트에 포함된 resume_text가 16000자 이하인지 확인
-    assert len(long_text) > 16000  # 실제 입력은 길다
+    assert len(long_text) > 16000
+    # 잘리지 않은 원본 텍스트가 프롬프트에 포함되지 않아야 한다
+    assert long_text[:16001] not in captured["content"]
 
 
 def test_generate_questions_with_target_role_injects_prompt():

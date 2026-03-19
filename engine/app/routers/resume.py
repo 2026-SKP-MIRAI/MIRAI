@@ -33,12 +33,14 @@ async def _validate_and_parse_pdf(request: Request, file: UploadFile | None, end
         raise ParseError("PDF 파일만 업로드 가능합니다.")
 
     content_length = request.headers.get("content-length")
-    try:
-        # +1024: multipart/form-data 경계(boundary) 헤더 오버헤드를 고려한 여유 마진
-        if content_length and int(content_length) > MAX_UPLOAD_BYTES + 1024:
+    if content_length:
+        try:
+            # +1024: multipart/form-data 경계(boundary) 헤더 오버헤드를 고려한 여유 마진
+            parsed_length = int(content_length)
+        except ValueError:
+            parsed_length = None
+        if parsed_length is not None and parsed_length > MAX_UPLOAD_BYTES + 1024:
             raise FileSizeError("파일 크기가 너무 큽니다. 5MB 이하의 파일을 업로드해 주세요.")
-    except ValueError:
-        pass
 
     file_bytes = await file.read()
     parsed = parse_pdf(file_bytes, filename=file.filename)

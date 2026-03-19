@@ -239,3 +239,41 @@ def test_generate_resume_feedback_null_score_value_raises_parse_error():
         from app.services.feedback_service import generate_resume_feedback
         with pytest.raises(ResumeFeedbackParseError):
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
+
+
+# ── 테스트 18-19: 프롬프트 내용 검증 ─────────────────────────────────────────
+# 테스트 1~17은 app.services.llm_client.OpenAI를 패치해 LLM 응답 내용을 제어한다.
+# 테스트 18~19는 프롬프트 내용 자체를 캡처해야 하므로 call_llm을 직접 패치한다.
+# (feedback_service는 from app.services.llm_client import call_llm으로 바인딩하므로
+#  app.services.feedback_service.call_llm 경로가 올바른 패치 타깃이다.)
+
+def test_generate_resume_feedback_none_target_role_uses_default_label():
+    """target_role=None 시 프롬프트에 '미지정 직무'가 포함되는지 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", None)
+
+    assert "미지정 직무" in captured_prompt["value"]
+
+
+# ── 테스트 19 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_empty_target_role_uses_default_label():
+    """target_role="" 시 프롬프트에 '미지정 직무'가 포함되는지 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return _feedback_json()
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", "")
+
+    assert "미지정 직무" in captured_prompt["value"]

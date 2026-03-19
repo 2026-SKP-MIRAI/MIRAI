@@ -45,7 +45,7 @@ def test_extract_target_role_api_error():
 
 
 def test_extract_target_role_truncates_long_text():
-    long_text = "자소서 " * 10000
+    long_text = "자소서 " * 10000  # 40,000자 — max_input_chars(16000) 초과
     captured = {}
 
     def fake_call_llm(prompt, **kwargs):
@@ -56,4 +56,16 @@ def test_extract_target_role_truncates_long_text():
         extract_target_role(long_text, max_input_chars=16000)
 
     assert len(long_text) > 16000
+    # 프롬프트 전체 길이가 원본보다 짧고, 잘리지 않은 원본 텍스트가 포함되지 않아야 한다
     assert len(captured["prompt"]) < len(long_text)
+    assert long_text[:16001] not in captured["prompt"]  # 16001자 이상 삽입되지 않음
+
+
+def test_extract_target_role_truncates_output_to_100():
+    """LLM이 100자 초과 targetRole을 반환해도 100자로 잘린다."""
+    long_role = "개발자" * 40  # 120자
+    with patch("app.services.role_service.call_llm",
+               return_value=f'{{"targetRole": "{long_role}"}}'):
+        result = extract_target_role("자소서 내용입니다.")
+    assert len(result) == 100
+    assert result == long_role[:100]

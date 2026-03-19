@@ -14,7 +14,9 @@ def extract_target_role(
 ) -> str:
     if not resume_text or not resume_text.strip():
         raise LLMError("resume_text가 비어 있습니다.")
-    truncated = resume_text[:max_input_chars]
+    # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
+    # 현재는 사용자 입력의 </resume> 태그를 HTML 엔티티로 치환해 XML 경계 탈출을 방지한다.
+    truncated = resume_text[:max_input_chars].replace("</resume>", "&lt;/resume&gt;")
     prompt = PROMPT_FILE.read_text(encoding="utf-8").replace("{resume_text}", truncated)
     raw = call_llm(
         prompt,

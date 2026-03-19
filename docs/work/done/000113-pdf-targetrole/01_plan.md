@@ -27,6 +27,9 @@
 | `engine/tests/unit/services/test_llm_service.py` | mock 경로 → `app.services.llm_client.OpenAI` |
 | `engine/tests/integration/test_resume_questions_route.py` | mock 경로 → `app.services.llm_client.OpenAI` |
 | `engine/tests/integration/test_resume_feedback_router.py` | targetRole optional 테스트 추가, 중복 테스트 제거 |
+| `engine/app/schemas.py QuestionsRequest` | `targetRole: str \| None = Field(None, max_length=100)` 추가 — 직무 맞춤 질문 생성 지원 |
+| `engine/tests/integration/test_resume_questions_route.py` | `test_200_with_target_role`, `test_400_target_role_too_long` 추가. mock 경로 수정 |
+| `engine/tests/unit/services/test_llm_service.py` | `generate_questions` target_role 주입 테스트 2개 추가 |
 | `engine/.ai.md` | `/analyze`, `/target-role` 계약 추가, `/feedback` 입력 업데이트, timeout 주의 추가 |
 | `engine/app/services/.ai.md` | `role_service.py` 항목 추가 |
 | `engine/app/prompts/.ai.md` | `target_role_v1.md` 항목 추가 |
@@ -39,7 +42,6 @@
 | `output_parser.py` | 변경 없음 |
 | `question_generation_v1.md` | 변경 없음 |
 | `pdf_parser.py` | 파싱 로직 변경 없음 |
-| `schemas.py QuestionsRequest` | `/questions` 범위 외 — targetRole 파라미터 미추가 |
 
 ---
 
@@ -212,7 +214,7 @@ async def _validate_and_parse_pdf(request, file, endpoint) -> ParsedResume:
 ### 하위 호환성
 
 - 기존 `/parse` → 변경 없음
-- `/questions` → targetRole 파라미터 미추가 (범위 외)
+- `/questions` → targetRole optional 추가 (breaking change 없음 — 미입력 시 기존 동작 유지)
 - `/feedback` → targetRole optional로 변경 (breaking change 없음, 기존 필수값도 동작)
 - 기존 서비스 (siw/seung/lww/kwan) breaking change 없음
 

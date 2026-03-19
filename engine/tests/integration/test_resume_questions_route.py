@@ -117,11 +117,25 @@ async def test_200_with_target_role():
 
 
 @pytest.mark.asyncio
+async def test_200_with_empty_target_role():
+    """targetRole="" 전달 시 None과 동일하게 처리 — 200 반환"""
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm_success()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post(
+                "/api/resume/questions",
+                json={"resumeText": SAMPLE_RESUME_TEXT, "targetRole": ""},
+            )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "questions" in data
+
+
+@pytest.mark.asyncio
 async def test_400_target_role_too_long():
     """targetRole 101자 초과 → 400"""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         resp = await ac.post(
             "/api/resume/questions",
-            json={"resumeText": SAMPLE_RESUME_TEXT, "targetRole": "직무" * 51},
+            json={"resumeText": SAMPLE_RESUME_TEXT, "targetRole": "a" * 101},
         )
     assert resp.status_code == 400

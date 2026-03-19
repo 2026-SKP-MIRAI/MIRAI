@@ -9,8 +9,8 @@
 ## 최종 결과
 
 ```
-142 passed, 0 failed, 0 errors
-실행 시간: 4.17s
+148 passed, 0 failed, 0 errors
+실행 시간: 3.29s
 ```
 
 ---
@@ -19,7 +19,7 @@
 
 ### 단위 테스트
 
-#### `tests/unit/services/test_role_service.py` (8개)
+#### `tests/unit/services/test_role_service.py` (9개)
 
 | # | 테스트명 | 검증 내용 | 결과 |
 |---|---------|---------|------|
@@ -30,9 +30,17 @@
 | 5 | `test_extract_target_role_raises_when_resume_text_is_empty` | 빈 문자열 → LLMError | PASS |
 | 6 | `test_extract_target_role_raises_when_resume_text_is_whitespace` | 공백 문자열 → LLMError | PASS |
 | 7 | `test_extract_target_role_api_error` | LLM API 오류 → LLMError 전파 | PASS |
-| 8 | `test_extract_target_role_truncates_long_text` | 16,000자 초과 입력 → 프롬프트 길이 축소 | PASS |
+| 8 | `test_extract_target_role_truncates_long_text` | 16,000자 초과 입력 → 프롬프트에 16,001자 이상 미삽입 | PASS |
+| 9 | `test_extract_target_role_truncates_output_to_100` | LLM이 120자 반환 → 100자로 트런케이션 | PASS |
 
-#### `tests/unit/services/test_llm_service.py` — 추가 2개
+#### `tests/unit/services/test_feedback_service.py` — 추가 2개 (총 19개)
+
+| # | 테스트명 | 검증 내용 | 결과 |
+|---|---------|---------|------|
+| 18 | `test_generate_resume_feedback_none_target_role_uses_default_label` | target_role=None → 프롬프트에 "미지정 직무" 포함 | PASS |
+| 19 | `test_generate_resume_feedback_empty_target_role_uses_default_label` | target_role="" → 프롬프트에 "미지정 직무" 포함 | PASS |
+
+#### `tests/unit/services/test_llm_service.py` — 추가 2개 (총 7개)
 
 | # | 테스트명 | 검증 내용 | 결과 |
 |---|---------|---------|------|
@@ -70,12 +78,20 @@
 | - | `test_resume_feedback_200_missing_target_role` | targetRole 미입력 → 200 (optional) | 200 | PASS |
 | - | `test_resume_feedback_200_empty_target_role` | targetRole="" → 200 ("미지정 직무") | 200 | PASS |
 
-#### `tests/integration/test_resume_questions_route.py` — 추가 2개
+#### `tests/integration/test_resume_questions_route.py` — 추가 3개 (총 10개)
 
 | # | 테스트명 | HTTP | 결과 |
 |---|---------|------|------|
 | 8 | `test_200_with_target_role` | 200, targetRole 전달 시 정상 응답 | PASS |
-| 9 | `test_400_target_role_too_long` | 400, targetRole 101자 초과 | PASS |
+| 9 | `test_200_with_empty_target_role` | 200, targetRole="" → None과 동일 처리 | PASS |
+| 10 | `test_400_target_role_too_long` | 400, targetRole 101자("a"×101) | PASS |
+
+#### `tests/integration/test_resume_target_role_route.py` — 추가 2개 (총 7개)
+
+| # | 테스트명 | HTTP | 결과 |
+|---|---------|------|------|
+| 6 | `test_400_resume_text_too_long` | 400, resumeText 50,001자 | PASS |
+| 7 | `test_200_resume_text_max_length` | 200, resumeText 정확히 50,000자 (경계값) | PASS |
 
 ---
 
@@ -87,17 +103,17 @@
 | `test_resume_analyze_route.py` | 7 | 7 |
 | `test_resume_feedback_router.py` | 9 | 9 |
 | `test_resume_parse_route.py` | 11 | 11 |
-| `test_resume_questions_route.py` | 9 | 9 |
-| `test_resume_target_role_route.py` | 5 | 5 |
+| `test_resume_questions_route.py` | 10 | 10 |
+| `test_resume_target_role_route.py` | 7 | 7 |
 | `test_pdf_parser.py` | 14 | 14 |
-| `test_feedback_service.py` | 17 | 17 |
+| `test_feedback_service.py` | 19 | 19 |
 | `test_interview_service.py` | 16 | 16 |
 | `test_llm_client.py` | 3 | 3 |
 | `test_llm_service.py` | 7 | 7 |
 | `test_output_parser.py` | 11 | 11 |
 | `test_practice_service.py` | 13 | 13 |
-| `test_role_service.py` | 8 | 8 |
-| **합계** | **142** | **142** |
+| `test_role_service.py` | 9 | 9 |
+| **합계** | **148** | **148** |
 
 > **제외 파일** (fixture 파일 부재 — 브랜치 환경 이슈, #113 범위 외):
 > - `test_practice_router.py` — `mock_practice_feedback_single.json` 없음
@@ -113,6 +129,8 @@
 | 1차 (구현 직후) | 0 | 6 | 6 | 4 |
 | 2차 (이슈 수정 후) | 0 | 2 | 0 | 0 |
 | 3차 (/questions targetRole 추가 후) | 0 | 0 | 0 | 0 |
+| 4차 (코드리뷰 반영 — escape/scope/tests) | 0 | 0 | 0 | 0 |
+| 5차 (MEDIUM/LOW 전수 수정 — llm_client None, 경계값 테스트, .ai.md) | 0 | 0 | 0 | 0 |
 
 > 모든 IMPORTANT/MEDIUM/LOW 항목 수정 완료. 최종 CRITICAL 0개.
 
