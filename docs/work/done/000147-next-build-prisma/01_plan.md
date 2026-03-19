@@ -32,8 +32,8 @@
 **Options**
 | 옵션 | 선택 이유 |
 |------|-----------|
-| `Record<string, unknown>` ✅ | 이슈 명세 일치, 가드 통과 후 타입 정확, node_modules 미설치 환경에서 즉시 확인 가능 |
-| `Prisma.InputJsonObject` | Prisma v6 native 타입이나 node_modules 없어 존재 확인 불가, 추후 필요 시 전환 |
+| `Prisma.InputJsonValue` ✅ | Prisma v6 네이티브 타입, `prisma generate` 후 `Record<string, unknown>` 불호환 확인 → 전환 |
+| `Record<string, unknown>` | 이슈 명세 초안이었으나 Prisma Json write 타입과 구조적 불호환으로 제외 |
 
 ---
 
@@ -46,19 +46,19 @@
 data: { diagnosisResult: data as Prisma.JsonObject }
 
 // After
-data: { diagnosisResult: data as Record<string, unknown> }
+data: { diagnosisResult: data as Prisma.InputJsonValue }
 ```
 
-근거: line 81 가드(`typeof data !== 'object' || data === null || Array.isArray(data)`)를 통과한 후이므로 `Record<string, unknown>` 캐스팅은 타입적으로 정확.
+근거: line 81 가드 통과 후 `data`는 non-null object임이 보장됨. `Prisma.InputJsonValue`는 Prisma v6에서 Json 필드 write 타입으로 `Record<string, unknown>` 대비 구조적으로 호환됨.
 
-**Step 2 — 불필요 import 제거** (`route.ts:2`)
+**Step 2 — import 유지** (`route.ts:2`)
 
 ```ts
-// 삭제
+// 유지 (InputJsonValue 사용)
 import { Prisma } from '@prisma/client'
 ```
 
-근거: 파일 내 `Prisma.` 사용처가 line 89 하나뿐. Step 1 수정 후 완전히 불필요.
+근거: `Prisma.InputJsonValue` 사용으로 import 필요.
 
 **Step 3 — 빌드 검증**
 
@@ -72,7 +72,7 @@ cd services/seung && npx next build
 npx vitest run
 ```
 
-기존 92개 테스트 전부 PASS 확인.
+기존 94개 테스트 전부 PASS 확인.
 
 ---
 
