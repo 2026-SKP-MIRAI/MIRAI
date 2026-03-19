@@ -81,12 +81,13 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
 
 
 def generate_resume_feedback(
-    resumeText: str,
-    targetRole: str,
+    resume_text: str,
+    target_role: str | None = None,
     *,
     model: str | None = None,
 ) -> ResumeFeedbackResponse:
-    prompt = _build_prompt(resumeText, targetRole)
+    role_label = target_role.strip() if target_role and target_role.strip() else "미지정 직무"
+    prompt = _build_prompt(resume_text, role_label)
     raw = call_llm(
         prompt,
         model=model,

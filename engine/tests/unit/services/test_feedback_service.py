@@ -148,7 +148,7 @@ def test_generate_resume_feedback_empty_strengths_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 16 ─────────────────────────────────────────────────────────────────
+# ── 테스트 11 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_empty_weaknesses_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -159,7 +159,7 @@ def test_generate_resume_feedback_empty_weaknesses_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 17 ─────────────────────────────────────────────────────────────────
+# ── 테스트 12 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_empty_suggestions_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -170,7 +170,7 @@ def test_generate_resume_feedback_empty_suggestions_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 11 ─────────────────────────────────────────────────────────────────
+# ── 테스트 13 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_llm_error_raises_llm_error():
     from app.parsers.exceptions import LLMError
@@ -182,7 +182,7 @@ def test_generate_resume_feedback_llm_error_raises_llm_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 12 ─────────────────────────────────────────────────────────────────
+# ── 테스트 14 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_invalid_json_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -192,7 +192,7 @@ def test_generate_resume_feedback_invalid_json_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 13 ─────────────────────────────────────────────────────────────────
+# ── 테스트 15 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_missing_scores_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -207,7 +207,7 @@ def test_generate_resume_feedback_missing_scores_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 14 ─────────────────────────────────────────────────────────────────
+# ── 테스트 16 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_partial_scores_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError
@@ -224,7 +224,7 @@ def test_generate_resume_feedback_partial_scores_raises_parse_error():
             generate_resume_feedback("자소서 내용", "백엔드 개발자")
 
 
-# ── 테스트 15 ─────────────────────────────────────────────────────────────────
+# ── 테스트 17 ─────────────────────────────────────────────────────────────────
 
 def test_generate_resume_feedback_null_score_value_raises_parse_error():
     from app.parsers.exceptions import ResumeFeedbackParseError

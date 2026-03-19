@@ -19,6 +19,8 @@ class QuestionsRequest(BaseModel):
     # max_length=50_000: 5MB PDF 기준 최대 ~16K자이나 여유 있게 설정
     # 내부적으로 llm_service가 16,000자로 잘라 LLM에 전달 (묵시적 잘림)
     resumeText: str = Field(..., min_length=1, max_length=50_000)
+    targetRole: str | None = Field(None, max_length=100,
+                                   description="사용자 확정 직무. 미입력 시 resume 내용 기반으로 질문 생성")
 
 
 class QuestionItem(BaseModel):
@@ -172,7 +174,7 @@ class SuggestionItem(BaseModel):
 
 class ResumeFeedbackRequest(BaseModel):
     resumeText: str = Field(..., min_length=1)
-    targetRole: str = Field(..., min_length=1)
+    targetRole: str | None = Field(None, description="지원 직무. 미입력 시 '미지정 직무'로 처리")
 
 
 class ResumeFeedbackResponse(BaseModel):
@@ -180,3 +182,19 @@ class ResumeFeedbackResponse(BaseModel):
     strengths:   list[str] = Field(..., min_length=2, max_length=3)
     weaknesses:  list[str] = Field(..., min_length=2, max_length=3)
     suggestions: list[SuggestionItem] = Field(..., min_length=1)
+
+
+# --- targetRole 추출 ---
+
+class TargetRoleRequest(BaseModel):
+    resumeText: str = Field(..., min_length=1, max_length=50_000)
+
+
+class TargetRoleResponse(BaseModel):
+    targetRole: str = Field(..., max_length=100)
+
+
+class AnalyzeResponse(BaseModel):
+    resumeText: str
+    extractedLength: int
+    targetRole: str = Field(..., max_length=100)

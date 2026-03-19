@@ -72,10 +72,12 @@ async def test_resume_feedback_400_missing_resume_text():
 
 
 @pytest.mark.asyncio
-async def test_resume_feedback_400_missing_target_role():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        resp = await ac.post("/api/resume/feedback", json={"resumeText": "자소서 내용"})
-    assert resp.status_code == 400
+async def test_resume_feedback_200_missing_target_role():
+    """targetRole 미입력 시 200 — optional로 변경됨 (#113)"""
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(MOCK_FEEDBACK)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/resume/feedback", json={"resumeText": "자소서 내용"})
+    assert resp.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -88,12 +90,14 @@ async def test_resume_feedback_400_empty_resume_text():
 
 
 @pytest.mark.asyncio
-async def test_resume_feedback_400_empty_target_role():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        resp = await ac.post("/api/resume/feedback", json={
-            "resumeText": "자소서 내용", "targetRole": "",
-        })
-    assert resp.status_code == 400
+async def test_resume_feedback_200_empty_target_role():
+    """targetRole='' 시 200 — 미지정 직무로 처리 (#113)"""
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(MOCK_FEEDBACK)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/resume/feedback", json={
+                "resumeText": "자소서 내용", "targetRole": "",
+            })
+    assert resp.status_code == 200
 
 
 # ── 500 테스트 ────────────────────────────────────────────────────────────────
@@ -137,3 +141,5 @@ async def test_resume_feedback_500_empty_suggestions_raises_error():
                 "resumeText": "자소서 내용", "targetRole": "백엔드 개발자",
             })
     assert resp.status_code == 500
+
+
