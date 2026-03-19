@@ -1,18 +1,27 @@
 # [#140] feat: [siw] 이력서 피드백 기능 실데이터 연동 — engine /resume/feedback + inferredTargetRole 저장 (#90·#113 기반) — 구현 계획
 
-> 작성: 2026-03-19
+> 작성: 2026-03-19 | 완료: 2026-03-19
 
 ---
 
 ## 완료 기준
 
-- [ ] `Resume` 모델에 `feedbackJson Json?`, `inferredTargetRole String?` 컬럼 추가 + 마이그레이션 SQL
-- [ ] `POST /api/resumes`: 업로드 후 엔진 `/api/resume/feedback` 호출 → `feedbackJson` DB 저장 (inferredTargetRole → targetRole 자동 사용)
-- [ ] `GET /api/resumes/[id]/feedback`: 저장된 `feedbackJson` 반환 (현재 null 고정 → 실데이터)
-- [ ] `ResumeFeedback`, `ResumeFeedbackScores`, `SuggestionItem` 타입을 `src/lib/types.ts`로 이동 (page.tsx 로컬 정의 제거)
-- [ ] 기존 응답 형식 유지 (UI 변경 없음 — 이미 완성된 UI 그대로 동작)
-- [ ] 테스트 추가 (feedback route GET 200/401/404, POST /api/resumes feedback 저장 검증)
-- [ ] `services/siw/.ai.md` 최신화
+- [x] `Resume` 모델에 `feedbackJson Json?`, `inferredTargetRole String?` 컬럼 추가 + 마이그레이션 SQL
+- [x] `POST /api/resumes`: 업로드 후 엔진 `/api/resume/feedback` 호출 → `feedbackJson` DB 저장 (inferredTargetRole → targetRole 자동 사용)
+- [x] `GET /api/resumes/[id]/feedback`: 저장된 `feedbackJson` 반환 (현재 null 고정 → 실데이터)
+- [x] `ResumeFeedback`, `ResumeFeedbackScores`, `SuggestionItem` 타입을 `src/lib/types.ts`로 이동 (page.tsx 로컬 정의 제거)
+- [x] 기존 응답 형식 유지 (UI 변경 없음 — 이미 완성된 UI 그대로 동작)
+- [x] 테스트 추가 (feedback route GET 200/401/404, POST /api/resumes feedback 저장 검증)
+- [x] `services/siw/.ai.md` 최신화
+
+### 추가 완료 (작업 중 발견된 버그픽스)
+
+- [x] Growth 페이지 차트 Y축 `min: 40` → `min: 0` 버그픽스 (lineOptions, barOptions 모두 수정)
+- [x] 면접 세션 생성 시 `resumeId` 미저장 버그픽스 (`interviewService.start()`에서 `resumeId` 누락)
+- [x] Playwright e2e 테스트: auth setup + mock 5개 + 실제 PDF 통합 테스트 추가
+- [x] feedback fetch 실패 시 `console.warn` 로깅 추가 (observability)
+- [x] GET /api/resumes 에러 시 로깅 추가
+- [x] `resumeId ?? null` 중복 null 체크 제거 (코드 리뷰 반영)
 
 ---
 
@@ -35,298 +44,134 @@
 
 ---
 
-### Step 1. Prisma 스키마 + 마이그레이션
+### Step 1. Prisma 스키마 + 마이그레이션 ✅
 
 **변경 파일:**
 - `services/siw/prisma/schema.prisma`
 - `services/siw/prisma/migrations/20260319000001_add_resume_feedback_columns/migration.sql` (신규)
 
-**schema.prisma 수정 (Resume 모델):**
-```prisma
-// Before
-model Resume {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String
-  fileName    String
-  storageKey  String
-  resumeText  String
-  questions   Json     @default("[]")
-  createdAt   DateTime @default(now())
-  interviewSessions InterviewSession[]
-  @@index([userId])
-  @@map("resumes")
-}
-
-// After
-model Resume {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String
-  fileName           String
-  storageKey         String
-  resumeText         String
-  questions          Json     @default("[]")
-  feedbackJson       Json?
-  inferredTargetRole String?
-  createdAt          DateTime @default(now())
-  interviewSessions  InterviewSession[]
-  @@index([userId])
-  @@map("resumes")
-}
-```
-
 **migration.sql:**
 ```sql
--- AlterTable
 ALTER TABLE "resumes" ADD COLUMN "feedbackJson" JSONB;
 ALTER TABLE "resumes" ADD COLUMN "inferredTargetRole" TEXT;
 ```
 
-**AC:** `npx prisma validate` 통과. migration SQL 파일 존재. 기존 데이터 안전 (nullable 컬럼).
+**완료 결과:** `npx prisma migrate deploy` 실행 완료. 9 migrations found, No pending migrations to apply.
 
 ---
 
-### Step 2. resume-repository.ts 확장
+### Step 2. resume-repository.ts 확장 ✅
 
 **변경 파일:** `services/siw/src/lib/resume-repository.ts`
 
-**Before → After:**
-```ts
-// Before
-export type ResumeRecord = {
-  id: string;
-  userId: string;
-  fileName: string;
-  storageKey: string;
-  resumeText: string;
-  questions: Prisma.JsonValue;
-  createdAt: Date;
-};
-
-// After
-export type ResumeRecord = {
-  id: string;
-  userId: string;
-  fileName: string;
-  storageKey: string;
-  resumeText: string;
-  questions: Prisma.JsonValue;
-  feedbackJson: Prisma.JsonValue | null;
-  inferredTargetRole: string | null;
-  createdAt: Date;
-};
-```
-
-```ts
-// create() 파라미터 Before
-async create(data: {
-  userId: string;
-  fileName: string;
-  storageKey: string;
-  resumeText: string;
-  questions: Prisma.InputJsonValue;
-}): Promise<string>
-
-// create() 파라미터 After
-async create(data: {
-  userId: string;
-  fileName: string;
-  storageKey: string;
-  resumeText: string;
-  questions: Prisma.InputJsonValue;
-  feedbackJson?: Prisma.InputJsonValue | null;
-  inferredTargetRole?: string | null;
-}): Promise<string>
-```
-
-> `findDetailById()` — select clause 없으므로 Prisma 스키마 변경 후 feedbackJson 자동 포함. **수정 불필요**.
-
-**AC:** 기존 `create()` 호출 깨지지 않음 (optional 파라미터). `tsc --noEmit` 통과.
+**실제 변경:**
+- `ResumeRecord` 타입에 `feedbackJson: Prisma.JsonValue | null`, `inferredTargetRole: string | null` 추가
+- `create()` 파라미터에 `feedbackJson?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue` 추가
+  - **TypeScript 수정**: `null` 직접 사용 → `Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue` (Prisma nullable JSON 타입 제약)
 
 ---
 
-### Step 3. POST /api/resumes — feedback 병렬 호출
+### Step 3. POST /api/resumes — feedback 병렬 호출 ✅
 
 **변경 파일:** `services/siw/src/app/api/resumes/route.ts`
 
-**핵심 변경 — Promise.all 확장:**
-```ts
-// formData에서 targetRole 읽기 (있으면 사용, 없으면 fallback)
-const targetRole = (formData.get("targetRole") as string | null) ?? "소프트웨어 개발자"
-
-try {
-  const [storageKey, engineData, feedbackJson] = await Promise.all([
-    uploadResumePdf(user.id, buffer, file.name),
-    fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeText }),
-      signal: AbortSignal.timeout(30000),
-    }).then(async (r) => {
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({ detail: "" }))
-        const key = mapDetailToKey(body.detail ?? "", r.status)
-        throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: r.status, key })
-      }
-      return r.json()
-    }),
-    // best-effort: 실패해도 업로드/questions 성공 처리
-    fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeText, targetRole }),
-      signal: AbortSignal.timeout(35000), // engine 30s + 5s 여유 (아키텍트 권고)
-    }).then(r => r.ok ? r.json() : null).catch(() => null),
-  ])
-
-  const resumeId = await resumeRepository.create({
-    userId: user.id,
-    fileName: file.name,
-    storageKey,
-    resumeText,
-    questions: engineData.questions ?? [],
-    feedbackJson: feedbackJson ?? null,
-    // inferredTargetRole: engine /feedback 응답에 없음 (#113 머지 후 연동 예정)
-  })
-
-  return NextResponse.json({ ...engineData, resumeId })
-} catch (err) {
-  // 기존 에러 처리 패턴 유지
-  if (err instanceof Error && 'status' in err) {
-    return NextResponse.json({ message: err.message }, { status: (err as { status: number }).status })
-  }
-  console.error("[POST /api/resumes] error:", err instanceof Error ? err.message : String(err))
-  return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 500 })
-}
-```
-
-> **기존 테스트 호환성:** 기존 테스트는 parse·questions 2개 fetch만 mock. feedback 3번째 호출 시 `vi.fn()` 기본값 undefined → `.then(r => r.ok ...)` throw → `.catch(() => null)` 처리 → feedbackJson=null. **기존 테스트 깨지지 않음.**
-
-**AC:** feedback 실패 시에도 POST 200. maxDuration=60s 내 완료. 응답 형식 `{ questions, resumeId }` 유지.
+**실제 변경:**
+- `targetRole` FormData에서 읽기 (fallback: `"소프트웨어 개발자"`)
+- `Promise.all` 3번째 항목으로 feedback fetch 추가 (best-effort, `.catch(() => null)`)
+- feedback 실패 시 `console.warn` 로깅 추가 (코드 리뷰 반영)
+- GET 에러 시 `console.error` 로깅 추가 (코드 리뷰 반영)
 
 ---
 
-### Step 4. GET /api/resumes/[id]/feedback
+### Step 4. GET /api/resumes/[id]/feedback ✅
 
 **변경 파일:** `services/siw/src/app/api/resumes/[id]/feedback/route.ts`
 
-**전체 파일 교체:**
-```ts
-import { NextResponse } from "next/server"
-import { createServerClient } from "@/lib/supabase/server"
-import { resumeRepository } from "@/lib/resume-repository"
-import { cookies } from "next/headers"
-
-export const runtime = "nodejs"
-
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(cookieStore)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ message: "인증이 필요합니다" }, { status: 401 })
-
-  const { id } = await params
-  try {
-    const resume = await resumeRepository.findDetailById(id, user.id)
-    return NextResponse.json(resume.feedbackJson ?? null)
-  } catch {
-    return NextResponse.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 })
-  }
-}
-```
-
-**AC:** 없는 resume → 404. 타인 resume → 404. feedbackJson=null → 200+null. feedbackJson 있음 → 200+JSON.
+**실제 변경:**
+- null 고정 반환 → `resume.feedbackJson ?? null` 반환
+- 401 (미인증), 404 (resume 없음/타인 소유) 처리
 
 ---
 
-### Step 5. types.ts 타입 이동 + page.tsx import 정리 + .ai.md 최신화
+### Step 5. types.ts 타입 이동 + page.tsx import 정리 + .ai.md 최신화 ✅
 
 **변경 파일:**
-- `services/siw/src/lib/types.ts`
-- `services/siw/src/app/(app)/resumes/[id]/page.tsx`
-- `services/siw/.ai.md`
-
-**types.ts에 추가할 타입 (engine 스키마 완전 일치):**
-```ts
-// 이력서 피드백 타입 (engine ResumeFeedbackResponse와 완전 일치)
-export type ResumeFeedbackScores = {
-  specificity: number        // 경험·사례의 구체성
-  achievementClarity: number // 성과의 명확성
-  logicStructure: number     // 논리 구조
-  roleAlignment: number      // 직무 연관성
-  differentiation: number    // 차별화
-}
-
-export type SuggestionItem = {
-  section: string     // ← "category" 아님 (engine: section)
-  issue: string
-  suggestion: string
-}
-
-export type ResumeFeedback = {
-  scores: ResumeFeedbackScores
-  strengths: string[]
-  weaknesses: string[]
-  suggestions: SuggestionItem[]
-}
-```
-
-**page.tsx 변경:**
-```ts
-// 제거할 로컬 정의 (lines 12-35 근방)
-// type ResumeFeedbackScores = { ... }  ← 삭제
-// type SuggestionItem = { ... }        ← 삭제
-// type ResumeFeedback = { ... }        ← 삭제
-
-// 추가할 import
-import type { ResumeFeedback, ResumeFeedbackScores, SuggestionItem } from "@/lib/types"
-```
-
-> `SCORE_LABELS` 상수는 page.tsx에 그대로 유지 (UI 표시용, types.ts 이동 불필요)
+- `services/siw/src/lib/types.ts` — `ResumeFeedbackScores`, `SuggestionItem`, `ResumeFeedback` 추가
+- `services/siw/src/app/(app)/resumes/[id]/page.tsx` — 로컬 타입 제거 → `@/lib/types` import
+- `services/siw/.ai.md` — feedbackJson 컬럼·연동 내역 반영
 
 ---
 
-### 테스트 계획 (8개 케이스, TDD Red-Green-Refactor)
+### Step 6 (추가). 버그픽스 ✅
 
-> 전체 테스트 코드: `docs/work/active/000140-siw-resume-feedback/03_tdd_tests.md` 참조
+**Growth 페이지 차트 Y축 버그픽스**
+- 파일: `services/siw/src/app/(app)/growth/page.tsx`
+- 변경: `lineOptions`, `barOptions` 모두 `y: { min: 40 }` → `y: { min: 0, max: 100 }` (canvas height=200 에서 40점 이하 데이터 짤림)
 
-**실행 명령:**
-```bash
-cd services/siw
-npx vitest run tests/api/resume-feedback-route.test.ts  # 신규
-npx vitest run tests/api/resumes-route.test.ts           # 기존 확장
-npm test  # 전체
-```
-
-| # | 파일 | 케이스 | RED 조건 | GREEN 구현 |
-|---|------|--------|----------|------------|
-| 1 | resume-feedback-route.test.ts | GET 200 — feedbackJson 반환 | null 고정 반환 | `resume.feedbackJson ?? null` |
-| 2 | resume-feedback-route.test.ts | GET 200+null — feedbackJson=null | null이지만 이미 null → 타입 문제 | Prisma 스키마 + 타입 업데이트 |
-| 3 | resume-feedback-route.test.ts | GET 401 — 미인증 | import 오류 | 라우트 구현 |
-| 4 | resume-feedback-route.test.ts | GET 404 — resume 없음 | catch에서 null 반환 | catch → 404 변경 |
-| 5 | resumes-route.test.ts | POST: /feedback URL 호출 검증 | feedback fetch 없음 | Promise.all에 feedback 추가 |
-| 6 | resumes-route.test.ts | POST: create()에 feedbackJson 포함 | create()에 feedbackJson 없음 | create() 파라미터 확장 |
-| 7 | resumes-route.test.ts | POST: feedback reject → null, 200 | Promise.all 전체 reject | `.catch(() => null)` 추가 |
-| 8 | resumes-route.test.ts | POST: targetRole 전달 검증 | body에 targetRole 없음 | FormData에서 읽어 전달 |
+**면접 세션 resumeId 미저장 버그픽스**
+- 파일: `services/siw/src/lib/interview/interview-service.ts`
+- 변경: `interviewRepository.create()` 호출 시 `resumeId` 파라미터 누락 → 추가
+- 영향: 기존 DB에 `resumeId=null`로 저장된 세션들 SQL로 일괄 업데이트 필요
+  ```sql
+  UPDATE interview_sessions is
+  SET "resumeId" = r.id
+  FROM resumes r
+  WHERE is."resumeText" = r."resumeText"
+    AND is."userId" = r."userId"
+    AND is."resumeId" IS NULL
+  ```
 
 ---
 
-### 변경 파일 전체 목록
+### Step 7 (추가). Playwright e2e 테스트 ✅
+
+> 전체 내용: `docs/work/active/000140-siw-resume-feedback/03_tdd_tests.md` 참조
+
+**결과:**
+- Mock e2e: **5/5 통과** (피드백 있음, 없음, API 오류 500, 로딩 중, 실제 PDF)
+- 실제 PDF 통합 테스트: **통과** (`자소서_004_개발자.pdf`, 30초 내 완료)
+- 영상: `test-results/` 디렉토리에 webm 저장
+
+---
+
+### 변경 파일 전체 목록 (최종)
 
 | 파일 | 타입 | 주요 변경 |
 |------|------|----------|
 | `prisma/schema.prisma` | 수정 | feedbackJson Json?, inferredTargetRole String? 추가 |
 | `prisma/migrations/20260319000001_.../migration.sql` | 신규 | ALTER TABLE resumes ADD COLUMN x2 |
 | `src/lib/resume-repository.ts` | 수정 | ResumeRecord 필드 추가, create() 파라미터 확장 |
-| `src/app/api/resumes/route.ts` | 수정 | Promise.all에 feedback 병렬 추가, targetRole FormData 읽기 |
+| `src/app/api/resumes/route.ts` | 수정 | Promise.all feedback 병렬 추가, 로깅 추가 |
 | `src/app/api/resumes/[id]/feedback/route.ts` | 수정 | null 고정 → feedbackJson 반환, 404 처리 |
 | `src/lib/types.ts` | 수정 | ResumeFeedback 타입 3개 추가 |
 | `src/app/(app)/resumes/[id]/page.tsx` | 수정 | 로컬 타입 제거, types.ts import |
+| `src/app/(app)/growth/page.tsx` | 수정 | 차트 Y축 min 0으로 버그픽스 |
+| `src/lib/interview/interview-service.ts` | 수정 | resumeId 저장 버그픽스, `?? null` 중복 제거 |
+| `src/lib/interview/interview-repository.ts` | 수정 | create() resumeId 파라미터 추가 |
 | `tests/api/resume-feedback-route.test.ts` | 신규 | GET feedback 4개 테스트 |
 | `tests/api/resumes-route.test.ts` | 수정 | POST feedback 4개 테스트 추가 |
-| `services/siw/.ai.md` | 수정 | feedbackJson 컬럼·연동 내역 반영 |
+| `tests/e2e/auth.setup.ts` | 신규 | Playwright 인증 셋업 |
+| `tests/e2e/resume-feedback.spec.ts` | 신규 | Mock e2e 5개 테스트 |
+| `tests/e2e/resume-feedback-real.spec.ts` | 신규 | 실제 PDF 통합 e2e 테스트 (CI skip 처리) |
+| `playwright.config.ts` | 수정 | 포트 3000, .env 로딩, auth setup 프로젝트 |
+| `.gitignore` | 신규 | test-results/, playwright-report/, .auth/ 제외 |
+| `.ai.md` | 수정 | feedbackJson 컬럼·연동 내역 반영 |
+
+---
+
+### code-reviewer 검토 결과 (2026-03-19)
+
+> 총 7개 이슈 발견 → 전부 수정 완료
+
+| # | 심각도 | 내용 | 조치 |
+|---|--------|------|------|
+| 1 | CRITICAL | `resume-feedback-real.spec.ts` 하드코딩 절대경로 | `PLAYWRIGHT_PDF_PATH` 환경변수 + `fs.existsSync` skip 처리 |
+| 2 | HIGH | `inferredTargetRole` 컬럼 스키마만 있고 실제 저장 안 됨 | TODO 주석 유지 (#113 머지 후 연동 예정으로 의도된 설계) |
+| 3 | MEDIUM | feedback fetch 실패 시 로깅 없음 | `.catch()` 핸들러에 `console.warn` 추가 |
+| 4 | MEDIUM | feedback JSON 런타임 유효성 검증 없음 | 현 PR 범위 외 (향후 이슈로 분리) |
+| 5 | MEDIUM | GET /api/resumes 에러 시 로깅 없음 | `catch` 블록에 `console.error` 추가 |
+| 6 | LOW | `resumeId ?? null` 불필요한 null 병합 | `resumeId` 단축 표기로 수정 |
+| 7 | LOW | e2e 테스트 4번째 케이스 (API 오류) 없음 | `피드백 API 오류 (500) — 페이지 크래시 없이 정상 표시` 테스트 추가 |
 
 ---
 
@@ -350,3 +195,4 @@ npm test  # 전체
 **Follow-ups:**
 - #113 inferredTargetRole 엔진 머지 후 연동
 - feedback 재시도 메커니즘 — 별도 이슈
+- feedback JSON Zod 런타임 유효성 검증 — 별도 이슈

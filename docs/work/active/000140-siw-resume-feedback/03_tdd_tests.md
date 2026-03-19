@@ -1,5 +1,31 @@
 # TDD 테스트 전략 — 이슈 #140
 
+> 완료: 2026-03-19
+
+---
+
+## 테스트 실행 결과 (최종)
+
+### Unit/Integration (Vitest)
+
+```
+총 126개 테스트 통과 (기존 포함)
+```
+
+| 파일 | 케이스 수 | 결과 |
+|------|----------|------|
+| `tests/api/resume-feedback-route.test.ts` (신규) | 4 | ✅ 전부 통과 |
+| `tests/api/resumes-route.test.ts` (기존 확장) | +4 추가 | ✅ 전부 통과 |
+
+### E2E (Playwright)
+
+| 파일 | 케이스 수 | 결과 |
+|------|----------|------|
+| `tests/e2e/resume-feedback.spec.ts` (mock) | 5 | ✅ 전부 통과 |
+| `tests/e2e/resume-feedback-real.spec.ts` (실제 PDF) | 1 | ✅ 통과 (30초) |
+
+---
+
 ## 기존 테스트 인프라 분석
 
 ### 테스트 프레임워크
@@ -10,7 +36,6 @@
 
 ### 실행 명령
 ```bash
-# 서비스 디렉토리에서
 cd services/siw
 
 # 전체 테스트
@@ -19,6 +44,12 @@ npm test
 # 특정 파일만
 npx vitest run tests/api/resume-feedback-route.test.ts
 npx vitest run tests/api/resumes-route.test.ts
+
+# e2e (mock)
+npx playwright test tests/e2e/resume-feedback.spec.ts
+
+# e2e (실제 PDF — 로컬 전용, CI 자동 skip)
+npx playwright test tests/e2e/resume-feedback-real.spec.ts
 ```
 
 ### 기존 테스트의 공통 패턴
@@ -40,291 +71,117 @@ npx vitest run tests/api/resumes-route.test.ts
    vi.mock("@/lib/resume-repository", () => ({
      resumeRepository: {
        create: (...args: unknown[]) => mockCreate(...args),
-       // ... 기타 메서드
      },
    }));
    ```
-5. **handler import**: `beforeEach` 안에서 `vi.resetModules()` 후 `await import(...)` — 또는 `describe` 안에서 직접 dynamic import (resumes-route 패턴)
+5. **handler import**: `beforeEach` 안에서 `vi.resetModules()` 후 `await import(...)` — 또는 `describe` 안에서 직접 dynamic import
 6. **params**: Next.js 15 스타일 — `{ params: Promise.resolve({ id: "..." }) }`
 7. **beforeEach**: `vi.clearAllMocks()` 또는 `vi.resetModules()` + env 세팅
 
 ---
 
-## 신규 파일: tests/api/resume-feedback-route.test.ts
+## Unit/Integration 테스트
+
+### 신규 파일: tests/api/resume-feedback-route.test.ts
 
 > GET /api/resumes/[id]/feedback 라우트 테스트
->
-> **현재 route.ts 동작 분석** (services/siw/src/app/api/resumes/[id]/feedback/route.ts):
-> - 인증 확인 → findDetailById로 소유권 확인 → null 반환 (feedbackJson 컬럼 미구현)
-> - findDetailById throw 시 catch에서도 null 반환 (404 미반환)
->
-> **이슈 #140 구현 후 예상 동작**:
-> - feedbackJson 있는 이력서 → feedbackJson 반환 (200)
-> - feedbackJson=null → null 반환 (200)
-> - 미인증 → 401
-> - findDetailById throw → 404 (소유권 없음 또는 존재하지 않음)
 
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
+| TC | 케이스 | RED 조건 | GREEN 구현 |
+|----|--------|----------|------------|
+| 1 | 200 — feedbackJson 있는 이력서 반환 | route.ts가 항상 null 반환 | `resume.feedbackJson ?? null` |
+| 2 | 200+null — feedbackJson=null 이력서 | Prisma 스키마에 feedbackJson 없으면 빌드 실패 | 스키마 추가 후 migrate |
+| 3 | 401 — 미인증 | import 오류 | 라우트 구현 |
+| 4 | 404 — findDetailById throw | catch에서 null 반환 | catch → 404 변경 |
 
-// --- global fetch stub (라우트에서 직접 fetch 미사용, 구조 일관성 유지) ---
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
+### 기존 파일 확장: tests/api/resumes-route.test.ts
 
-// --- mocks ---
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
-}));
+> POST /api/resumes에 feedbackJson 저장 로직 추가 테스트
 
-const mockGetUser = vi.fn();
-vi.mock("@/lib/supabase/server", () => ({
-  createServerClient: vi.fn().mockReturnValue({
-    auth: { getUser: (...args: unknown[]) => mockGetUser(...args) },
-  }),
-}));
-
-const mockFindDetailById = vi.fn();
-vi.mock("@/lib/resume-repository", () => ({
-  resumeRepository: {
-    findDetailById: (...args: unknown[]) => mockFindDetailById(...args),
-  },
-}));
-
-// --- helpers ---
-const authenticatedUser = { id: "user-123", email: "test@example.com" };
-
-function setAuthenticated(user: typeof authenticatedUser | null = authenticatedUser) {
-  mockGetUser.mockResolvedValue({ data: { user } });
-}
-
-function setUnauthenticated() {
-  mockGetUser.mockResolvedValue({ data: { user: null } });
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ============================================================
-// GET /api/resumes/[id]/feedback
-// ============================================================
-describe("GET /api/resumes/[id]/feedback", () => {
-  it("200: feedbackJson 있는 이력서 → feedbackJson 그대로 반환", async () => {
-    setAuthenticated();
-    const feedbackJson = {
-      overallScore: 85,
-      summary: "전반적으로 우수한 이력서입니다.",
-      strengths: ["명확한 직무 경험"],
-      improvements: ["수치화된 성과 추가 필요"],
-    };
-    mockFindDetailById.mockResolvedValue({
-      id: "r1",
-      userId: "user-123",
-      fileName: "이력서.pdf",
-      storageKey: "user-123/r1.pdf",
-      resumeText: "이력서 텍스트",
-      questions: [],
-      feedbackJson,
-      createdAt: new Date("2026-03-15T00:00:00Z"),
-    });
-
-    const { GET } = await import("@/app/api/resumes/[id]/feedback/route");
-    const req = new Request("http://localhost/api/resumes/r1/feedback", { method: "GET" });
-    const res = await GET(req, { params: Promise.resolve({ id: "r1" }) });
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual(feedbackJson);
-  });
-
-  it("200 + null: feedbackJson=null인 이력서 → null 반환", async () => {
-    setAuthenticated();
-    mockFindDetailById.mockResolvedValue({
-      id: "r1",
-      userId: "user-123",
-      fileName: "이력서.pdf",
-      storageKey: "user-123/r1.pdf",
-      resumeText: "이력서 텍스트",
-      questions: [],
-      feedbackJson: null,
-      createdAt: new Date("2026-03-15T00:00:00Z"),
-    });
-
-    const { GET } = await import("@/app/api/resumes/[id]/feedback/route");
-    const req = new Request("http://localhost/api/resumes/r1/feedback", { method: "GET" });
-    const res = await GET(req, { params: Promise.resolve({ id: "r1" }) });
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toBeNull();
-  });
-
-  it("401: 미인증 (user=null)", async () => {
-    setUnauthenticated();
-
-    const { GET } = await import("@/app/api/resumes/[id]/feedback/route");
-    const req = new Request("http://localhost/api/resumes/r1/feedback", { method: "GET" });
-    const res = await GET(req, { params: Promise.resolve({ id: "r1" }) });
-
-    expect(res.status).toBe(401);
-  });
-
-  it("404: findDetailById가 throw → 404 반환", async () => {
-    setAuthenticated();
-    mockFindDetailById.mockRejectedValue(new Error("Resume not found"));
-
-    const { GET } = await import("@/app/api/resumes/[id]/feedback/route");
-    const req = new Request("http://localhost/api/resumes/nonexistent/feedback", { method: "GET" });
-    const res = await GET(req, { params: Promise.resolve({ id: "nonexistent" }) });
-
-    expect(res.status).toBe(404);
-  });
-});
-```
+| TC | 케이스 | RED 조건 | GREEN 구현 |
+|----|--------|----------|------------|
+| 5 | /feedback URL 호출 검증 | feedback fetch 없음 | Promise.all에 feedback 추가 |
+| 6 | create()에 feedbackJson 포함 | create()에 feedbackJson 없음 | create() 파라미터 확장 |
+| 7 | feedback reject → null, 200 | Promise.all 전체 reject → 500 | `.catch(() => null)` 추가 |
+| 8 | targetRole 전달 검증 | body에 targetRole 없음 | FormData에서 읽어 전달 |
 
 ---
 
-## 기존 파일 확장: tests/api/resumes-route.test.ts
+## E2E 테스트 (Playwright)
 
-> POST /api/resumes 에 feedbackJson 저장 로직 추가 테스트
->
-> **추가할 테스트 4개** — 기존 `describe("POST /api/resumes", () => { ... })` 블록 내부에 추가
+### 설정
 
-```typescript
-  // -------- feedback 관련 테스트 (이슈 #140) --------
+**playwright.config.ts:**
+```ts
+import fs from "fs";
+import path from "path";
 
-  it("feedback 엔진 병렬 호출 — /api/resume/feedback URL로 fetch 호출됨을 검증", async () => {
-    setAuthenticated();
-    mockCreate.mockResolvedValue("new-resume-id");
+// .env 파일 수동 로딩 (dotenv 패키지 없이)
+const envFile = path.resolve(__dirname, ".env");
+if (fs.existsSync(envFile)) {
+  // key=value 파싱하여 process.env에 주입
+}
 
-    // parse 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
-    );
-    // questions 응답 (Promise.all 첫 번째)
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
-        { status: 200 }
-      )
-    );
-    // feedback 응답 (Promise.all 두 번째)
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ overallScore: 80, summary: "우수" }),
-        { status: 200 }
-      )
-    );
-
-    const { POST } = await import("@/app/api/resumes/route");
-    await POST(makePdfRequest());
-
-    const feedbackCall = mockFetch.mock.calls.find(
-      (args) => (args[0] as string).includes("/api/resume/feedback")
-    );
-    expect(feedbackCall).toBeDefined();
-  });
-
-  it("feedback 성공 시 create()에 feedbackJson 포함하여 호출", async () => {
-    setAuthenticated();
-    mockCreate.mockResolvedValue("new-resume-id");
-
-    const feedbackPayload = { overallScore: 80, summary: "우수한 이력서" };
-
-    // parse 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
-    );
-    // questions 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
-        { status: 200 }
-      )
-    );
-    // feedback 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(feedbackPayload), { status: 200 })
-    );
-
-    const { POST } = await import("@/app/api/resumes/route");
-    await POST(makePdfRequest());
-
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ feedbackJson: feedbackPayload })
-    );
-  });
-
-  it("feedback fetch reject 시 feedbackJson=null로 create() 호출, 응답은 200", async () => {
-    setAuthenticated();
-    mockCreate.mockResolvedValue("new-resume-id");
-
-    // parse 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
-    );
-    // questions 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
-        { status: 200 }
-      )
-    );
-    // feedback fetch → reject (네트워크 오류 등)
-    mockFetch.mockRejectedValueOnce(new Error("feedback engine unreachable"));
-
-    const { POST } = await import("@/app/api/resumes/route");
-    const res = await POST(makePdfRequest());
-
-    // 전체 응답은 200 (feedback 실패가 업로드 전체를 막지 않는다)
-    expect(res.status).toBe(200);
-    // create()에는 feedbackJson: null로 호출
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ feedbackJson: null })
-    );
-  });
-
-  it("targetRole='소프트웨어 개발자'를 feedback fetch body에 전달", async () => {
-    setAuthenticated();
-    mockCreate.mockResolvedValue("new-resume-id");
-
-    // parse 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ resumeText: "추출된 이력서 텍스트" }), { status: 200 })
-    );
-    // questions 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ questions: [{ category: "직무 역량", question: "질문?" }], meta: {} }),
-        { status: 200 }
-      )
-    );
-    // feedback 응답
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ overallScore: 80 }), { status: 200 })
-    );
-
-    // targetRole을 FormData에 포함하여 요청
-    const formData = new FormData();
-    formData.append(
-      "file",
-      new File([new Uint8Array([1, 2, 3])], "resume.pdf", { type: "application/pdf" })
-    );
-    formData.append("targetRole", "소프트웨어 개발자");
-    const req = new Request("http://localhost/api/resumes", { method: "POST", body: formData });
-
-    const { POST } = await import("@/app/api/resumes/route");
-    await POST(req);
-
-    const feedbackCall = mockFetch.mock.calls.find(
-      (args) => (args[0] as string).includes("/api/resume/feedback")
-    );
-    expect(feedbackCall).toBeDefined();
-    const feedbackInit = feedbackCall![1] as RequestInit;
-    const bodyParsed = JSON.parse(feedbackInit.body as string);
-    expect(bodyParsed).toHaveProperty("targetRole", "소프트웨어 개발자");
-  });
+export default defineConfig({
+  testDir: "./tests/e2e",
+  timeout: 180_000,
+  use: {
+    baseURL: "http://localhost:3000",
+    headless: !!process.env.CI,
+    video: process.env.CI ? "retain-on-failure" : "on",
+  },
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "chromium",
+      use: { storageState: "tests/e2e/.auth/user.json" },
+      dependencies: ["setup"],
+    },
+  ],
+});
 ```
+
+**auth.setup.ts:**
+- `PLAYWRIGHT_EMAIL`, `PLAYWRIGHT_PASSWORD` 환경변수에서 읽기
+- `/login` 페이지에서 로그인 후 `storageState` 저장
+- 저장 경로: `tests/e2e/.auth/user.json` (.gitignore 처리)
+
+### tests/e2e/resume-feedback.spec.ts (Mock 기반)
+
+> `page.route()`로 API 응답 모킹 — 엔진 없이도 실행 가능
+
+| TC | 케이스 | 검증 내용 |
+|----|--------|----------|
+| 1 | 피드백 데이터 있음 | 점수·강점·약점·개선 제안 렌더링 확인 |
+| 2 | 피드백 없음 (null) | 페이지 크래시 없이 정상 표시 |
+| 3 | 피드백 API 오류 (500) | 페이지 크래시 없이 정상 표시 |
+| 4 | 피드백 로딩 중 | 1.5초 지연 후 데이터 렌더링 확인 |
+
+**실행 결과:** 5/5 통과 (auth setup 포함)
+**영상 저장:** `test-results/resume-feedback-*/video.webm`
+
+### tests/e2e/resume-feedback-real.spec.ts (실제 PDF 통합)
+
+> 실제 서버(포트 3000) + 실제 엔진(포트 8000) + 실제 DB 연동
+
+**테스트 플로우:**
+1. `/resumes` 페이지 이동
+2. "새 이력서 추가" 클릭 → UploadForm 표시
+3. `input[type="file"]`에 PDF 설정
+4. "이력서 분석" 버튼 클릭
+5. `POST /api/resumes` 응답에서 `resumeId` 추출
+6. `/resumes/{resumeId}` 이동
+7. 파일명 확인 → 피드백 렌더링 확인
+
+**CI 처리:**
+```ts
+const PDF_PATH = process.env.PLAYWRIGHT_PDF_PATH ?? "D:\\...\\자소서_004_개발자.pdf";
+test.skip(!fs.existsSync(PDF_PATH), `PDF 파일 없음 (CI skip): ${PDF_PATH}`);
+```
+- 파일 존재 시: 전체 플로우 실행
+- 파일 없음(CI): 자동 skip
+
+**실행 결과:** 통과 (29.9초, `자소서_004_개발자.pdf`)
+- `✅ 피드백 데이터 렌더링 완료` 로그 출력
 
 ---
 
@@ -333,78 +190,7 @@ describe("GET /api/resumes/[id]/feedback", () => {
 ### Iron Law
 **프로덕션 코드는 반드시 실패하는 테스트가 먼저 존재해야 작성할 수 있다.**
 
----
-
-### resume-feedback-route.test.ts 사이클
-
-#### TC-1: 200 — feedbackJson 있는 이력서 반환
-- **RED**: 테스트 실행 → 현재 route.ts는 항상 `null` 반환. `expect(body).toEqual(feedbackJson)` 실패
-- **GREEN**: `feedback/route.ts`에서 `resume.feedbackJson`을 읽어 반환하도록 수정
-  ```ts
-  return NextResponse.json(resume.feedbackJson ?? null)
-  ```
-- **REFACTOR**: 타입 명시, 불필요한 주석 제거
-
-#### TC-2: 200 + null — feedbackJson=null 반환
-- **RED**: TC-1 GREEN 적용 후 이 케이스는 `null`을 반환하므로 통과 가능. 단, Prisma 스키마에 `feedbackJson` 컬럼이 없으면 빌드 단계에서 실패
-- **GREEN**: Prisma 스키마에 `feedbackJson Json?` 추가 후 migrate, resumeRepository 타입 업데이트
-- **REFACTOR**: `ResumeRecord` 타입에 `feedbackJson?: Prisma.JsonValue | null` 추가
-
-#### TC-3: 401 — 미인증
-- **RED**: 현재 route.ts에 인증 로직이 이미 있으므로, 구현 전 테스트 추가 시 import 오류로 RED
-- **GREEN**: 라우트 파일이 올바르게 구성되면 기존 auth 로직이 401 처리
-- **REFACTOR**: helper `setUnauthenticated()` 패턴 일관성 확인
-
-#### TC-4: 404 — findDetailById throw → 404
-- **RED**: 현재 route.ts의 catch 블록이 `null`을 반환. `expect(res.status).toBe(404)` 실패
-- **GREEN**: catch 블록을 `return NextResponse.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 })`로 변경
-- **REFACTOR**: `[id]/route.ts`의 동일 패턴과 일관성 확인
-
----
-
-### resumes-route.test.ts 확장 사이클
-
-#### TC-5: feedback 엔진 병렬 호출 검증
-- **RED**: 현재 `POST /api/resumes`는 `/api/resume/feedback`을 호출하지 않음. `feedbackCall`이 undefined → 실패
-- **GREEN**: `Promise.all` 안에 feedback fetch 추가
-  ```ts
-  const [storageKey, engineData, feedbackJson] = await Promise.all([
-    uploadResumePdf(...),
-    fetch(`${ENGINE_BASE_URL}/api/resume/questions`, ...),
-    fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeText, targetRole }),
-    }).then(r => r.ok ? r.json() : null).catch(() => null),
-  ])
-  ```
-- **REFACTOR**: fetch 로직을 별도 함수로 분리 고려
-
-#### TC-6: feedback 성공 시 create()에 feedbackJson 포함
-- **RED**: 현재 `resumeRepository.create()` 호출에 `feedbackJson` 없음 → `expect.objectContaining({ feedbackJson })` 실패
-- **GREEN**: create() 호출 시 `feedbackJson` 전달
-  ```ts
-  await resumeRepository.create({ ..., feedbackJson })
-  ```
-- **REFACTOR**: Prisma schema의 `create` input 타입에 `feedbackJson` 포함 확인
-
-#### TC-7: feedback fetch reject 시 feedbackJson=null, 응답 200
-- **RED**: feedback fetch reject 시 현재 구현은 전체 Promise.all이 reject → 500 반환. `expect(res.status).toBe(200)` 실패
-- **GREEN**: feedback fetch에 `.catch(() => null)` 추가 — questions/upload 실패와 분리
-- **REFACTOR**: 에러 로깅 (`console.warn`) 추가로 observability 확보
-
-#### TC-8: targetRole을 feedback fetch body에 전달
-- **RED**: feedback fetch body에 `targetRole`이 없음 → `expect(bodyParsed).toHaveProperty("targetRole", "소프트웨어 개발자")` 실패
-- **GREEN**: formData에서 `targetRole` 읽어서 feedback fetch body에 포함
-  ```ts
-  const targetRole = formData.get("targetRole") as string | null
-  // feedback fetch body: JSON.stringify({ resumeText, targetRole: targetRole ?? "소프트웨어 개발자" })
-  ```
-- **REFACTOR**: `targetRole` 기본값 상수화 고려
-
----
-
-### 테스트 실행 순서 권장
+### 권장 실행 순서
 
 ```
 TC-3 (401) → TC-4 (404) → TC-1 (200 with data) → TC-2 (200 null)
