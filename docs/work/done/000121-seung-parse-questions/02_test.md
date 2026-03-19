@@ -10,15 +10,15 @@
 
 ```
 Test Files  11 passed (11)
-Tests       93 passed (93)
-Duration    2.96s
+Tests       94 passed (94)
+Duration    5.26s
 ```
 
 **파일별 결과:**
 
 | 파일 | 테스트 수 | 결과 |
 |------|-----------|------|
-| `tests/api/questions.test.ts` | 14 | ✅ 전체 통과 (전면 수정) |
+| `tests/api/questions.test.ts` | 15 | ✅ 전체 통과 (전면 수정) |
 | `tests/api/resume-feedback.test.ts` | 11 | ✅ 전체 통과 |
 | `tests/api/resume-diagnosis.test.ts` | 5 | ✅ 전체 통과 |
 | `tests/api/practice-feedback.test.ts` | 12 | ✅ 전체 통과 |
@@ -46,10 +46,10 @@ Duration    2.96s
 
 ## 신규 테스트 케이스 상세
 
-### `tests/api/questions.test.ts` (14개, 전면 수정)
+### `tests/api/questions.test.ts` (15개, 전면 수정)
 
 기존 mock 구조(`mockExtractPdfText`, `vi.mock('@/lib/pdf-utils', ...)`)를 제거하고
-`vi.mock('@/lib/engine-client', ...)` 방식으로 전환. `/parse` 에러 케이스 6개 신규 추가.
+`vi.mock('@/lib/engine-client', ...)` 방식으로 전환. `/parse` 에러 케이스 7개 신규 추가.
 
 | # | 케이스 | 상태 |
 |---|--------|------|
@@ -59,14 +59,15 @@ Duration    2.96s
 | 4 | /parse 400 에러 그대로 전달 | ✅ (신규) |
 | 5 | /parse 422 에러 그대로 전달 | ✅ (신규) |
 | 6 | /parse 성공이지만 resumeText 누락 시 500 반환 | ✅ (신규) |
-| 7 | /questions 400 에러 그대로 전달 | ✅ |
-| 8 | /questions 422 에러 그대로 전달 | ✅ |
-| 9 | /questions 500 에러 그대로 전달 | ✅ |
-| 10 | 성공 시 questions 반환 | ✅ |
-| 11 | 성공 시 resumeId 반환 | ✅ |
-| 12 | Prisma에 resumeText와 questions:[]로 저장 | ✅ (수정) |
-| 13 | DB 실패 시에도 엔진 결과 반환 (resumeId=null) | ✅ |
-| 14 | /questions 응답에 questions 배열 없으면 502 | ✅ |
+| 7 | /parse 성공이지만 resumeText 공백만 있을 시 500 반환 | ✅ (신규) |
+| 8 | /questions 400 에러 그대로 전달 | ✅ |
+| 9 | /questions 422 에러 그대로 전달 | ✅ |
+| 10 | /questions 500 에러 그대로 전달 | ✅ |
+| 11 | 성공 시 questions 반환 | ✅ |
+| 12 | 성공 시 resumeId 반환 | ✅ |
+| 13 | Prisma에 resumeText와 questions:[]로 저장 | ✅ (수정) |
+| 14 | DB 실패 시에도 엔진 결과 반환 (resumeId=null) | ✅ |
+| 15 | /questions 응답에 questions 배열 없으면 502 | ✅ |
 
 **삭제된 테스트 (3개 → 통합/제거):**
 - `'빈 resumeText이면 DB 저장 건너뛰고 resumeId=null 반환'` — engine `/parse`가 빈 PDF를 422로 막으므로 dead code, 제거
@@ -84,6 +85,8 @@ Duration    2.96s
 | ✅ DONE | `pdf-utils.ts` 삭제, `pdf-parse` 패키지 제거, `next.config.ts` 잔여 설정 제거, `.ai.md` 최신화 |
 | 🔴 RED | `/parse ok but resumeText 누락` 테스트 추가 → 1개 실패 확인 |
 | 🟢 GREEN | `route.ts`에 `resumeText` 타입 검증 방어 코드 추가 → 14개 전체 통과 (총 93개) |
+| 🔴 RED | 코드 리뷰 반영 — `resumeText` 공백 체크 테스트 추가 → 1개 실패 확인 |
+| 🟢 GREEN | `!resumeText.trim()` 수정, `maxDuration` 70, `questions:[]` 주석 추가 → 15개 전체 통과 (총 94개) |
 
 ---
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { callEngineParse, callEngineQuestions } from '@/lib/engine-client'
 import { prisma } from '@/lib/prisma'
 
-export const maxDuration = 60
+export const maxDuration = 70
 
 export async function POST(request: NextRequest) {
   let formData: FormData
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   const resumeText = (parseData as { resumeText?: unknown }).resumeText
-  if (typeof resumeText !== 'string' || !resumeText) {
+  if (typeof resumeText !== 'string' || !resumeText.trim()) {
     console.error('[resume/questions] parse response missing resumeText', { parseData })
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
   try {
     const [qRes, resume] = await Promise.all([
       callEngineQuestions(resumeText),
+      // questions: []로 먼저 저장해 /questions 호출과 병렬 처리.
+      // Resume.questions는 downstream(interview/start, feedback)에서 읽지 않으므로 빈 배열로 유지됨.
       prisma.resume.create({ data: { resumeText, questions: [] } }).catch((err) => {
         console.error('[resume/questions] DB save failed', { err })
         return null

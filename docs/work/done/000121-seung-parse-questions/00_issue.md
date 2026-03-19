@@ -83,7 +83,7 @@
 | `src/lib/pdf-utils.ts` | 삭제 | engine /parse가 파싱을 담당하므로 불필요 |
 | `next.config.ts` | 수정 | `serverExternalPackages: ['pdf-parse']` 잔여 설정 제거 |
 | `package.json` / `package-lock.json` | 수정 | `pdf-parse`, `@types/pdf-parse` 제거 |
-| `tests/api/questions.test.ts` | 전면 수정 | engine-client mock으로 전환, /parse 케이스 6개 신규 추가 |
+| `tests/api/questions.test.ts` | 전면 수정 | engine-client mock으로 전환, /parse 케이스 7개 신규 추가 |
 | `services/seung/.ai.md` | 수정 | engine-client.ts 반영, Phase 4 항목 추가 |
 
 ### 핵심 변경 내용
@@ -92,10 +92,12 @@
 
 **병렬 처리**: `/parse` 완료 후 `callEngineQuestions(resumeText)`와 `prisma.resume.create({ resumeText, questions: [] })`를 `Promise.all`로 병렬 실행한다. DB에는 `questions: []`로 먼저 생성해 병렬성을 확보했다(downstream 코드가 `Resume.questions`를 읽지 않음을 확인).
 
-**방어 코드 추가**: `/parse` 200 응답이라도 `resumeText`가 string이 아닌 경우 500을 반환하는 검증 추가.
+**방어 코드 추가**: `/parse` 200 응답이라도 `resumeText`가 string이 아니거나 공백만 있는 경우 500을 반환하는 검증 추가(`!resumeText.trim()`).
 
-**maxDuration**: 35 → 60 (parse + questions 직렬 타임아웃 여유 확보).
+**maxDuration**: 35 → 70 (`/parse` 30s + `/questions` 30s 순차 최대 60s에 DB write/cold start 여유 포함).
+
+**DB 저장 의도 명시**: `questions: []`로 병렬 저장하는 이유를 코드 주석으로 명시. downstream(`interview/start`, `feedback`)이 `Resume.questions`를 읽지 않으므로 빈 배열 유지.
 
 ### 테스트
 
-기존 10개 테스트를 전면 수정해 `engine-client` mock 방식으로 전환했다. `/parse` 관련 케이스 6개(네트워크 오류, 400/422 에러 전파, resumeText 누락 포함)를 신규 추가해 총 14개. 전체 Vitest 93개 통과.
+기존 10개 테스트를 전면 수정해 `engine-client` mock 방식으로 전환했다. `/parse` 관련 케이스 7개(네트워크 오류, 400/422 에러 전파, resumeText 누락, 공백만 있는 경우 포함)를 신규 추가해 총 15개. 전체 Vitest 94개 통과.

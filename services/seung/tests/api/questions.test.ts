@@ -83,6 +83,16 @@ describe('POST /api/resume/questions', () => {
     expect(response.status).toBe(500)
   })
 
+  it('/parse 성공이지만 resumeText 공백만 있을 시 500 반환', async () => {
+    mockCallEngineParse.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { resumeText: '   ', extractedLength: 0 })
+    )
+    const formData = new FormData()
+    formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
+    const response = await POST(makeRequest(formData))
+    expect(response.status).toBe(500)
+  })
+
   it('/parse 400 에러 그대로 전달', async () => {
     mockCallEngineParse.mockResolvedValueOnce(
       makeMockResponse(false, 400, { detail: '파일 오류' })
