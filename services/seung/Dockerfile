@@ -45,8 +45,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modul
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# prisma.config.ts: migrate deploy 시 DIRECT_URL 사용 및 schema 경로 설정
-COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+# NOTE: prisma.config.ts는 runner에 복사하지 않음
+# @prisma/config가 effect 패키지에 의존하며 runner에 미포함 → MODULE_NOT_FOUND 오류 발생
+# 대신 entrypoint.sh에서 DATABASE_URL=$DIRECT_URL로 직접 오버라이드
 
 # entrypoint 스크립트 복사 + CRLF 제거 (Windows 체크아웃 환경 대응)
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
