@@ -23,6 +23,7 @@ export async function GET(
       resumeText: resume.resumeText,
       questions: resume.questions,
       uploadedAt: resume.createdAt.toISOString(),
+      inferredTargetRole: resume.inferredTargetRole ?? null,
     })
   } catch {
     return NextResponse.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 })

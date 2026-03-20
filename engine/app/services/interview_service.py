@@ -83,10 +83,21 @@ def start_interview(
     result = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
     data = _parse_object(result.content, required_keys=["question"])
 
+    raw_question = data["question"]
+    if isinstance(raw_question, dict):
+        # LLM이 question 필드에 nested object를 반환한 경우 — 첫 번째 문자열 값을 추출
+        question_text = next(
+            (v if isinstance(v, str) else v[0] if isinstance(v, list) and v else str(v)
+             for v in raw_question.values()),
+            "면접 질문을 생성할 수 없습니다."
+        )
+    else:
+        question_text = str(raw_question)
+
     first_question = QuestionWithPersona(
         persona=first_persona,
         personaLabel=data.get("personaLabel", PERSONA_LABELS[first_persona]),
-        question=data["question"],
+        question=question_text,
         type="main",
     )
 

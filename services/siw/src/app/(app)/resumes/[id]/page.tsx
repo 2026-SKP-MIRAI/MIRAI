@@ -47,6 +47,7 @@ type ResumeItem = {
   fileName: string
   uploadedAt: string
   questionCount: number
+  inferredTargetRole: string | null
 }
 
 function formatDate(iso: string) {
@@ -136,6 +137,15 @@ export default function ResumeDetailPage() {
           <p className="text-xs text-gray-400 mt-1">{formatDate(resume.uploadedAt)} 저장</p>
         </div>
         <div className="flex items-center gap-2">
+          {resume.inferredTargetRole && (
+            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+              <div>
+                <p className="text-[10px] font-medium text-indigo-400 leading-none mb-0.5">희망 직무</p>
+                <p className="text-sm font-bold text-indigo-800">{resume.inferredTargetRole}</p>
+              </div>
+            </div>
+          )}
           <button
             onClick={handleDownload}
             disabled={downloading}
@@ -143,9 +153,6 @@ export default function ResumeDetailPage() {
           >
             <Download className="w-3.5 h-3.5" />
             {downloading ? "..." : "내 이력서"}
-          </button>
-          <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-95">
-            수정
           </button>
           <Link
             href={`/interview/new?resumeId=${resume.id}`}

@@ -30,11 +30,13 @@ export default function DashboardPage() {
   const [resumeCount, setResumeCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserName(user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? null)
+      setIsAdmin((user?.app_metadata as { role?: string })?.role === "admin")
     })
   }, [])
 
@@ -198,20 +200,22 @@ export default function DashboardPage() {
               </Link>
             </motion.div>
 
-            <motion.div
-              variants={itemVariants}
-              className="rounded-2xl p-5 bg-white border-2 border-emerald-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(16,185,129,0.12)] transition-all duration-200"
-            >
-              <p className="font-bold text-base mb-1.5 text-gray-900">LLM 운영 현황</p>
-              <p className="text-xs text-gray-500 mb-4">API 호출·latency·에러율 모니터링</p>
-              <Link
-                href="/dashboard/observability"
-                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all text-white active:scale-[0.96]"
-                style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+            {isAdmin && (
+              <motion.div
+                variants={itemVariants}
+                className="rounded-2xl p-5 bg-white border-2 border-emerald-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(16,185,129,0.12)] transition-all duration-200"
               >
-                현황 보기 →
-              </Link>
-            </motion.div>
+                <p className="font-bold text-base mb-1.5 text-gray-900">LLM 운영 현황</p>
+                <p className="text-xs text-gray-500 mb-4">API 호출·latency·에러율 모니터링</p>
+                <Link
+                  href="/dashboard/observability"
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all text-white active:scale-[0.96]"
+                  style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+                >
+                  현황 보기 →
+                </Link>
+              </motion.div>
+            )}
 
             <motion.div
               variants={itemVariants}

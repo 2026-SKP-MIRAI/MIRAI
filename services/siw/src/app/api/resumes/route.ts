@@ -32,34 +32,11 @@ export async function POST(request: Request) {
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  const engineParseForm = new FormData()
-  engineParseForm.append("file", file, file.name)
-  let resumeText: string;
-  try {
-    const parsed = await withEventLogging('resume_parse', null, async (meta) => {
-      const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
-        method: "POST",
-        body: engineParseForm,
-        signal: AbortSignal.timeout(180000),
-      });
-      if (!parseResp.ok) {
-        const body = await parseResp.json().catch(() => ({ detail: "" }));
-        const key = mapDetailToKey(body.detail ?? "", parseResp.status);
-        throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: parseResp.status });
-      }
-      const d = await parseResp.json();
-      if (d.usage) meta.usage = d.usage;
-      return d as { resumeText: string };
-    });
-    resumeText = parsed.resumeText;
-  } catch (err) {
-    if (err instanceof Error && 'status' in err) {
-      return NextResponse.json({ message: err.message }, { status: (err as { status: number }).status });
-    }
-    throw err;
+  const targetRole = (formData.get("targetRole") as string | null) ?? ""
+  const resumeText = (formData.get("resumeText") as string | null) ?? ""
+  if (!resumeText) {
+    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 400 })
   }
-
-  const targetRole = (formData.get("targetRole") as string | null) ?? "소프트웨어 개발자"
 
   try {
     const [storageKey, engineData, feedbackJson] = await Promise.all([
@@ -68,7 +45,7 @@ export async function POST(request: Request) {
         const r = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText }),
+          body: JSON.stringify({ resumeText, targetRole }),
           signal: AbortSignal.timeout(30000),
         });
         if (!r.ok) {
@@ -104,7 +81,7 @@ export async function POST(request: Request) {
       resumeText,
       questions: engineData.questions ?? [],
       feedbackJson: feedbackJson ?? null,
-      inferredTargetRole: normalizeRole(targetRole),
+      inferredTargetRole: normalizeRole(targetRole) || null,
     })
 
     return NextResponse.json({ ...engineData, resumeId })

@@ -6,7 +6,7 @@ export interface LLMEvent {
   timestamp: string;
   feature_type:
     | "interview_start" | "interview_answer" | "interview_followup"
-    | "report_generate" | "resume_parse" | "resume_questions" | "resume_feedback" | "practice_feedback";
+    | "report_generate" | "resume_parse" | "resume_analyze" | "resume_questions" | "resume_feedback" | "practice_feedback";
   mode: "interview" | "practice" | "resume";
   latency_ms: number;
   success: boolean;
@@ -45,6 +45,7 @@ const FEATURE_MODE: Record<LLMEvent["feature_type"], LLMEvent["mode"]> = {
   report_generate:    "interview",
   practice_feedback:  "practice",
   resume_parse:       "resume",
+  resume_analyze:     "resume",
   resume_questions:   "resume",
   resume_feedback:    "resume",
 };

@@ -5,7 +5,13 @@ export type QuestionsResponse = {
   meta: { extractedLength: number; categoriesUsed: string[] };
   resumeId: string;
 };
-export type UploadState = "idle" | "ready" | "uploading" | "done" | "error";
+export type UploadState = "idle" | "ready" | "uploading" | "confirming" | "submitting" | "done" | "error";
+
+// /api/resumes/analyze 응답 타입
+export type AnalyzeResult = {
+  resumeText: string;
+  targetRole: string;
+};
 
 export type PersonaType = "hr" | "tech_lead" | "executive";
 export type FollowupType = "CLARIFY" | "CHALLENGE" | "EXPLORE";

@@ -14,23 +14,43 @@ const PERSONA_LABELS: Record<string, string> = {
 
 export const interviewService = {
   async start(resumeId: string, personas: PersonaType[], userId?: string | null) {
-    const resume = await resumeRepository.findById(resumeId);
+    let resume;
+    try {
+      resume = await resumeRepository.findById(resumeId);
+    } catch (err) {
+      console.error("[interviewService.start] resume not found:", resumeId, err);
+      throw new Error("resume_not_found");
+    }
     const resumeText = resume.resumeText;
+    if (!resumeText || resumeText.trim().length === 0) {
+      console.error("[interviewService.start] resumeText is empty for resumeId:", resumeId);
+      throw new Error("resume_text_empty");
+    }
     const engineText = resumeText.slice(0, 1200);
     const parsed = await withEventLogging('interview_start', null, async (meta) => {
       let r: Response | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         meta.retry_count = attempt;
-        r = await fetch(`${ENGINE_BASE_URL}/api/interview/start`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText: engineText, personas, mode: "panel" }),
-          signal: AbortSignal.timeout(30000),
-        });
+        try {
+          r = await fetch(`${ENGINE_BASE_URL}/api/interview/start`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resumeText: engineText, personas, mode: "panel" }),
+            signal: AbortSignal.timeout(30000),
+          });
+        } catch (fetchErr) {
+          console.error(`[interviewService.start] fetch attempt ${attempt + 1} failed:`, fetchErr);
+          if (attempt < 2) await new Promise(res => setTimeout(res, 1000));
+          continue;
+        }
         if (r.ok) break;
+        console.error(`[interviewService.start] engine returned ${r.status} on attempt ${attempt + 1}`);
         if (attempt < 2) await new Promise(res => setTimeout(res, 1000));
       }
-      if (!r?.ok) throw new Error("engine_start_failed");
+      if (!r?.ok) {
+        console.error(`[interviewService.start] engine_start_failed after retries. ENGINE_BASE_URL=${ENGINE_BASE_URL}`);
+        throw new Error("engine_start_failed");
+      }
       const d = await r.json();
       if (d.usage) meta.usage = d.usage;
       return EngineStartResponseSchema.parse(d);

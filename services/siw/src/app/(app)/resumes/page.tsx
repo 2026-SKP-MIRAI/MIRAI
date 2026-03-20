@@ -111,7 +111,7 @@ export default function ResumesPage() {
           <motion.div variants={itemVariants}>
             {showUpload ? (
               <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6">
-                <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/interview/new?resumeId=${data.resumeId}`) }} />
+                <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/resumes/${data.resumeId}`) }} />
               </div>
             ) : (
               <button
@@ -133,7 +133,7 @@ export default function ResumesPage() {
       {!loading && resumes.length === 0 && (
         showUpload ? (
           <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-8">
-            <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/interview/new?resumeId=${data.resumeId}`) }} />
+            <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/resumes/${data.resumeId}`) }} />
           </div>
         ) : (
           <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-12 text-center">
