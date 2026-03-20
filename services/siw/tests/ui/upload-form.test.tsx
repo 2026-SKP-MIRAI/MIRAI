@@ -1,63 +1,114 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import React from "react";
-import UploadForm from "../../src/components/UploadForm";
+import UploadForm from "@/components/UploadForm";
 
-describe("UploadForm 상태머신", () => {
-  it("idle_renders_upload_controls", () => {
-    render(<UploadForm onComplete={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /이력서 분석/i })).toBeInTheDocument();
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+const mockOnComplete = vi.fn();
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("UploadForm", () => {
+  it("초기 idle: 버튼 disabled", () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const btn = screen.getByRole("button", { name: /이력서 분석/ });
+    expect(btn).toBeDisabled();
   });
 
-  it("moves_to_ready_when_pdf_selected", async () => {
-    const user = userEvent.setup();
-    render(<UploadForm onComplete={vi.fn()} />);
-    const input = document.querySelector("input[type=file]") as HTMLInputElement;
-    const file = new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" });
-    await user.upload(input, file);
-    // ready 상태: 버튼 활성화 확인
-    expect(screen.getByRole("button", { name: /이력서 분석/i })).not.toBeDisabled();
+  it("파일 선택 → 버튼 활성화", () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+    const btn = screen.getByRole("button", { name: /이력서 분석/ });
+    expect(btn).not.toBeDisabled();
   });
 
-  it("moves_to_uploading_when_submit_clicked", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {}))); // 영구 pending
-    render(<UploadForm onComplete={vi.fn()} />);
-    const input = document.querySelector("input[type=file]") as HTMLInputElement;
-    const file = new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" });
-    await user.upload(input, file);
-    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
-    // uploading 상태: 버튼 비활성
-    expect(screen.getByRole("button", { name: /이력서 분석/i })).toBeDisabled();
+  it("uploading → confirming: /analyze 성공 후 직무 확인 UI 표시", async () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ resumeText: "이력서 텍스트", targetRole: "백엔드 개발자" }), { status: 200 })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
+    await waitFor(() => {
+      expect(screen.getByText("지원 직무가 확인됐어요")).toBeInTheDocument();
+    });
   });
 
-  it("moves_to_done_when_api_returns_questions", async () => {
-    const mockData = {
-      questions: Array(8).fill({ category: "직무 역량", question: "질문?" }),
-      meta: { extractedLength: 100, categoriesUsed: ["직무 역량"] },
-    };
-    vi.stubGlobal("fetch", vi.fn(() =>
-      Promise.resolve(new Response(JSON.stringify(mockData), { status: 200 }))
-    ));
-    const user = userEvent.setup();
-    const onComplete = vi.fn();
-    render(<UploadForm onComplete={onComplete} />);
-    const input = document.querySelector("input[type=file]") as HTMLInputElement;
-    await user.upload(input, new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" }));
-    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
-    await vi.waitFor(() => expect(onComplete).toHaveBeenCalledWith(mockData));
+  it("confirming: targetRole 입력란에 AI 추론 직무 표시", async () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ resumeText: "텍스트", targetRole: "프론트엔드 개발자" }), { status: 200 })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
+    await waitFor(() => {
+      const roleInput = screen.getByRole("textbox") as HTMLInputElement;
+      expect(roleInput.value).toBe("프론트엔드 개발자");
+    });
   });
 
-  it("moves_to_error_when_api_fails_and_retry_restarts", async () => {
-    vi.stubGlobal("fetch", vi.fn(() =>
-      Promise.resolve(new Response(JSON.stringify({ message: "오류" }), { status: 500 }))
-    ));
-    const user = userEvent.setup();
-    render(<UploadForm onComplete={vi.fn()} />);
-    const input = document.querySelector("input[type=file]") as HTMLInputElement;
-    await user.upload(input, new File([new Uint8Array([1])], "test.pdf", { type: "application/pdf" }));
-    await user.click(screen.getByRole("button", { name: /이력서 분석/i }));
-    await vi.waitFor(() => expect(screen.getByText(/다시/i)).toBeInTheDocument());
+  it("confirming: targetRole='미지정' → 빈 input + placeholder", async () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ resumeText: "텍스트", targetRole: "미지정" }), { status: 200 })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
+    await waitFor(() => {
+      const roleInput = screen.getByRole("textbox") as HTMLInputElement;
+      expect(roleInput.value).toBe("");
+      expect(roleInput.placeholder).toBe("지원 직무를 입력하세요");
+    });
+  });
+
+  it("confirming → done: 확인 버튼 클릭 → onComplete 호출", async () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+
+    mockFetch
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ resumeText: "텍스트", targetRole: "개발자" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ questions: [], resumeId: "r-1" }), { status: 200 })
+      );
+
+    fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
+    await waitFor(() => screen.getByText("지원 직무가 확인됐어요"));
+
+    fireEvent.click(screen.getByRole("button", { name: /이 직무로 면접 준비하기/ }));
+    await waitFor(() => {
+      expect(mockOnComplete).toHaveBeenCalledWith(expect.objectContaining({ resumeId: "r-1" }));
+    });
+  });
+
+  it("/analyze 오류 → error 상태 + 에러 메시지 표시", async () => {
+    render(<UploadForm onComplete={mockOnComplete} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })] } });
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "PDF 파일을 읽을 수 없습니다." }), { status: 422 })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
   });
 });
