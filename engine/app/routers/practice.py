@@ -11,6 +11,7 @@ async def practice_feedback_endpoint(body: PracticeFeedbackRequest):
         body.question,
         body.answer,
         body.previousAnswer,
+        previous_score=body.previousScore,
     )
     data.usage = usage
     return data

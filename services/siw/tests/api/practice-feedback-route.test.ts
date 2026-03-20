@@ -92,4 +92,66 @@ describe("POST /api/practice/feedback", () => {
     const data = await res.json();
     expect(data.message).toBe("피드백 생성에 실패했습니다.");
   });
+
+  it("첫 답변: previousScore 없이 요청 → 엔진에 previousScore 미전달", async () => {
+    const { POST } = await import("@/app/api/practice/feedback/route");
+    const req = new Request("http://localhost/api/practice/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: "자기소개 해주세요.",
+        answer: "저는 개발자입니다.",
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.comparisonDelta).toBeNull();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/practice/feedback"),
+      expect.objectContaining({
+        body: expect.not.stringContaining("previousScore"),
+      })
+    );
+  });
+
+  it("재답변: previousScore=85 포함 요청 → 엔진에 previousScore 전달", async () => {
+    const responseWithDelta = {
+      score: 88,
+      feedback: { good: ["개선됨"], improve: [] },
+      keywords: ["리더십"],
+      improvedAnswerGuide: "가이드",
+      comparisonDelta: { scoreDelta: 3, improvements: ["논리 구조 강화"] },
+    };
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      json: async () => responseWithDelta,
+    } as Response);
+
+    const { POST } = await import("@/app/api/practice/feedback/route");
+    const req = new Request("http://localhost/api/practice/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: "자기소개 해주세요.",
+        answer: "저는 더 발전했습니다.",
+        previousAnswer: "저는 개발자입니다.",
+        previousScore: 85,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.comparisonDelta).toEqual({
+      scoreDelta: 3,
+      improvements: ["논리 구조 강화"],
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/practice/feedback"),
+      expect.objectContaining({
+        body: expect.stringContaining('"previousScore":85'),
+      })
+    );
+  });
 });

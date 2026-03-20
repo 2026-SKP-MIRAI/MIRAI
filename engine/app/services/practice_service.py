@@ -94,6 +94,7 @@ def generate_practice_feedback(
     answer: str,
     previous_answer: str | None = None,
     *,
+    previous_score: int | None = None,
     model: str | None = None,
 ) -> tuple[PracticeFeedbackResponse, UsageMetadata | None]:
     is_retry = previous_answer is not None
@@ -106,4 +107,9 @@ def generate_practice_feedback(
         max_tokens=2048,
         error_message="연습 피드백 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     )
-    return _parse_feedback(result.content, is_retry=is_retry), _usage_to_metadata(result.usage, result.model)
+    response = _parse_feedback(result.content, is_retry=is_retry)
+
+    if response.comparisonDelta is not None and previous_score is not None:
+        response.comparisonDelta.scoreDelta = max(-100, min(100, response.score - previous_score))
+
+    return response, _usage_to_metadata(result.usage, result.model)

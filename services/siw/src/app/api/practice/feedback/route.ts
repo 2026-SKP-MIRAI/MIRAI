@@ -5,7 +5,11 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { question, answer, previousAnswer } = body;
+  const { question, answer, previousAnswer, previousScore: rawPreviousScore } = body;
+  // TODO(#102): 향후 DB에서 세션의 마지막 점수를 조회하는 로직으로 교체
+  //   const previousScore = await getPreviousScoreFromDB(sessionId);
+  const previousScore = (typeof rawPreviousScore === "number" && rawPreviousScore >= 0 && rawPreviousScore <= 100)
+    ? rawPreviousScore : undefined;
 
   const engineUrl =
     (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/practice/feedback";
@@ -15,7 +19,7 @@ export async function POST(request: Request) {
       const engineRes = await fetch(engineUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer, previousAnswer }),
+        body: JSON.stringify({ question, answer, previousAnswer, previousScore }),
         signal: AbortSignal.timeout(30000),
       });
       const d = await engineRes.json();

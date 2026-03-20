@@ -158,6 +158,7 @@ class PracticeFeedbackRequest(BaseModel):
     question:       str          = Field(..., min_length=1, description="면접 질문")
     answer:         str          = Field(..., min_length=1, max_length=5000, description="사용자 답변")
     previousAnswer: str | None   = Field(None, min_length=1, max_length=5000, description="이전 답변 (비교용, 선택)")
+    previousScore:  int | None   = Field(None, ge=0, le=100, description="이전 답변 점수 (scoreDelta 서버 계산용, 선택)")
 
 
 class PracticeFeedbackResponse(BaseModel):
