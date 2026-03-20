@@ -101,6 +101,11 @@
       "sourceType": "local",
       "computedHash": "c6eaee2dadd84fc0657ea8c7499f90f09ea829eb26c764a38b1b852338ac1672"
     },
+    "remotion-best-practices": {
+      "source": "remotion-dev/skills",
+      "sourceType": "github",
+      "computedHash": "2f673b7710813ac07c71c0a54657f740078aec6585f15edf351494499e1f9ac3"
+    },
     "security-best-practices": {
       "source": "supercent-io/skills-template",
       "sourceType": "github",
