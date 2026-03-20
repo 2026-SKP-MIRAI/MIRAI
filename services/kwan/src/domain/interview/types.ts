@@ -44,7 +44,7 @@ export interface GenerateResult {
     extractedLength: number
     categoriesUsed: string[]
   }
-  resumeId: string
+  resumeId: string | null
 }
 
 export type UploadState = 'idle' | 'uploading' | 'done' | 'error'
