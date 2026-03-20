@@ -9,8 +9,8 @@
 
 | 이슈 | 제목 | Step | 상태 |
 |------|------|------|------|
-| **#97 Pipeline 2-1** | inferredTargetRole + 엔진 embed API + trendComparison 뼈대 | Steps 1-5 | 진행 중 |
-| **#163 Pipeline 2-2** | 잡코리아 크롤링 + pgvector + RAG 로직 활성화 | Steps 6-10 | 백로그 |
+| **#97 Pipeline 2-1** | inferredTargetRole + 엔진 embed API + trendComparison 뼈대 | Steps 1-5 | **완료 (PR #169)** |
+| **#163 Pipeline 2-2** | 잡코리아 크롤링 + pgvector + RAG 로직 활성화 | Steps 6-10 | 진행 중 |
 
 ---
 
