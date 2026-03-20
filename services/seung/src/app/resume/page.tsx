@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import UploadForm from '@/components/UploadForm'
 import QuestionList from '@/components/QuestionList'
 import type { UploadState, QuestionsResponse } from '@/lib/types'
@@ -11,6 +11,7 @@ type NextAction = null | 'interview' | 'diagnosis'
 
 export default function ResumePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [state, setState] = useState<UploadState>('idle')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [result, setResult] = useState<QuestionsResponse | null>(null)
@@ -24,6 +25,15 @@ export default function ResumePage() {
   const [targetRole, setTargetRole] = useState('')
   const [isDiagnosing, setIsDiagnosing] = useState(false)
   const [diagnosisError, setDiagnosisError] = useState('')
+
+  // 대시보드에서 resumeId를 갖고 온 경우 업로드 스킵 → 바로 면접 모드 선택
+  useEffect(() => {
+    const rid = searchParams.get('resumeId')
+    if (rid) {
+      setResult({ resumeId: rid, questions: [], meta: { extractedLength: 0, categoriesUsed: [] } })
+      setState('done')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (file: File) => {
     setState('uploading')
@@ -144,7 +154,9 @@ export default function ResumePage() {
         ) : (
           result && (
             <div>
-              <QuestionList questions={result.questions} onReset={handleReset} />
+              {result.questions.length > 0 && (
+                <QuestionList questions={result.questions} onReset={handleReset} />
+              )}
 
               {result.resumeId && (
                 <div className="mt-6">

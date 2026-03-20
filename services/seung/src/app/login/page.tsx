@@ -30,7 +30,7 @@ export default function LoginPage() {
 
     // 오픈 리다이렉트 차단: pathname만 허용
     const redirectTo = searchParams.get('redirectTo') ?? ''
-    const safePath = redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/resume'
+    const safePath = redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/dashboard'
     router.push(safePath)
     router.refresh()
   }

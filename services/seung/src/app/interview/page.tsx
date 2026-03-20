@@ -224,7 +224,7 @@ function InterviewContent() {
   }
 
   const handleRestart = () => {
-    router.push('/resume')
+    router.push('/dashboard')
   }
 
   if (loading) {

@@ -135,3 +135,17 @@ export type PracticeFeedbackResponse = {
   improvedAnswerGuide: string
   comparisonDelta?: ComparisonDelta | null
 }
+
+export type DashboardResumeItem = {
+  id: string
+  createdAt: string
+  fileName: string
+  sessionCount: number
+  hasReport: boolean
+  reportId: string | null
+  hasDiagnosis: boolean
+}
+
+export type DashboardResponse = {
+  resumes: DashboardResumeItem[]
+}

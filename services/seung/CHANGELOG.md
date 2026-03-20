@@ -7,6 +7,7 @@
 ## 2026년 3월 16일 주차 (Mar 16~22)
 
 ### ✨ 새 기능
+- **내 면접 기록 대시보드** ([#157](../../issues/157)): 로그인 후 자소서별 면접 기록을 카드로 조회하는 `/dashboard` 페이지 추가. `GET /api/dashboard`(Resume 목록 + 통계), `DELETE /api/resume/[id]`(cascade 삭제) 신규 API. `Resume.fileName` 필드 추가(Prisma 마이그레이션). "이 자소서로 다시 면접하기" 재사용 플로우 구현. OAuth 콜백 포함 모든 로그인 후 리다이렉트를 `/dashboard`로 통일. Vitest 14파일 122개, Playwright E2E 5케이스 추가.
 - **Supabase Auth 연동 — 회원가입·로그인·보호 라우트** ([#151](../../issues/151)): `@supabase/ssr` 기반 인증 레이어 구축. `/login`, `/signup` 페이지와 미들웨어 보호 라우트 추가. `Resume`, `InterviewSession`, `Report` 테이블에 `userId` 컬럼 추가 및 모든 API 라우트에 401/403 인증·소유권 검증 적용.
 
 ---
