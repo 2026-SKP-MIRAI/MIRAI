@@ -200,6 +200,21 @@ export default function DashboardPage() {
 
             <motion.div
               variants={itemVariants}
+              className="rounded-2xl p-5 bg-white border-2 border-emerald-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(16,185,129,0.12)] transition-all duration-200"
+            >
+              <p className="font-bold text-base mb-1.5 text-gray-900">LLM 운영 현황</p>
+              <p className="text-xs text-gray-500 mb-4">API 호출·latency·에러율 모니터링</p>
+              <Link
+                href="/dashboard/observability"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all text-white active:scale-[0.96]"
+                style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+              >
+                현황 보기 →
+              </Link>
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
               className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all duration-200"
             >
               <p className="text-sm font-bold text-gray-900 mb-3">최근 분석 요약</p>

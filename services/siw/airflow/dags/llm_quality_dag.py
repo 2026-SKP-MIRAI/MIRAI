@@ -72,6 +72,8 @@ def aggregate_metrics(ds: str, **kwargs):
             "error_rate": round(s["error_count"] / cnt, 4) if cnt else 0.0,
             "total_tokens": total_tokens,
             "estimated_cost_usd": estimated_cost_usd,
+            "prompt_tokens": s["sum_prompt_tokens"],
+            "completion_tokens": s["sum_completion_tokens"],
         })
     kwargs["ti"].xcom_push(key="metrics", value=result)
     logger.info(f"Aggregated metrics: {result}")
@@ -92,8 +94,8 @@ def load_to_db(ds: str, **kwargs):
                 cur.execute("""
                     INSERT INTO analytics.llm_events_daily
                       (date, feature_type, call_count, avg_latency_ms, error_count, error_rate,
-                       total_tokens, estimated_cost_usd, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+                       total_tokens, estimated_cost_usd, prompt_tokens, completion_tokens, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
                     ON CONFLICT (date, feature_type) DO UPDATE SET
                       call_count = EXCLUDED.call_count,
                       avg_latency_ms = EXCLUDED.avg_latency_ms,
@@ -101,10 +103,13 @@ def load_to_db(ds: str, **kwargs):
                       error_rate = EXCLUDED.error_rate,
                       total_tokens = EXCLUDED.total_tokens,
                       estimated_cost_usd = EXCLUDED.estimated_cost_usd,
+                      prompt_tokens = EXCLUDED.prompt_tokens,
+                      completion_tokens = EXCLUDED.completion_tokens,
                       updated_at = now()
                 """, (row["date"], row["feature_type"], row["call_count"],
                       row["avg_latency_ms"], row["error_count"], row["error_rate"],
-                      row["total_tokens"], row["estimated_cost_usd"]))
+                      row["total_tokens"], row["estimated_cost_usd"],
+                      row["prompt_tokens"], row["completion_tokens"]))
     finally:
         conn.close()
     logger.info(f"Loaded {len(metrics)} rows for {ds}")

@@ -7,6 +7,7 @@ import {
   FileText,
   MessageSquare,
   TrendingUp,
+  Activity,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -46,6 +47,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/growth",
     icon: TrendingUp,
     activeCheck: (p) => p === "/growth",
+  },
+  {
+    label: "운영 현황",
+    href: "/dashboard/observability",
+    icon: Activity,
+    activeCheck: (p) => p.startsWith("/dashboard/observability"),
   },
 ]
 
