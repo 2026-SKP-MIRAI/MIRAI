@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { NextResponse } from "next/server";
 import { engineFetch } from "@/lib/engine-client";
+import { getOrCreateAnonId, setAnonCookie } from "@/lib/anon-cookie";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -39,11 +42,25 @@ export async function POST(request: Request) {
 
     const data = await resp.json();
     // MVP: 5문항 제한 (첫 질문 1 + 큐 4)
-    return Response.json({
+    const { anonymousId, isNew } = await getOrCreateAnonId();
+    const supabase = createServiceClient();
+    const { error: dbError } = await supabase.from("interview_sessions").insert({
+      id: sessionId,
+      anonymous_id: anonymousId,
+      job_category: jobCategories.join(", "),
+      questions: [data.firstQuestion, ...(data.questionsQueue ?? []).slice(0, 4)],
+      history: [],
+      questions_queue: (data.questionsQueue ?? []).slice(0, 4),
+      status: "in_progress",
+    });
+    if (dbError) console.error("[start] DB INSERT 실패 (non-fatal):", dbError);
+
+    const jsonResponse = NextResponse.json({
       sessionId,
       firstQuestion: data.firstQuestion,
       questionsQueue: (data.questionsQueue ?? []).slice(0, 4),
     });
+    return isNew ? setAnonCookie(jsonResponse, anonymousId) : jsonResponse;
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       return Response.json({ message: "응답 시간이 초과됐습니다." }, { status: 504 });

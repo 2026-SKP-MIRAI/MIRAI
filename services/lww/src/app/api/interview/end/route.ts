@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { engineFetch } from "@/lib/engine-client";
+import { getAnonId } from "@/lib/anon-cookie";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 110;
@@ -12,6 +14,7 @@ const historyItemSchema = z.object({
 });
 
 const endSchema = z.object({
+  sessionId: z.string().uuid(),
   resumeText: z.string().min(1).max(10000),
   history: z.array(historyItemSchema).min(5),
 });
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
     return Response.json({ message: "입력값이 올바르지 않습니다.", errors: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { resumeText, history } = parsed.data;
+  const { sessionId, resumeText, history } = parsed.data;
 
   try {
     const resp = await engineFetch(
@@ -48,6 +51,39 @@ export async function POST(request: Request) {
     }
 
     const report = await resp.json();
+    const anonymousId = await getAnonId();
+    if (!anonymousId) {
+      return Response.json({ message: "세션이 유효하지 않습니다." }, { status: 401 });
+    }
+    const supabase = createServiceClient();
+    const { data: reportRow, error: reportErr } = await supabase
+      .from("reports")
+      .insert({
+        session_id: sessionId,
+        anonymous_id: anonymousId,
+        status: "completed",
+        total_score: report.totalScore,
+        axis_scores: report.axisScores,
+        axis_feedbacks: report.axisFeedbacks,
+        summary: report.summary,
+      })
+      .select("id")
+      .single();
+    if (reportErr) {
+      console.error("[end] reports INSERT 실패 (non-fatal):", reportErr);
+    } else {
+      const { error: sessionUpdateErr } = await supabase
+        .from("interview_sessions")
+        .update({
+          status: "completed",
+          report_id: reportRow.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", sessionId)
+        .eq("anonymous_id", anonymousId);
+      if (sessionUpdateErr) console.error("[end] interview_sessions UPDATE 실패 (non-fatal):", sessionUpdateErr);
+    }
+
     return Response.json({ report });
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {

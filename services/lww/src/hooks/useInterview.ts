@@ -125,6 +125,7 @@ export function useInterview({ sessionId }: UseInterviewOptions): UseInterviewRe
           currentPersona,
           history: state.history,
           questionsQueue: state.questionsQueue,
+          sessionId: state.sessionId,
         }),
         signal: AbortSignal.timeout(120000),
       });
@@ -175,6 +176,7 @@ export function useInterview({ sessionId }: UseInterviewOptions): UseInterviewRe
         body: JSON.stringify({
           resumeText: state.resumeText,
           history: state.history,
+          sessionId: state.sessionId,
         }),
         signal: AbortSignal.timeout(120000),
       });

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/interview/end/route.ts": {
+      "maxDuration": 110
+    }
+  }
+}

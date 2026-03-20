@@ -1,7 +1,16 @@
 import { z } from "zod";
+import { NextResponse } from "next/server";
 import { engineFetch } from "@/lib/engine-client";
+import { getAnonId } from "@/lib/anon-cookie";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+const PERSONA_LABELS: Record<string, string> = {
+  hr: "HR 면접관",
+  tech_lead: "기술 리드",
+  executive: "임원 면접관",
+};
 
 const historyItemSchema = z.object({
   question: z.string().max(2000),
@@ -17,6 +26,7 @@ const queueItemSchema = z.object({
 });
 
 const answerSchema = z.object({
+  sessionId: z.string().uuid(),
   resumeText: z.string().min(1).max(10000),
   currentQuestion: z.string().min(1).max(2000),
   currentAnswer: z.string().min(1).max(5000),
@@ -38,7 +48,7 @@ export async function POST(request: Request) {
     return Response.json({ message: "입력값이 올바르지 않습니다.", errors: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { resumeText, currentQuestion, currentAnswer, currentPersona, history, questionsQueue } = parsed.data;
+  const { sessionId, resumeText, currentQuestion, currentAnswer, currentPersona, history, questionsQueue } = parsed.data;
 
   try {
     const resp = await engineFetch("/api/interview/answer", {
@@ -61,6 +71,28 @@ export async function POST(request: Request) {
 
     const data = await resp.json();
     // 엔진은 updatedHistory를 반환하지 않음 — 클라이언트가 직접 누적
+    const anonymousId = await getAnonId();
+    if (!anonymousId) {
+      return Response.json({ message: "세션이 유효하지 않습니다." }, { status: 401 });
+    }
+    const supabase = createServiceClient();
+    const newHistoryItem = {
+      question: currentQuestion,
+      answer: currentAnswer,
+      persona: currentPersona,
+      personaLabel: PERSONA_LABELS[currentPersona] ?? "AI 면접관",
+    };
+    const { error: dbError } = await supabase
+      .from("interview_sessions")
+      .update({
+        history: [...history, newHistoryItem],
+        questions_queue: data.updatedQueue ?? [],
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId)
+      .eq("anonymous_id", anonymousId);
+    if (dbError) console.error("[answer] DB UPDATE 실패 (non-fatal):", dbError);
+
     return Response.json({
       nextQuestion: data.nextQuestion,
       updatedQueue: data.updatedQueue,
