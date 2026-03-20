@@ -2,6 +2,7 @@ import { callEngineParse, callEngineQuestions } from '@/lib/engine-client'
 import { prisma } from '@/lib/db'
 import { EngineQuestionsResponseSchema } from '@/domain/interview/schemas'
 
+export const runtime = 'nodejs'
 export const maxDuration = 70
 
 export async function POST(req: Request) {

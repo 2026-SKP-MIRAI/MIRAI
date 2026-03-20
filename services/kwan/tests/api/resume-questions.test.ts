@@ -159,7 +159,7 @@ describe('POST /api/resume/questions', () => {
     expect(body.resumeId).toBeNull()
   })
 
-  it('/parse 타임아웃 → 타임아웃 메시지', async () => {
+  it('/parse 타임아웃 (TimeoutError) → 타임아웃 메시지', async () => {
     const timeoutError = new Error('timeout')
     timeoutError.name = 'TimeoutError'
     mockCallEngineParse.mockRejectedValueOnce(timeoutError)
@@ -169,7 +169,7 @@ describe('POST /api/resume/questions', () => {
     expect(body.error).toBe('요청 시간이 초과됐습니다. 잠시 후 다시 시도해주세요.')
   })
 
-  it('/questions 타임아웃 → 타임아웃 메시지', async () => {
+  it('/questions 타임아웃 (AbortError) → 타임아웃 메시지', async () => {
     const timeoutError = new Error('timeout')
     timeoutError.name = 'AbortError'
     mockCallEngineQuestions.mockRejectedValueOnce(timeoutError)
