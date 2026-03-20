@@ -103,6 +103,15 @@ describe("POST /api/resumes/analyze", () => {
     expect(res.status).toBe(500);
   });
 
+  it("504: engine 타임아웃 → 504 반환", async () => {
+    setAuthenticated();
+    const timeoutError = Object.assign(new Error("The operation timed out."), { name: "TimeoutError" });
+    mockFetch.mockRejectedValueOnce(timeoutError);
+    const { POST } = await import("@/app/api/resumes/analyze/route");
+    const res = await POST(makeAnalyzeRequest());
+    expect(res.status).toBe(504);
+  });
+
   it("engine /api/resume/analyze URL 호출 검증", async () => {
     setAuthenticated();
     mockFetch.mockResolvedValueOnce(

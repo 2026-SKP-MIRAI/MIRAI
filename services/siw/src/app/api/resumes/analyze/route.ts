@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/analyze`, {
         method: "POST",
         body: engineForm,
-        signal: AbortSignal.timeout(35000),
+        signal: AbortSignal.timeout(55000),
       })
 
       if (!resp.ok) {
@@ -63,6 +63,9 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof Error && 'status' in err) {
       return NextResponse.json({ message: err.message }, { status: (err as { status: number }).status })
+    }
+    if (err instanceof Error && err.name === "TimeoutError") {
+      return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 504 })
     }
     return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 500 })
   }
