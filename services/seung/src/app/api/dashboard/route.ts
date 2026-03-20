@@ -13,6 +13,7 @@ export async function GET() {
   try {
     resumes = await prisma.resume.findMany({
       where: { userId: user.id },
+      take: 50,
       include: {
         sessions: {
           include: { report: true },
@@ -22,7 +23,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
   } catch (err) {
-    console.error('[dashboard] findMany failed', { err })
+    console.error('[dashboard] findMany failed', err)
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 

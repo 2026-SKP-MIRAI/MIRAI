@@ -30,6 +30,7 @@ export default function ResumePage() {
   useEffect(() => {
     const rid = searchParams.get('resumeId')
     if (rid) {
+      // questions/meta는 업로드 없이 재사용하므로 더미값 — QuestionList는 questions.length > 0일 때만 렌더링
       setResult({ resumeId: rid, questions: [], meta: { extractedLength: 0, categoriesUsed: [] } })
       setState('done')
     }
