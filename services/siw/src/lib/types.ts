@@ -74,6 +74,24 @@ export type PracticeFeedback = {
   comparisonDelta?: { scoreDelta: number; improvements: string[] } | null;
 };
 
+// 트렌드 비교 타입
+export type TrendSkill = {
+  skill: string
+  weight: number       // 0~1 범위의 중요도 가중치
+  inResume: boolean    // 이력서에 해당 스킬이 포함되어 있는지 여부
+}
+
+export type TrendComparison = {
+  role: string
+  trendSkills: TrendSkill[]
+  coverageScore: number  // 0~100: 트렌드 스킬 커버리지 점수
+}
+
+export type FeedbackWithTrends = {
+  feedback: ResumeFeedback | null
+  trendComparison: TrendComparison | null
+}
+
 // 이력서 피드백 타입 (engine ResumeFeedbackResponse와 완전 일치)
 export type ResumeFeedbackScores = {
   specificity: number        // 경험·사례의 구체성
