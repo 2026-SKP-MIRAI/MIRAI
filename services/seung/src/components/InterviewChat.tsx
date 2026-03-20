@@ -37,6 +37,7 @@ type Props = {
   onRetry?: () => void
   onNextQuestion?: () => void
   practiceSubmitting?: boolean
+  totalQuestions?: number
 }
 
 export default function InterviewChat({
@@ -51,9 +52,28 @@ export default function InterviewChat({
   onRetry,
   onNextQuestion,
   practiceSubmitting,
+  totalQuestions,
 }: Props) {
+  const answerCount = messages.filter((m) => m.type === 'answer').length
+
   return (
     <div className="space-y-4">
+      {(totalQuestions ?? 0) > 0 && (
+        <p className="text-sm text-gray-400 text-right">
+          {answerCount} / {totalQuestions} 답변 완료
+        </p>
+      )}
+      {!sessionComplete && answerCount >= 5 && onReport && (
+        <div className="flex justify-end">
+          <button
+            onClick={onReport}
+            disabled={isGeneratingReport}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          >
+            {isGeneratingReport ? '리포트 생성 중...' : '리포트 생성하기'}
+          </button>
+        </div>
+      )}
       {messages.map((msg, index) => {
         if (msg.type === 'question') {
           const q = msg.data

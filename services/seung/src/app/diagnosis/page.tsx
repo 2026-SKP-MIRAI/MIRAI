@@ -30,14 +30,14 @@ function DiagnosisContent() {
 
   useEffect(() => {
     if (!resumeId) {
-      router.replace('/resume')
+      router.replace('/dashboard')
       return
     }
 
     fetch(`/api/resume/diagnosis?resumeId=${encodeURIComponent(resumeId)}`)
       .then((r) => {
         if (!r.ok) {
-          router.replace('/resume')
+          router.replace('/dashboard')
           return null
         }
         return r.json()
@@ -47,7 +47,7 @@ function DiagnosisContent() {
         setDiagnosis(data)
       })
       .catch(() => {
-        router.replace('/resume')
+        router.replace('/dashboard')
       })
       .finally(() => {
         setLoading(false)

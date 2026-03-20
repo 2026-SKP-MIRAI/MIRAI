@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
 const MAX_LENGTH = 5000
 
 type Props = {
@@ -9,16 +11,25 @@ type Props = {
 }
 
 export default function AnswerInput({ onSubmit, disabled = false, hidden = false }: Props) {
+  const [value, setValue] = useState('')
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (value.trim()) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [value])
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    const raw = fd.get('answer')
-    const answer = (typeof raw === 'string' ? raw : '').trim()
+    const answer = value.trim()
     if (!answer) return
     onSubmit(answer)
-    e.currentTarget.reset()
-    const counter = e.currentTarget.querySelector('[data-char-counter]')
-    if (counter) counter.textContent = `0 / ${MAX_LENGTH}`
+    setValue('')
   }
 
   if (hidden) return null
@@ -27,19 +38,17 @@ export default function AnswerInput({ onSubmit, disabled = false, hidden = false
     <form onSubmit={handleSubmit} className="space-y-2">
       <textarea
         name="answer"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         maxLength={MAX_LENGTH}
         disabled={disabled}
         placeholder="답변을 입력하세요..."
         className="w-full rounded-xl border border-gray-300 p-4 text-sm focus:border-gray-500 focus:outline-none disabled:bg-gray-50"
         rows={4}
-        onChange={(e) => {
-          const counter = e.currentTarget.closest('form')?.querySelector('[data-char-counter]')
-          if (counter) counter.textContent = `${e.currentTarget.value.length} / ${MAX_LENGTH}`
-        }}
       />
       <div className="flex items-center justify-between">
-        <span data-char-counter className="text-xs text-gray-400">
-          0 / {MAX_LENGTH}
+        <span className="text-xs text-gray-400">
+          {value.length} / {MAX_LENGTH}
         </span>
         <button
           type="submit"

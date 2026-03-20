@@ -119,6 +119,69 @@ describe('InterviewChat', () => {
 
     expect(screen.queryByText('꼬리질문')).not.toBeInTheDocument()
   })
+
+  it('totalQuestions > 0이면 진행률 텍스트가 표시된다', () => {
+    const messages: Message[] = [
+      {
+        id: 'q1',
+        type: 'question',
+        data: { persona: 'hr', personaLabel: 'HR 면접관', question: '질문1', type: 'main' },
+      },
+      { id: 'a1', type: 'answer', text: '답변1' },
+    ]
+
+    render(
+      <InterviewChat messages={messages} sessionComplete={false} totalQuestions={10} />
+    )
+
+    expect(screen.getByText('1 / 10 답변 완료')).toBeInTheDocument()
+  })
+
+  it('totalQuestions가 없으면 진행률 텍스트가 표시되지 않는다', () => {
+    render(
+      <InterviewChat messages={[]} sessionComplete={false} />
+    )
+
+    expect(screen.queryByText(/답변 완료/)).not.toBeInTheDocument()
+  })
+
+  it('answerCount >= 5이고 sessionComplete=false이면 리포트 버튼이 표시된다', () => {
+    const messages: Message[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `a${i}`,
+      type: 'answer' as const,
+      text: `답변${i}`,
+    }))
+
+    render(
+      <InterviewChat
+        messages={messages}
+        sessionComplete={false}
+        onReport={vi.fn()}
+        isGeneratingReport={false}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: '리포트 생성하기' })).toBeInTheDocument()
+  })
+
+  it('answerCount < 5이고 sessionComplete=false이면 리포트 버튼이 표시되지 않는다', () => {
+    const messages: Message[] = Array.from({ length: 4 }, (_, i) => ({
+      id: `a${i}`,
+      type: 'answer' as const,
+      text: `답변${i}`,
+    }))
+
+    render(
+      <InterviewChat
+        messages={messages}
+        sessionComplete={false}
+        onReport={vi.fn()}
+        isGeneratingReport={false}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: '리포트 생성하기' })).not.toBeInTheDocument()
+  })
 })
 
 describe('practice 모드 피드백 UI', () => {

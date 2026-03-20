@@ -29,6 +29,20 @@ export async function GET() {
 
   const result = resumes.map((resume) => {
     const reportSession = resume.sessions.find((s) => s.report !== null)
+
+    const sessionsWithReport = resume.sessions.filter(
+      (s): s is typeof s & { report: NonNullable<typeof s.report> } => s.report !== null
+    )
+    const reports = sessionsWithReport.map((s) => ({
+      id: s.report.id,
+      sessionId: s.id,
+      createdAt: s.report.createdAt.toISOString(),
+    }))
+
+    const inProgressSession = resume.sessions
+      .filter((s) => !s.sessionComplete)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]
+
     return {
       id: resume.id,
       createdAt: resume.createdAt.toISOString(),
@@ -37,6 +51,8 @@ export async function GET() {
       hasReport: reportSession !== undefined,
       reportId: reportSession?.report?.id ?? null,
       hasDiagnosis: resume.diagnosisResult !== null,
+      inProgressSessionId: inProgressSession?.id ?? null,
+      reports,
     }
   })
 

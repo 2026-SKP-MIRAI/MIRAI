@@ -70,14 +70,23 @@ function ResumeCard({ item, onDelete }: { item: DashboardResumeItem; onDelete: (
         <span className="text-xs text-gray-400">면접 {item.sessionCount}회</span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {item.hasReport && item.reportId && (
+        {item.inProgressSessionId && (
           <button
-            onClick={() => router.push(`/report?reportId=${item.reportId}`)}
-            className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+            onClick={() => router.push(`/interview?sessionId=${item.inProgressSessionId}`)}
+            className="rounded-md bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
           >
-            역량 리포트 보기
+            이어하기
           </button>
         )}
+        {item.reports.map((r, i) => (
+          <button
+            key={r.id}
+            onClick={() => router.push(`/report?reportId=${r.id}`)}
+            className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+          >
+            역량 리포트{item.reports.length > 1 ? ` #${i + 1}` : ''}
+          </button>
+        ))}
         {item.hasDiagnosis && (
           <button
             onClick={() => router.push(`/diagnosis?resumeId=${item.id}`)}

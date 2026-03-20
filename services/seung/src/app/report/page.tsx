@@ -33,14 +33,14 @@ function ReportContent() {
 
   useEffect(() => {
     if (!reportId) {
-      router.replace('/resume')
+      router.replace('/dashboard')
       return
     }
 
     fetch(`/api/report?reportId=${reportId}`)
       .then((r) => {
         if (!r.ok) {
-          router.replace('/resume')
+          router.replace('/dashboard')
           return null
         }
         return r.json()
@@ -50,7 +50,7 @@ function ReportContent() {
         setReport(data)
       })
       .catch(() => {
-        router.replace('/resume')
+        router.replace('/dashboard')
       })
       .finally(() => {
         setLoading(false)
@@ -147,11 +147,6 @@ function ReportContent() {
               <p className="text-sm text-gray-700">{fb.feedback}</p>
             </div>
           ))}
-        </section>
-
-        {/* growthCurve 플레이스홀더 */}
-        <section className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm text-gray-400">성장 곡선은 추후 업데이트 예정입니다.</p>
         </section>
 
         {/* 홈으로 */}
