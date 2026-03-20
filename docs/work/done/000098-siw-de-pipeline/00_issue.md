@@ -50,4 +50,17 @@ Pipeline 1(#95)에서 수집·집계된 LLM 호출 데이터를 시각화하여
 | `tests/api/observability-route.test.ts` | API 테스트 7케이스 (신규) |
 | `tests/ui/observability-page.test.tsx` | UI 테스트 5케이스 (신규) |
 | `tests/e2e/observability-dashboard.spec.ts` | E2E 테스트 6케이스 (신규) |
+| `src/components/Sidebar.tsx` | `adminOnly` 필터 — 관리자만 "운영 현황" 메뉴 표시 |
+
+## AI 사용 비용 (Claude Code)
+
+| 항목 | 값 |
+|------|-----|
+| 총 비용 | **$25.35** |
+| API 소요 시간 | 1h 9m 51s |
+| 실제 작업 시간 | 3h 15m 20s |
+| 코드 변경 | +2,704 / -949 lines |
+| claude-sonnet-4-6 | $22.89 |
+| claude-haiku-4-5 | $0.39 |
+| claude-opus-4-6 | $2.07 |
 
