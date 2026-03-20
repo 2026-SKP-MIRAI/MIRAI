@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma, mockCallEngineParse, mockCallEngineQuestions, mockCreateClient } = vi.hoisted(() => ({
+const { mockPrisma, mockCallEngineAnalyze, mockCallEngineQuestions, mockCreateClient } = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       create: vi.fn(),
     },
   },
-  mockCallEngineParse: vi.fn(),
+  mockCallEngineAnalyze: vi.fn(),
   mockCallEngineQuestions: vi.fn(),
   mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
 vi.mock('@/lib/engine-client', () => ({
-  callEngineParse: mockCallEngineParse,
+  callEngineAnalyze: mockCallEngineAnalyze,
   callEngineQuestions: mockCallEngineQuestions,
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
@@ -46,8 +46,8 @@ describe('POST /api/resume/questions', () => {
     mockCreateClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
     })
-    mockCallEngineParse.mockResolvedValue(
-      makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100 })
+    mockCallEngineAnalyze.mockResolvedValue(
+      makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100, targetRole: '백엔드 개발자' })
     )
     mockCallEngineQuestions.mockResolvedValue(
       makeMockResponse(true, 200, { questions: DEFAULT_QUESTIONS, meta: DEFAULT_META })
@@ -70,17 +70,17 @@ describe('POST /api/resume/questions', () => {
     expect(response.status).toBe(500)
   })
 
-  it('/parse 네트워크 오류 → 500', async () => {
-    mockCallEngineParse.mockRejectedValueOnce(new Error('network error'))
+  it('/analyze 네트워크 오류 → 500', async () => {
+    mockCallEngineAnalyze.mockRejectedValueOnce(new Error('network error'))
     const formData = new FormData()
     formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
     const response = await POST(makeRequest(formData))
     expect(response.status).toBe(500)
   })
 
-  it('/parse 성공이지만 resumeText 누락 시 500 반환', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
-      makeMockResponse(true, 200, { extractedLength: 100 })
+  it('/analyze 성공이지만 resumeText 누락 시 500 반환', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { extractedLength: 100, targetRole: '백엔드 개발자' })
     )
     const formData = new FormData()
     formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
@@ -88,9 +88,9 @@ describe('POST /api/resume/questions', () => {
     expect(response.status).toBe(500)
   })
 
-  it('/parse 성공이지만 resumeText 공백만 있을 시 500 반환', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
-      makeMockResponse(true, 200, { resumeText: '   ', extractedLength: 0 })
+  it('/analyze 성공이지만 resumeText 공백만 있을 시 500 반환', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { resumeText: '   ', extractedLength: 0, targetRole: '백엔드 개발자' })
     )
     const formData = new FormData()
     formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
@@ -98,8 +98,8 @@ describe('POST /api/resume/questions', () => {
     expect(response.status).toBe(500)
   })
 
-  it('/parse 400 에러 그대로 전달', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 400 에러 그대로 전달', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(false, 400, { detail: '파일 오류' })
     )
     const formData = new FormData()
@@ -108,8 +108,8 @@ describe('POST /api/resume/questions', () => {
     expect(response.status).toBe(400)
   })
 
-  it('/parse 422 에러 그대로 전달', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 422 에러 그대로 전달', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(false, 422, { detail: '빈 PDF' })
     )
     const formData = new FormData()
@@ -189,7 +189,7 @@ describe('POST /api/resume/questions', () => {
     formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
     const response = await POST(makeRequest(formData))
     expect(response.status).toBe(401)
-    expect(mockCallEngineParse).not.toHaveBeenCalled()
+    expect(mockCallEngineAnalyze).not.toHaveBeenCalled()
   })
 
   it('DB 실패 시에도 엔진 결과 반환 (resumeId=null)', async () => {
@@ -211,5 +211,35 @@ describe('POST /api/resume/questions', () => {
     formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
     const response = await POST(makeRequest(formData))
     expect(response.status).toBe(502)
+  })
+
+  it('targetRole 정상값이면 callEngineQuestions에 전달', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100, targetRole: '프론트엔드 개발자' })
+    )
+    const formData = new FormData()
+    formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
+    await POST(makeRequest(formData))
+    expect(mockCallEngineQuestions).toHaveBeenCalledWith('extracted text', '프론트엔드 개발자')
+  })
+
+  it('targetRole이 "미지정"이면 callEngineQuestions에 생략', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100, targetRole: '미지정' })
+    )
+    const formData = new FormData()
+    formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
+    await POST(makeRequest(formData))
+    expect(mockCallEngineQuestions).toHaveBeenCalledWith('extracted text', undefined)
+  })
+
+  it('targetRole 필드 누락 시 callEngineQuestions에 생략', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
+      makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100 })
+    )
+    const formData = new FormData()
+    formData.append('file', new File(['pdf content'], 'resume.pdf', { type: 'application/pdf' }))
+    await POST(makeRequest(formData))
+    expect(mockCallEngineQuestions).toHaveBeenCalledWith('extracted text', undefined)
   })
 })
