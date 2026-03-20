@@ -57,10 +57,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
-  if (!session.sessionComplete) {
-    return NextResponse.json({ error: '면접이 아직 완료되지 않았습니다.' }, { status: 400 })
-  }
-
   // 이미 생성된 리포트가 있으면 재사용
   let existingReport: { id: string } | null
   try {

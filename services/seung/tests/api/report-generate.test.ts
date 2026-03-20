@@ -117,17 +117,24 @@ describe('POST /api/report/generate', () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('sessionComplete=false → 400 "면접이 아직 완료되지 않았습니다."', async () => {
+  it('sessionComplete=false여도 엔진 호출 → report.create → { reportId } (201)', async () => {
     mockPrisma.interviewSession.findUnique.mockResolvedValueOnce({
       ...mockSession,
       sessionComplete: false,
     })
+    mockPrisma.report.findFirst.mockResolvedValueOnce(null)
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockEngineResponse,
+    })
+    mockPrisma.report.create.mockResolvedValueOnce({ id: 'report-2' })
 
     const response = await POST(makeRequest({ sessionId: 'session-1' }))
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(201)
     const body = await response.json()
-    expect(body.error).toBe('면접이 아직 완료되지 않았습니다.')
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(body.reportId).toBe('report-2')
+    expect(mockFetch).toHaveBeenCalledOnce()
   })
 
   it('기존 Report 있음 → findFirst hit → 기존 reportId (200), mockFetch 미호출', async () => {

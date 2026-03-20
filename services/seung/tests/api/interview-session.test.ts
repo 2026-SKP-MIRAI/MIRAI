@@ -32,6 +32,7 @@ const mockSession = {
   currentPersonaLabel: 'HR 면접관',
   currentQuestionType: 'main',
   history: [],
+  questionsQueue: [{ persona: 'tech_lead', type: 'main' }, { persona: 'executive', type: 'main' }],
   sessionComplete: false,
   interviewMode: 'real',
 }
@@ -52,6 +53,8 @@ describe('GET /api/interview/session', () => {
     expect(body.currentQuestion).toBe('자기소개를 해주세요.')
     expect(body.currentPersona).toBe('hr')
     expect(body.sessionComplete).toBe(false)
+    // history=0, queue=2, sessionComplete=false → totalQuestions=3
+    expect(body.totalQuestions).toBe(3)
   })
 
   it('sessionId 누락 시 400 반환', async () => {

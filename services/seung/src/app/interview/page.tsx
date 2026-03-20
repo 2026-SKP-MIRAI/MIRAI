@@ -18,6 +18,7 @@ function InterviewContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [sessionComplete, setSessionComplete] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [totalQuestions, setTotalQuestions] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
@@ -34,7 +35,7 @@ function InterviewContent() {
 
   useEffect(() => {
     if (!sessionId) {
-      router.replace('/resume')
+      router.replace('/dashboard')
       return
     }
 
@@ -45,7 +46,7 @@ function InterviewContent() {
     fetch(`/api/interview/session?${new URLSearchParams({ sessionId })}`)
       .then((r) => {
         if (!r.ok) {
-          router.replace('/resume')
+          router.replace('/dashboard')
           return null
         }
         return r.json()
@@ -81,12 +82,13 @@ function InterviewContent() {
         }
         setMessages(initialMessages)
         setSessionComplete(data.sessionComplete ?? false)
+        setTotalQuestions(data.totalQuestions ?? 0)
         // URL param 없이 접근(새로고침 등)할 때 session DB 값으로 복원
         if (data.interviewMode === 'practice') setInterviewMode('practice')
         setLoading(false)
       })
       .catch(() => {
-        router.replace('/resume')
+        router.replace('/dashboard')
       })
   }, [sessionId, router, searchParams])
 
@@ -237,8 +239,14 @@ function InterviewContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
+      <header className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
         <h1 className="text-lg font-bold text-gray-900">MirAI — 패널 면접</h1>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          나가기
+        </button>
       </header>
       <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
         <InterviewChat
@@ -253,6 +261,7 @@ function InterviewContent() {
           onRetry={handleRetry}
           onNextQuestion={handleNextQuestion}
           practiceSubmitting={practiceSubmitting}
+          totalQuestions={totalQuestions}
         />
         {submitError && (
           <p role="alert" className="text-sm text-red-600 text-center px-4">

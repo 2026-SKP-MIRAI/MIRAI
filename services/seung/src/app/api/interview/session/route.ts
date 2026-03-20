@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     currentPersonaLabel: string
     currentQuestionType: string
     history: unknown
+    questionsQueue: unknown
     sessionComplete: boolean
     interviewMode: string
   } | null
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         currentPersonaLabel: true,
         currentQuestionType: true,
         history: true,
+        questionsQueue: true,
         sessionComplete: true,
         interviewMode: true,
       },
@@ -53,6 +55,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
+  const queue = Array.isArray(session.questionsQueue) ? session.questionsQueue : []
+  const historyLen = Array.isArray(session.history) ? (session.history as unknown[]).length : 0
+  const totalQuestions = historyLen + queue.length + (session.sessionComplete ? 0 : 1)
+
   return NextResponse.json({
     currentQuestion: session.currentQuestion,
     currentPersona: session.currentPersona,
@@ -61,5 +67,6 @@ export async function GET(request: NextRequest) {
     history: session.history as HistoryItem[],
     sessionComplete: session.sessionComplete,
     interviewMode: session.interviewMode,
+    totalQuestions,
   })
 }

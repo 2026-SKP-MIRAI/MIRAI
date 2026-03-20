@@ -144,6 +144,8 @@ export type DashboardResumeItem = {
   hasReport: boolean
   reportId: string | null
   hasDiagnosis: boolean
+  inProgressSessionId: string | null
+  reports: { id: string; sessionId: string; createdAt: string }[]
 }
 
 export type DashboardResponse = {

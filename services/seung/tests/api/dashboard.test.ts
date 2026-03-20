@@ -24,7 +24,9 @@ const mockResumes = [
     sessions: [
       {
         id: 'session-1',
-        report: { id: 'report-1' },
+        sessionComplete: true,
+        updatedAt: new Date('2026-01-01T10:00:00Z'),
+        report: { id: 'report-1', createdAt: new Date('2026-01-01T11:00:00Z') },
       },
     ],
   },
@@ -36,6 +38,23 @@ const mockResumes = [
     diagnosisResult: null,
     createdAt: new Date('2026-01-02T00:00:00Z'),
     sessions: [],
+  },
+  {
+    id: 'resume-3',
+    userId: 'user-1',
+    fileName: 'inprogress_resume.pdf',
+    resumeText: '진행 중인 면접이 있는 자소서입니다.',
+    questions: [],
+    diagnosisResult: null,
+    createdAt: new Date('2026-01-03T00:00:00Z'),
+    sessions: [
+      {
+        id: 'session-2',
+        sessionComplete: false,
+        updatedAt: new Date('2026-01-03T09:00:00Z'),
+        report: null,
+      },
+    ],
   },
 ]
 
@@ -56,8 +75,9 @@ describe('GET /api/dashboard', () => {
     expect(response.status).toBe(200)
 
     const body = await response.json()
-    expect(body.resumes).toHaveLength(2)
+    expect(body.resumes).toHaveLength(3)
 
+    // resume-1: 완료 세션 + 리포트 있음
     expect(body.resumes[0].id).toBe('resume-1')
     expect(body.resumes[0].sessionCount).toBe(1)
     expect(body.resumes[0].hasReport).toBe(true)
@@ -65,14 +85,55 @@ describe('GET /api/dashboard', () => {
     expect(body.resumes[0].hasDiagnosis).toBe(true)
     expect(body.resumes[0].createdAt).toBe('2026-01-01T00:00:00.000Z')
     expect(body.resumes[0].fileName).toBe('backend_resume.pdf')
+    expect(body.resumes[0].reports).toHaveLength(1)
+    expect(body.resumes[0].reports[0].id).toBe('report-1')
+    expect(body.resumes[0].inProgressSessionId).toBeNull()
 
+    // resume-2: 세션 없음
     expect(body.resumes[1].id).toBe('resume-2')
     expect(body.resumes[1].sessionCount).toBe(0)
     expect(body.resumes[1].hasReport).toBe(false)
     expect(body.resumes[1].reportId).toBeNull()
     expect(body.resumes[1].hasDiagnosis).toBe(false)
+    expect(body.resumes[1].reports).toHaveLength(0)
+    expect(body.resumes[1].inProgressSessionId).toBeNull()
     // fileName null → 폴백 문자열 생성 확인
     expect(body.resumes[1].fileName).toMatch(/^자소서/)
+
+    // resume-3: 진행 중 세션 있음
+    expect(body.resumes[2].id).toBe('resume-3')
+    expect(body.resumes[2].inProgressSessionId).toBe('session-2')
+    expect(body.resumes[2].reports).toHaveLength(0)
+  })
+
+  it('sessionComplete=false이지만 리포트가 있는 세션도 inProgressSessionId에 포함된다', async () => {
+    const mockResumesWithEarlyReport = [
+      {
+        id: 'resume-4',
+        userId: 'user-1',
+        fileName: 'early_report_resume.pdf',
+        resumeText: '조기 리포트가 생성된 진행 중 세션입니다.',
+        questions: [],
+        diagnosisResult: null,
+        createdAt: new Date('2026-01-04T00:00:00Z'),
+        sessions: [
+          {
+            id: 'session-3',
+            sessionComplete: false,
+            updatedAt: new Date('2026-01-04T09:00:00Z'),
+            report: { id: 'report-2', createdAt: new Date('2026-01-04T10:00:00Z') },
+          },
+        ],
+      },
+    ]
+    mockPrisma.resume.findMany.mockResolvedValueOnce(mockResumesWithEarlyReport)
+
+    const response = await GET()
+    const body = await response.json()
+
+    expect(body.resumes[0].inProgressSessionId).toBe('session-3')
+    expect(body.resumes[0].reports).toHaveLength(1)
+    expect(body.resumes[0].reports[0].id).toBe('report-2')
   })
 
   it('미인증 → 401', async () => {
