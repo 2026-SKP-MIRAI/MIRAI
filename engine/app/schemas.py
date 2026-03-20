@@ -218,7 +218,7 @@ class AnalyzeResponse(BaseModel):
 
 class EmbedRequest(BaseModel):
     texts: list[str] = Field(..., min_length=1, max_length=100)
-    model: str = "text-embedding-004"
+    model: str = "baai/bge-m3"
 
 
 class EmbedResponse(BaseModel):

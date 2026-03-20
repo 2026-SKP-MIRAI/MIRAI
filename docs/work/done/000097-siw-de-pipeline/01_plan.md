@@ -62,7 +62,7 @@
 | 변수 | 용도 | 기본값 |
 |------|------|--------|
 | `ENABLE_RAG` | RAG 기능 활성화 플래그 | 미설정 시 기존 흐름 |
-| `GEMINI_API_KEY` | Gemini Embedding API 키 | engine 환경변수 |
+| `OPENROUTER_API_KEY` | LLM + 임베딩(`baai/bge-m3`) 통합 키 | engine 환경변수 (기존) |
 
 ---
 
@@ -157,10 +157,11 @@ class EmbedResponse(BaseModel):
 
 **embedding_service.py**:
 ```python
-def get_embeddings(texts: list[str], model: str = "text-embedding-004") -> tuple[list[list[float]], UsageInfo | None]:
-    # Gemini text-embedding-004 (768차원)
-    # GEMINI_API_KEY 환경변수 사용 (config.py에서 읽기)
-    # 반환된 임베딩 차원 검증: assert len(emb) == 768
+def get_embeddings(texts: list[str], model: str = "baai/bge-m3") -> tuple[list[list[float]], None]:
+    # baai/bge-m3 (OpenRouter) — 1024차원
+    # OPENROUTER_API_KEY 환경변수 사용 (기존 LLM 키 재사용)
+    # openai SDK — base_url="https://openrouter.ai/api/v1"
+    # 반환된 임베딩 차원 검증: if len(emb) != 1024: raise ValueError
     # 배치 처리: texts 그대로 전달 (최대 100개 제한은 schema에서)
 ```
 
@@ -169,7 +170,7 @@ def get_embeddings(texts: list[str], model: str = "text-embedding-004") -> tuple
 - `app.include_router(embed_router, prefix="/api")`
 
 **검증 기준**:
-- [ ] `POST /api/embed {"texts": ["hello"]}` → 200 + `embeddings: [[...768 floats]]`
+- [ ] `POST /api/embed {"texts": ["hello"]}` → 200 + `embeddings: [[...1024 floats]]`
 - [ ] texts 빈 배열 → 400
 - [ ] texts 100개 초과 → 400
 - [ ] 기존 `/api/resume/*`, `/api/interview/*` 등 엔드포인트 영향 없음
@@ -345,7 +346,7 @@ CREATE TABLE IF NOT EXISTS job_posting_embeddings (
   company       TEXT NOT NULL,
   role_category TEXT NOT NULL,        -- 정규화된 직무 대분류 (role-normalizer.ts와 동일 값)
   skills        TEXT[] NOT NULL,       -- 추출된 기술 스택
-  embedding     vector(768) NOT NULL,  -- Gemini text-embedding-004
+  embedding     vector(1024) NOT NULL, -- baai/bge-m3 (OpenRouter)
   source_url    TEXT,
   crawled_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
