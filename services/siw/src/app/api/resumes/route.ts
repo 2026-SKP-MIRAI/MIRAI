@@ -8,7 +8,7 @@ import { withEventLogging } from "@/lib/observability/event-logger"
 import { normalizeRole } from "@/lib/role-normalizer"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 300
 
 const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000"
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
         method: "POST",
         body: engineParseForm,
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(180000),
       });
       if (!parseResp.ok) {
         const body = await parseResp.json().catch(() => ({ detail: "" }));

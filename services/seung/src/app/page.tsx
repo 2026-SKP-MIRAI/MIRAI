@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
 
 /**
- * 루트(/)는 MVP 명세(docs/specs/mvp/dev_spec.md §7-2)에 따라
- * 자소서·질문 생성 플로우 진입 경로인 /resume로 리다이렉트.
+ * 루트(/)는 로그인 후 대시보드 진입 경로인 /dashboard로 리다이렉트.
+ * (이슈 #157 — 미인증 시 middleware가 /login으로 보냄)
  */
 export default function Home() {
-  redirect('/resume')
+  redirect('/dashboard')
 }

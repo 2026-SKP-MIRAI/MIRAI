@@ -8,9 +8,9 @@ from app.services.llm_client import call_llm as _call_llm, parse_object as _pars
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 PERSONA_LABELS = {"hr": "HR 담당자", "tech_lead": "기술팀장", "executive": "경영진"}
 PERSONA_PROMPTS = {
-    "hr": "interview_hr_v1.md",
-    "tech_lead": "interview_tech_lead_v1.md",
-    "executive": "interview_executive_v1.md",
+    "hr": "interview_hr_v2.md",
+    "tech_lead": "interview_tech_lead_v2.md",
+    "executive": "interview_executive_v2.md",
 }
 
 MAX_TURNS = 10
@@ -54,7 +54,7 @@ def _check_followup(
     model: str | None = None,
 ) -> tuple[dict, UsageInfo | None, str]:
     """followup 필요 여부를 LLM으로 판단. (dict, usage, model) 반환."""
-    prompt_file = PROMPT_DIR / "interview_followup_v1.md"
+    prompt_file = PROMPT_DIR / "interview_followup_v2.md"
     prompt_template = prompt_file.read_text(encoding="utf-8")
     persona_context = PERSONA_LABELS.get(persona, persona)
     prompt = (

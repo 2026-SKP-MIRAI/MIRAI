@@ -136,7 +136,7 @@ function DiagnosisContent() {
         {/* 홈으로 */}
         <div className="flex justify-center pb-8">
           <button
-            onClick={() => router.push('/resume')}
+            onClick={() => router.push('/dashboard')}
             className="rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-700"
           >
             홈으로

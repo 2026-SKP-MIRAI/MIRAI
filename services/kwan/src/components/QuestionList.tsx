@@ -6,7 +6,7 @@ import type { Category, Question } from '@/domain/interview/types'
 
 interface Props {
   questions: Question[]
-  resumeId: string
+  resumeId: string | null
   onReset: () => void
 }
 
@@ -18,6 +18,7 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   async function handleInterviewStart() {
+    if (!resumeId) return
     setIsStarting(true)
     setErrorMsg(null)
     try {
@@ -83,7 +84,7 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
       <div className="flex gap-3 mt-2">
         <button
           onClick={handleInterviewStart}
-          disabled={isStarting}
+          disabled={isStarting || !resumeId}
           className="py-2 px-6 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isStarting ? '면접 준비 중...' : '면접 시작'}
