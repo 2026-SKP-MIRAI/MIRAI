@@ -1,7 +1,7 @@
 # MirAI 개발 명세서
 
 > **기준 문서:** `MirAI_proposal.md` §2-2 서비스 7가지 핵심 기능
-> **최종 업데이트:** 2026-03-12
+> **최종 업데이트:** 2026-03-20
 
 ---
 
@@ -30,7 +30,7 @@
 | **타입 시스템** | Pydantic v2 (`schemas.py`) | 요청·응답 모델 |
 | **설정 관리** | pydantic-settings (`config.py`) | 환경변수 |
 | **AI** | `openai` Python SDK (OpenRouter 호환) | LLM 호출 (`app/services/`에서만) |
-| **PDF 처리** | PyMuPDF (`fitz`) | 텍스트 추출 (`app/parsers/`에서만) |
+| **PDF 처리** | PyMuPDF (`fitz`) + Tesseract OCR fallback | 텍스트 추출 (`app/parsers/`에서만) — 이미지 PDF는 OCR fallback (dpi=300, eng+kor) |
 | **테스트** | pytest | 단위·통합 테스트 |
 
 ### 서비스 (services/ — Next.js, TypeScript)
@@ -103,22 +103,85 @@
 
 **시스템 흐름:**
 ```
+[1단계: 분석]
 PDF 업로드
-  → POST /api/resume/questions (Next.js 서비스)
-  → HTTP REST → FastAPI 엔진
+  → POST /api/resume/analyze (Next.js 서비스 → FastAPI 엔진)
   → engine/app/parsers/: PDF → 텍스트 추출 (PyMuPDF)
-  → engine/app/services/: 텍스트 → 맞춤 질문 생성 (Claude)
-  → 결과 화면: 카테고리별 질문 리스트
+      이미지 PDF → Tesseract OCR fallback (dpi=300, eng+kor)
+  → engine/app/services/: resumeText → targetRole 추론 (LLM)
+  → 결과: { resumeText, extractedLength, targetRole }
+
+[2단계: 질문 + 피드백 — 서비스 레이어에서 병렬 호출]
+사용자가 targetRole 확인/수정
+  → POST /api/resume/questions  (JSON: resumeText + targetRole?)  ┐ Next.js 서비스가
+  → POST /api/resume/feedback   (JSON: resumeText + targetRole?)  ┘ 병렬 호출
+  → 결과 화면: 카테고리별 질문 리스트 + 서류 피드백
 ```
 
-**API: POST /api/resume/questions**
+> 병렬 호출은 서비스(Next.js) 레이어의 오케스트레이션 패턴. 엔진은 각 요청을 독립적으로 처리.
 
-요청: `multipart/form-data`, `file` (PDF, 최대 5MB / 10페이지 권장)
+**API: POST /api/resume/parse**
+
+요청: `multipart/form-data`, `file` (PDF, 최대 5MB / 10페이지)
 
 응답 (200):
 ```json
 {
-  "resumeId": "resume-abc123",  // TODO: DB 도입(Phase 3) 후 활성화. 현재 구현에서는 미포함.
+  "resumeText": "...",
+  "extractedLength": 3200
+}
+```
+
+에러: `400` 파일 없음/비PDF/크기 초과/페이지 초과, `422` 빈 PDF/이미지 전용 PDF (OCR 실패), `500` 예기치 않은 오류
+
+> 이미지 전용 PDF는 Tesseract OCR fallback 자동 시도. 성공 시 200, OCR 실패 시 422.
+
+**API: POST /api/resume/analyze** *(#113)*
+
+요청: `multipart/form-data`, `file` (PDF, 최대 5MB / 10페이지)
+
+응답 (200):
+```json
+{
+  "resumeText": "...",
+  "extractedLength": 3200,
+  "targetRole": "백엔드 개발자"
+}
+```
+
+에러: `400` 파일 없음/비PDF/크기 초과/페이지 초과, `422` 빈 PDF/OCR 실패, `500` LLM 오류
+
+- targetRole 추론 불가 시 `"미지정"` 반환 — 에러 아님 (200 OK)
+- **⚠️ 타임아웃 주의:** 내부 LLM timeout=15s. 클라이언트 fetch timeout은 30s 이상 권장.
+
+**API: POST /api/resume/target-role** *(#113)*
+
+요청:
+```json
+{ "resumeText": "..." }
+```
+(resumeText min 1자, max 50,000자)
+
+응답 (200):
+```json
+{ "targetRole": "백엔드 개발자" }
+```
+
+에러: `400` resumeText 누락/빈값/50,000자 초과, `500` LLM 오류
+
+- 추론 불가 시 `"미지정"` 반환 — 에러 아님 (200 OK)
+
+**API: POST /api/resume/questions**
+
+요청:
+```json
+{ "resumeText": "...", "targetRole": "백엔드 개발자" }
+```
+(resumeText min 1자·max 50,000자 / targetRole max 100자, 선택)
+
+응답 (200):
+```json
+{
   "questions": [
     { "category": "직무 역량", "question": "OO 프로젝트에서 담당한 역할과 결과를 설명해 주세요." },
     { "category": "경험의 구체성", "question": "해당 경험에서 갈등이 있었다면 어떻게 해결했나요?" }
@@ -130,7 +193,9 @@ PDF 업로드
 }
 ```
 
-에러: `400` 파일 없음/비PDF/크기 초과/손상·암호화 PDF, `422` 빈 PDF/이미지 전용 PDF, `500` Claude API 오류/예기치 않은 파싱 오류 (한국어 메시지)
+에러: `400` resumeText 누락/빈값/50,000자 초과, targetRole 100자 초과 / `500` LLM 오류
+
+- targetRole 전달 시 해당 직무 맞춤 질문 생성, 미입력 시 resume 내용 기반 자체 생성
 
 **Claude 프롬프트 지침:**
 - 역할: "자소서 기반 면접 예상 질문 생성 전문가"
@@ -138,12 +203,24 @@ PDF 업로드
 - 카테고리당 2~5개, 총 8~20개
 - 자소서에 없는 내용은 질문하지 않음
 - 출력: JSON 배열 `[{ "category": "...", "question": "..." }]`
+- `targetRole`이 전달되면 해당 직무 맞춤 질문 생성에 반영 (미전달 시 자소서 내용 기반 자체 추론)
+- `resumeText`는 16,000자 초과 시 앞에서 절삭하여 프롬프트에 주입
+- 질문 생성 결과가 8개 미만이면 LLMError → 500 응답
 
-**화면 상태:** `idle` → `uploading` → `processing` → `done` / `error`
+**화면 상태:**
+```
+[1단계] idle → uploading → analyzing → role-confirm
+[2단계] role-confirm → generating → done / error
+```
+- `analyzing`: /analyze 호출 중 (PDF 파싱 + targetRole 추론)
+- `role-confirm`: 사용자 targetRole 확인/수정
+- `generating`: /questions ∥ /feedback 병렬 호출 중
 
 **1차 출시 제외 항목:** 회원가입·결제·DB 저장·Supabase Storage 파일 저장(Week 2 도입)·꼬리질문·페르소나·8축 평가·오디오
 
 > Week 1 MVP에서 PDF는 멀티파트 업로드 후 서버 메모리에서 직접 파싱. Supabase Storage 저장은 Week 2 Beta에 추가.
+
+> **Dockerfile 시스템 패키지:** `tesseract-ocr`, `tesseract-ocr-kor` 설치 필요 (이미지 PDF OCR fallback용)
 
 ---
 
@@ -162,8 +239,11 @@ PDF 업로드
 
 요청:
 ```json
-{ "resumeText": "...", "targetRole": "백엔드 개발자" }
+{ "resumeText": "...", "targetRole?": "..." }
 ```
+(resumeText min 1자·max 50,000자 / targetRole max 100자, 선택 — 미입력·빈값(`""`) 시 `"미지정 직무"`로 처리)
+
+에러: `400` resumeText 누락/빈값/50,000자 초과, targetRole 100자 초과 / `500` LLM 오류·JSON 파싱 실패
 
 응답 (200):
 ```json
@@ -188,6 +268,13 @@ PDF 업로드
 - 5개 항목 각 0~100점 산출
 - 강점 2~3개, 약점 2~3개, 섹션별 구체 개선 제안 포함
 - 한국어 출력, 면접관 시각 유지
+- timeout: 30s, max_tokens: 2048
+- `targetRole` 전달 시 해당 직무 기준 평가, 미입력 시 `"미지정 직무"` 기준
+- `resumeText`는 16,000자 초과 시 앞에서 절삭
+- scores 엄격 검증: 5개 키(specificity·achievementClarity·logicStructure·roleAlignment·differentiation) 중 하나라도 누락/null → 500 (`ResumeFeedbackParseError`). silent fallback 없음
+- scores 범위 검증: 0 미만 또는 100 초과 → 500. clamp 보정 없음
+- strengths·weaknesses 최소 2개, 최대 3개 보장. 2개 미만 시 500
+- suggestions 최소 1개 보장. 빈 배열 시 500
 
 ---
 

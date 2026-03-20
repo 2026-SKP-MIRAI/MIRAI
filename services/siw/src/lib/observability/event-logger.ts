@@ -6,13 +6,36 @@ export interface LLMEvent {
   timestamp: string;
   feature_type:
     | "interview_start" | "interview_answer" | "interview_followup"
-    | "report_generate" | "resume_parse" | "resume_questions" | "practice_feedback";
+    | "report_generate" | "resume_parse" | "resume_questions" | "resume_feedback" | "practice_feedback";
   mode: "interview" | "practice" | "resume";
   latency_ms: number;
   success: boolean;
   error_type?: string;
   session_id?: string | null;
   retry_count?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  model?: string;
+}
+
+export interface EngineUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  model?: string;
+}
+
+const MODEL_COST_PER_1K: Record<string, { input: number; output: number }> = {
+  "google/gemini-2.5-flash": { input: 0.00015, output: 0.0006 },
+};
+
+export function estimateCostUsd(
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+): number {
+  const cost = MODEL_COST_PER_1K[model];
+  if (!cost) return 0.0;
+  return (promptTokens / 1000) * cost.input + (completionTokens / 1000) * cost.output;
 }
 
 const FEATURE_MODE: Record<LLMEvent["feature_type"], LLMEvent["mode"]> = {
@@ -23,10 +46,12 @@ const FEATURE_MODE: Record<LLMEvent["feature_type"], LLMEvent["mode"]> = {
   practice_feedback:  "practice",
   resume_parse:       "resume",
   resume_questions:   "resume",
+  resume_feedback:    "resume",
 };
 
 export interface LLMEventMeta {
   retry_count: number;
+  usage?: EngineUsage;
 }
 
 let s3Client: S3Client | null = null;
@@ -71,7 +96,7 @@ export async function withEventLogging<T>(
   const meta: LLMEventMeta = { retry_count: 0 };
   const start = Date.now();
   try {
-    const result = await fn(meta);
+    const data = await fn(meta);
     await logLLMEvents([{
       timestamp: new Date().toISOString(),
       feature_type: featureType,
@@ -80,8 +105,11 @@ export async function withEventLogging<T>(
       success: true,
       session_id: sessionId,
       retry_count: meta.retry_count,
+      prompt_tokens: meta.usage?.prompt_tokens,
+      completion_tokens: meta.usage?.completion_tokens,
+      model: meta.usage?.model,
     }]);
-    return result;
+    return data;
   } catch (err) {
     await logLLMEvents([{
       timestamp: new Date().toISOString(),

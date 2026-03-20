@@ -7,6 +7,7 @@ import {
   FileText,
   MessageSquare,
   TrendingUp,
+  Activity,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -20,6 +21,7 @@ type NavItem = {
   href: string
   icon: React.ElementType
   activeCheck: (pathname: string) => boolean
+  adminOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -47,6 +49,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: TrendingUp,
     activeCheck: (p) => p === "/growth",
   },
+  {
+    label: "운영 현황",
+    href: "/dashboard/observability",
+    icon: Activity,
+    activeCheck: (p) => p.startsWith("/dashboard/observability"),
+    adminOnly: true,
+  },
 ]
 
 export default function Sidebar() {
@@ -56,12 +65,14 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userName, setUserName] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserEmail(user?.email ?? null)
       setUserName(user?.user_metadata?.full_name ?? null)
+      setIsAdmin((user?.app_metadata as { role?: string })?.role === "admin")
     })
   }, [])
 
@@ -92,7 +103,7 @@ export default function Sidebar() {
 
       {/* 네비게이션 */}
       <nav className="flex-1 overflow-y-auto pb-2" style={{ scrollbarWidth: "none" }}>
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
           const active = item.activeCheck(pathname)
           return (
             <Link

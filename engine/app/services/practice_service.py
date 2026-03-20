@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 from app.parsers.exceptions import LLMError, PracticeParseError
-from app.schemas import PracticeFeedbackResponse, FeedbackDetail, ComparisonDelta
-from app.services.llm_client import call_llm, strip_code_block
+from app.schemas import PracticeFeedbackResponse, FeedbackDetail, ComparisonDelta, UsageMetadata
+from app.services.llm_client import call_llm, strip_code_block, UsageInfo
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -78,21 +78,32 @@ def _parse_feedback(raw: str, *, is_retry: bool = False) -> PracticeFeedbackResp
     )
 
 
+def _usage_to_metadata(usage: UsageInfo | None, model: str) -> UsageMetadata | None:
+    if usage is None:
+        return None
+    return UsageMetadata(
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        model=model,
+    )
+
+
 def generate_practice_feedback(
     question: str,
     answer: str,
     previous_answer: str | None = None,
     *,
     model: str | None = None,
-) -> PracticeFeedbackResponse:
+) -> tuple[PracticeFeedbackResponse, UsageMetadata | None]:
     is_retry = previous_answer is not None
     prompt = _build_retry_prompt(question, previous_answer, answer) if is_retry \
              else _build_prompt(question, answer)
-    raw = call_llm(
+    result = call_llm(
         prompt,
         model=model,
         timeout=30.0,
         max_tokens=2048,
         error_message="연습 피드백 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     )
-    return _parse_feedback(raw, is_retry=is_retry)
+    return _parse_feedback(result.content, is_retry=is_retry), _usage_to_metadata(result.usage, result.model)

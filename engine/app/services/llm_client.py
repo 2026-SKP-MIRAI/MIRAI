@@ -1,9 +1,24 @@
 import json
+from dataclasses import dataclass
 from openai import OpenAI
 from app.config import settings
 from app.parsers.exceptions import LLMError
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+@dataclass
+class UsageInfo:
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
+@dataclass
+class LLMResult:
+    content: str
+    usage: UsageInfo | None
+    model: str
 
 
 def strip_code_block(raw: str) -> str:
@@ -23,7 +38,7 @@ def call_llm(
     timeout: float = 30.0,
     max_tokens: int = 2048,
     error_message: str = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-) -> str:
+) -> LLMResult:
     client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=settings.openrouter_api_key)
     resolved_model = model or settings.openrouter_model
     try:
@@ -36,7 +51,13 @@ def call_llm(
         content = response.choices[0].message.content
         if content is None:
             raise LLMError(error_message)
-        return content
+        raw_usage = response.usage
+        usage = UsageInfo(
+            prompt_tokens=raw_usage.prompt_tokens,
+            completion_tokens=raw_usage.completion_tokens,
+            total_tokens=raw_usage.total_tokens,
+        ) if raw_usage else None
+        return LLMResult(content=content, usage=usage, model=resolved_model)
     except LLMError:
         raise
     except Exception as e:

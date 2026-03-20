@@ -1,6 +1,13 @@
 from typing import Literal
 from pydantic import BaseModel, Field
 
+
+class UsageMetadata(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    model: str
+
 FeedbackType = Literal["strength", "improvement"]
 
 Category = Literal["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"]
@@ -34,6 +41,7 @@ class Meta(BaseModel):
 class QuestionsResponse(BaseModel):
     questions: list[QuestionItem]
     meta: Meta
+    usage: UsageMetadata | None = None
 
 
 PersonaType = Literal["hr", "tech_lead", "executive"]
@@ -68,6 +76,7 @@ class InterviewStartRequest(BaseModel):
 class InterviewStartResponse(BaseModel):
     firstQuestion: QuestionWithPersona
     questionsQueue: list[QueueItem]
+    usage: UsageMetadata | None = None
 
 
 class InterviewAnswerRequest(BaseModel):
@@ -83,6 +92,7 @@ class InterviewAnswerResponse(BaseModel):
     nextQuestion: QuestionWithPersona | None = None
     updatedQueue: list[QueueItem]
     sessionComplete: bool
+    usage: UsageMetadata | None = None
 
 
 class FollowupRequest(BaseModel):
@@ -96,6 +106,7 @@ class FollowupResponse(BaseModel):
     followupType: FollowupType
     followupQuestion: str
     reasoning: str
+    usage: UsageMetadata | None = None
 
 
 class AxisScores(BaseModel):
@@ -128,6 +139,7 @@ class ReportResponse(BaseModel):
     summary:       str
     axisFeedbacks: list[AxisFeedback] = Field(..., min_length=8, max_length=8)
     growthCurve:   None = None
+    usage:         UsageMetadata | None = None
 
 
 # --- 연습 모드 피드백 ---
@@ -154,6 +166,7 @@ class PracticeFeedbackResponse(BaseModel):
     keywords:            list[str]               = Field(..., min_length=1, max_length=5)
     improvedAnswerGuide: str                     = Field(..., min_length=1)
     comparisonDelta:     ComparisonDelta | None  = None
+    usage:               UsageMetadata | None    = None
 
 
 # --- 이력서·자소서 피드백 ---
@@ -182,6 +195,7 @@ class ResumeFeedbackResponse(BaseModel):
     strengths:   list[str] = Field(..., min_length=2, max_length=3)
     weaknesses:  list[str] = Field(..., min_length=2, max_length=3)
     suggestions: list[SuggestionItem] = Field(..., min_length=1)
+    usage:       UsageMetadata | None = None
 
 
 # --- targetRole 추출 ---

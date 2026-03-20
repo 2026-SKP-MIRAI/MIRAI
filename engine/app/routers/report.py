@@ -7,4 +7,6 @@ router = APIRouter()
 
 @router.post("/report/generate", response_model=ReportResponse)
 async def generate_report_endpoint(body: ReportRequest):
-    return generate_report(body.resumeText, body.history)
+    data, usage = generate_report(body.resumeText, body.history)
+    data.usage = usage
+    return data

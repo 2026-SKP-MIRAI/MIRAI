@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/practice/feedback";
 
   try {
-    const data = await withEventLogging('practice_feedback', null, async () => {
+    const data = await withEventLogging('practice_feedback', null, async (meta) => {
       const engineRes = await fetch(engineUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       const d = await engineRes.json();
       if (!engineRes.ok)
         throw Object.assign(new Error("engine_practice_failed"), { data: d, status: engineRes.status });
+      if (d.usage) meta.usage = d.usage;
       return d;
     });
     return Response.json(data, { status: 200 });

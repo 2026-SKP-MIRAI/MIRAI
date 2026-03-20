@@ -47,14 +47,22 @@ def aggregate_metrics(ds: str, **kwargs):
     for e in events:
         ft = e.get("feature_type", "unknown")
         if ft not in stats:
-            stats[ft] = {"call_count": 0, "sum_latency_ms": 0, "error_count": 0}
+            stats[ft] = {"call_count": 0, "sum_latency_ms": 0, "error_count": 0,
+                         "sum_prompt_tokens": 0, "sum_completion_tokens": 0}
         stats[ft]["call_count"] += 1
         stats[ft]["sum_latency_ms"] += e.get("latency_ms", 0)
         if not e.get("success", True):
             stats[ft]["error_count"] += 1
+        stats[ft]["sum_prompt_tokens"] += e.get("prompt_tokens", 0)
+        stats[ft]["sum_completion_tokens"] += e.get("completion_tokens", 0)
     result = []
     for ft, s in stats.items():
         cnt = s["call_count"]
+        total_tokens = s["sum_prompt_tokens"] + s["sum_completion_tokens"]
+        estimated_cost_usd = round(
+            (s["sum_prompt_tokens"] / 1000) * 0.00015 +
+            (s["sum_completion_tokens"] / 1000) * 0.0006, 6
+        )
         result.append({
             "date": ds,
             "feature_type": ft,
@@ -62,6 +70,10 @@ def aggregate_metrics(ds: str, **kwargs):
             "avg_latency_ms": round(s["sum_latency_ms"] / cnt, 2) if cnt else 0.0,
             "error_count": s["error_count"],
             "error_rate": round(s["error_count"] / cnt, 4) if cnt else 0.0,
+            "total_tokens": total_tokens,
+            "estimated_cost_usd": estimated_cost_usd,
+            "prompt_tokens": s["sum_prompt_tokens"],
+            "completion_tokens": s["sum_completion_tokens"],
         })
     kwargs["ti"].xcom_push(key="metrics", value=result)
     logger.info(f"Aggregated metrics: {result}")
@@ -80,16 +92,24 @@ def load_to_db(ds: str, **kwargs):
         with conn, conn.cursor() as cur:
             for row in metrics:
                 cur.execute("""
-                    INSERT INTO analytics.llm_events_daily (date, feature_type, call_count, avg_latency_ms, error_count, error_rate, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, now())
+                    INSERT INTO analytics.llm_events_daily
+                      (date, feature_type, call_count, avg_latency_ms, error_count, error_rate,
+                       total_tokens, estimated_cost_usd, prompt_tokens, completion_tokens, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
                     ON CONFLICT (date, feature_type) DO UPDATE SET
                       call_count = EXCLUDED.call_count,
                       avg_latency_ms = EXCLUDED.avg_latency_ms,
                       error_count = EXCLUDED.error_count,
                       error_rate = EXCLUDED.error_rate,
+                      total_tokens = EXCLUDED.total_tokens,
+                      estimated_cost_usd = EXCLUDED.estimated_cost_usd,
+                      prompt_tokens = EXCLUDED.prompt_tokens,
+                      completion_tokens = EXCLUDED.completion_tokens,
                       updated_at = now()
                 """, (row["date"], row["feature_type"], row["call_count"],
-                      row["avg_latency_ms"], row["error_count"], row["error_rate"]))
+                      row["avg_latency_ms"], row["error_count"], row["error_rate"],
+                      row["total_tokens"], row["estimated_cost_usd"],
+                      row["prompt_tokens"], row["completion_tokens"]))
     finally:
         conn.close()
     logger.info(f"Loaded {len(metrics)} rows for {ds}")

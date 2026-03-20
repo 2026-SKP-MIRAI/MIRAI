@@ -15,6 +15,9 @@ def mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
@@ -36,6 +39,7 @@ async def test_generate_report_200_returns_8_axes():
     data = resp.json()
     assert "scores" in data
     assert len(data["axisFeedbacks"]) == 8
+    assert "usage" in data
 
 
 @pytest.mark.asyncio

@@ -176,6 +176,7 @@ describe('POST /api/resume/questions', () => {
         resumeText: 'extracted text',
         questions: [],
         userId: 'user-1',
+        fileName: 'resume.pdf',
       },
     })
   })

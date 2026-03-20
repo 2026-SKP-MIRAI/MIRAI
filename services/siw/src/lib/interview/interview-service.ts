@@ -17,7 +17,7 @@ export const interviewService = {
     const resume = await resumeRepository.findById(resumeId);
     const resumeText = resume.resumeText;
     const engineText = resumeText.slice(0, 1200);
-    const resp = await withEventLogging('interview_start', null, async (meta) => {
+    const parsed = await withEventLogging('interview_start', null, async (meta) => {
       let r: Response | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         meta.retry_count = attempt;
@@ -31,9 +31,10 @@ export const interviewService = {
         if (attempt < 2) await new Promise(res => setTimeout(res, 1000));
       }
       if (!r?.ok) throw new Error("engine_start_failed");
-      return r;
+      const d = await r.json();
+      if (d.usage) meta.usage = d.usage;
+      return EngineStartResponseSchema.parse(d);
     });
-    const parsed = EngineStartResponseSchema.parse(await resp.json());
 
     const sessionId = await interviewRepository.create({
       resumeText,
@@ -79,7 +80,9 @@ export const interviewService = {
           if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
         }
         if (!resp?.ok) throw new Error("engine_answer_failed");
-        return EngineAnswerResponseSchema.parse(await resp.json());
+        const d = await resp.json();
+        if (d.usage) meta.usage = d.usage;
+        return EngineAnswerResponseSchema.parse(d);
       });
       await interviewRepository.saveEngineResult(sessionId, engineResult);
     }
@@ -114,7 +117,7 @@ export const interviewService = {
 
   async followup(sessionId: string, question: string, answer: string, persona: PersonaType) {
     const { resumeText } = await interviewRepository.findById(sessionId);
-    const resp = await withEventLogging('interview_followup', sessionId, async () => {
+    const resp = await withEventLogging('interview_followup', sessionId, async (meta) => {
       const r = await fetch(`${ENGINE_BASE_URL}/api/interview/followup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,7 +125,9 @@ export const interviewService = {
         signal: AbortSignal.timeout(30000),
       });
       if (!r.ok) throw new Error("engine_followup_failed");
-      return r.json();
+      const d = await r.json();
+      if (d.usage) meta.usage = d.usage;
+      return d;
     });
     return resp;
   },
