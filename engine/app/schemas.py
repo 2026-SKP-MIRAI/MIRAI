@@ -212,3 +212,16 @@ class AnalyzeResponse(BaseModel):
     resumeText: str
     extractedLength: int
     targetRole: str = Field(..., max_length=100)
+
+
+# --- 임베딩 ---
+
+class EmbedRequest(BaseModel):
+    texts: list[str] = Field(..., min_length=1, max_length=100)
+    model: str = "baai/bge-m3"
+
+
+class EmbedResponse(BaseModel):
+    embeddings: list[list[float]]
+    model: str
+    usage: UsageMetadata | None = None

@@ -5,6 +5,7 @@ import { uploadResumePdf } from "@/lib/resume-storage"
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages"
 import { cookies } from "next/headers"
 import { withEventLogging } from "@/lib/observability/event-logger"
+import { normalizeRole } from "@/lib/role-normalizer"
 
 export const runtime = "nodejs"
 export const maxDuration = 300
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
       resumeText,
       questions: engineData.questions ?? [],
       feedbackJson: feedbackJson ?? null,
+      inferredTargetRole: normalizeRole(targetRole),
     })
 
     return NextResponse.json({ ...engineData, resumeId })

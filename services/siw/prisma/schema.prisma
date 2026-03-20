@@ -23,6 +23,7 @@ model Resume {
   interviewSessions InterviewSession[]
 
   @@index([userId])
+  @@index([inferredTargetRole])
   @@map("resumes")
 }
 

@@ -17,7 +17,10 @@ export async function GET(
   const { id } = await params
   try {
     const resume = await resumeRepository.findDetailById(id, user.id)
-    return NextResponse.json(resume.feedbackJson ?? null)
+    return NextResponse.json({
+      feedback: resume.feedbackJson ?? null,
+      trendComparison: null,
+    })
   } catch {
     return NextResponse.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 })
   }

@@ -37,7 +37,7 @@ describe("GET /api/resumes/[id]/feedback", () => {
     const res = await GET(new Request("http://localhost/api/resumes/resume-1/feedback"), { params: Promise.resolve({ id: "resume-1" }) })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toEqual(feedbackData)
+    expect(body).toEqual({ feedback: feedbackData, trendComparison: null })
   })
 
   it("200+null — feedbackJson=null일 때 null 반환", async () => {
@@ -48,7 +48,7 @@ describe("GET /api/resumes/[id]/feedback", () => {
     const res = await GET(new Request("http://localhost/api/resumes/resume-1/feedback"), { params: Promise.resolve({ id: "resume-1" }) })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toBeNull()
+    expect(body).toEqual({ feedback: null, trendComparison: null })
   })
 
   it("401 — 미인증", async () => {
