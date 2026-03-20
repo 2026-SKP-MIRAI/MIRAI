@@ -155,6 +155,11 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "efd0c8011cf0677d8075cf93867ecec804f9a8754a777e1d2fdb46197e9c247f"
+    },
+    "youtube-clipper": {
+      "source": "op7418/Youtube-clipper-skill",
+      "sourceType": "github",
+      "computedHash": "73b6412584e9eb75485f096734b6742cb1d56e22bffd8907b17cc877e243d09b"
     }
   }
 }
