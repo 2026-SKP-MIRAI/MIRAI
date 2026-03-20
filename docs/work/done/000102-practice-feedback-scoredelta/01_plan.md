@@ -622,3 +622,148 @@ test.describe("연습 모드 scoreDelta E2E", () => {
 - [ ] `npx playwright test practice-scoredelta` — E2E 통과
 - [ ] 실제 수동 테스트: 연습 모드 → 첫 답변 → 재답변 → scoreDelta 확인
 - [ ] `engine/.ai.md` 업데이트 완료
+
+---
+
+## 다른 서비스 적용 가이드
+
+> **배경**: engine의 `/api/practice/feedback` 엔드포인트는 `previousScore`를 받아야 정확한 `scoreDelta`를 계산한다.
+> `previousScore`를 전달하지 않으면 LLM 추정값이 그대로 사용되어 실제 점수 차이와 다를 수 있다.
+> 현재 `services/siw`만 적용됨. 연습 모드가 있는 다른 서비스는 아래 가이드를 따라 적용해야 한다.
+
+### 적용이 필요한 서비스
+
+- [x] `services/siw` — PR #175에서 완료
+- [ ] `services/seung` — 미적용 (연습 모드 있음, 동일 버그 존재)
+
+---
+
+### 변경 파일 1: BFF route (`src/app/api/practice/feedback/route.ts`)
+
+`previousScore`를 body에서 읽어 엔진으로 전달한다.
+
+**현재 코드 (seung 기준)**
+```typescript
+const { question, answer, previousAnswer } = body
+// ...
+body: JSON.stringify({ question, answer, ...(previousAnswer ? { previousAnswer } : {}) }),
+```
+
+**변경 후**
+```typescript
+const { question, answer, previousAnswer, previousScore } = body
+
+// previousScore 유효성 검사 (0~100 정수만 허용)
+const validatedPreviousScore =
+  typeof previousScore === 'number' && previousScore >= 0 && previousScore <= 100
+    ? previousScore
+    : undefined
+
+// ...
+body: JSON.stringify({
+  question,
+  answer,
+  ...(previousAnswer ? { previousAnswer } : {}),
+  ...(validatedPreviousScore !== undefined ? { previousScore: validatedPreviousScore } : {}),
+}),
+```
+
+**포인트**:
+- `previousScore`는 타입 + 범위 검증 후 전달 (클라이언트 입력값이므로 신뢰하지 않음)
+- 유효하지 않으면 아예 미전달 → 엔진이 LLM 추정값 사용 (기존 동작)
+
+---
+
+### 변경 파일 2: 인터뷰 페이지 (`src/app/interview/page.tsx` 또는 유사 경로)
+
+`lastScore` 상태를 추가하고, 첫 답변 점수를 저장한 뒤 재답변 시 전달한다.
+
+#### 2-1. 상태 선언 추가
+
+```typescript
+// 기존
+const [currentAnswer, setCurrentAnswer] = useState<string>('')
+
+// 추가
+const [lastScore, setLastScore] = useState<number | null>(null)  // 첫 답변 점수 (재답변 비교 기준)
+```
+
+#### 2-2. 첫 답변 피드백 수신 후 점수 저장
+
+```typescript
+// handlePracticeFeedback 내부, isRetry === false 분기에서
+const data = await res.json()
+if (!res.ok) { /* 에러 처리 */ return }
+
+setPracticeFeedback(data)
+if (!isRetry) {
+  setCurrentAnswer(answer)
+  setLastScore(data.score)   // ← 추가: 첫 답변 점수 저장
+  setPracticeStep('feedback')
+} else {
+  setPracticeStep('done')
+}
+```
+
+#### 2-3. 재답변 요청 body에 `previousScore` 추가
+
+```typescript
+// handlePracticeFeedback 내부, 요청 body 구성 시
+const isRetry = practiceStep === 'retry'
+const body: Record<string, unknown> = { question: currentQuestion, answer }
+//                    ↑ string → unknown으로 변경 (number 허용)
+
+if (isRetry) body.previousAnswer = currentAnswer
+if (isRetry && lastScore !== null) body.previousScore = lastScore  // ← 추가
+```
+
+#### 2-4. 다음 질문으로 넘어갈 때 `lastScore` 초기화
+
+```typescript
+// handleNextQuestion 내부
+setPracticeStep('idle')
+setPracticeFeedback(null)
+setCurrentAnswer('')
+setLastScore(null)   // ← 추가: 다음 질문의 기준점을 초기화
+```
+
+---
+
+### 동작 흐름 요약
+
+```
+첫 답변 제출
+  → API: { question, answer }  (previousScore 없음)
+  → 엔진: comparisonDelta = null 반환
+  → 프론트: data.score → lastScore에 저장
+
+재답변 제출
+  → API: { question, answer, previousAnswer, previousScore: lastScore }
+  → 엔진: scoreDelta = new_score - previousScore (서버 계산)
+  → 프론트: comparisonDelta.scoreDelta 표시 (+3 등)
+
+다음 질문
+  → lastScore = null 초기화
+```
+
+---
+
+### 검증
+
+```typescript
+// Vitest: previousScore 전달 여부 확인
+expect(global.fetch).toHaveBeenCalledWith(
+  expect.stringContaining('/api/practice/feedback'),
+  expect.objectContaining({
+    body: expect.stringContaining('"previousScore":85'),
+  })
+)
+
+// 첫 답변 시 미전달 확인
+expect(global.fetch).toHaveBeenCalledWith(
+  expect.stringContaining('/api/practice/feedback'),
+  expect.objectContaining({
+    body: expect.not.stringContaining('previousScore'),
+  })
+)
+```
