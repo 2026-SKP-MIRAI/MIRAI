@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "3316239df2bdcb41e992857b8142e0239e6964564dd5d7224e470c2ab350a03c"
     },
+    "auth-implementation-patterns": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "561214fcde3f61e8270ffe81d557adab0a4997606c3088746257977ddde161d6"
+    },
     "brand-guidelines": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -45,6 +50,11 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "gamification-loops": {
+      "source": "omer-metin/skills-for-antigravity",
+      "sourceType": "github",
+      "computedHash": "5c6d90890a2bb618ded9387244dd9d146c2d9f56933208875942038601d489b6"
     },
     "gh-cli": {
       "source": "github/awesome-copilot",
