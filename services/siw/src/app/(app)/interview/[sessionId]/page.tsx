@@ -20,6 +20,7 @@ export default function InterviewSessionPage() {
   const [practiceFeedback, setPracticeFeedback] = useState<PracticeFeedback | null>(null);
   const [isRetried, setIsRetried] = useState(false);
   const [lastAnswer, setLastAnswer] = useState("");
+  const [lastScore, setLastScore] = useState<number | null>(null);
   const [practiceAnswer, setPracticeAnswer] = useState("");
   const [fetchingFeedback, setFetchingFeedback] = useState(false);
   const initialized = useRef(false);
@@ -73,11 +74,12 @@ export default function InterviewSessionPage() {
       const currentAnswerText = answer;
       const prevAnswer = isRetried ? lastAnswer : undefined;
       try {
-        const body: Record<string, string> = {
+        const body: Record<string, unknown> = {
           question: currentQuestion?.question ?? "",
           answer: currentAnswerText,
         };
         if (prevAnswer) body.previousAnswer = prevAnswer;
+        if (isRetried && lastScore !== null) body.previousScore = lastScore;
 
         const res = await fetch("/api/practice/feedback", {
           method: "POST",
@@ -89,6 +91,7 @@ export default function InterviewSessionPage() {
 
         if (!isRetried) {
           setLastAnswer(currentAnswerText);
+          setLastScore(data.score);
         }
         setAnswer("");
         setPracticeAnswer(currentAnswerText);
@@ -129,6 +132,7 @@ export default function InterviewSessionPage() {
       setPracticeFeedback(null);
       setIsRetried(false);
       setLastAnswer("");
+      setLastScore(null);
       setPracticeAnswer("");
       setCurrentQuestion(data.nextQuestion);
       setSessionComplete(data.sessionComplete);
