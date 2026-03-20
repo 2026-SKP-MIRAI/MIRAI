@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     let engineData: unknown;
     let engineStatus: number;
     try {
-      const result = await withEventLogging('report_generate', sessionId, async () => {
+      const result = await withEventLogging('report_generate', sessionId, async (meta) => {
         const engineRes = await fetch(engineUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         const d = await engineRes.json();
         if (!engineRes.ok)
           throw Object.assign(new Error("engine_report_failed"), { data: d, status: engineRes.status });
+        if (d.usage) meta.usage = d.usage;
         return { data: d, status: engineRes.status };
       });
       engineData = result.data;

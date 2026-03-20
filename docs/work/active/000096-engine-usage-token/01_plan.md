@@ -6,11 +6,11 @@
 
 ## 완료 기준
 
-- [ ] engine 각 API 응답 스키마에 `usage` 필드 추가
-- [ ] `llm_client.py`의 `call_llm()`이 token usage를 반환에 포함
-- [ ] 서비스 event-logger에서 token 수 → 비용 환산 로직 추가
-- [ ] `llm_events_daily` 테이블에 `total_tokens`, `estimated_cost_usd` 컬럼 추가
-- [ ] pytest: usage 필드 포함 응답 검증
+- [x] engine 각 API 응답 스키마에 `usage` 필드 추가
+- [x] `llm_client.py`의 `call_llm()`이 token usage를 반환에 포함
+- [x] 서비스 event-logger에서 token 수 → 비용 환산 로직 추가
+- [x] `llm_events_daily` 테이블에 `total_tokens`, `estimated_cost_usd` 컬럼 추가
+- [x] pytest: usage 필드 포함 응답 검증
 
 ---
 
@@ -150,20 +150,28 @@ export function estimateCostUsd(
 ): number
 ```
 
-**5-3. `withEventLogging` 시그니처 변경**
+**5-3. `withEventLogging` 시그니처 (선택적 meta.usage)**
 
-engine 응답에서 usage를 꺼내어 이벤트에 포함할 수 있도록 콜백 반환 타입 확장.
+기존 시그니처는 유지, 콜백 내부에서 engine 응답의 usage를 meta.usage로 선택적 설정.
 
 ```ts
-// fn이 { data, usage? } 형태로 반환
+// fn 콜백 내부에서 선택적으로 meta.usage 설정
 export async function withEventLogging<T>(
   featureType: LLMEvent["feature_type"],
   sessionId: string | null,
-  fn: (meta: LLMEventMeta) => Promise<{ data: T; usage?: EngineUsage }>,
+  fn: (meta: LLMEventMeta) => Promise<T>,
 ): Promise<T>
+
+// 사용 패턴
+withEventLogging("interview_start", sessionId, async (meta) => {
+  const res = await engineFetch(...);
+  const data = await res.json();
+  if (data.usage) meta.usage = data.usage;  // 선택적 설정
+  return data;
+});
 ```
 
-이벤트 로그에 `prompt_tokens`, `completion_tokens`, `model` 포함.
+이벤트 로그에 `prompt_tokens`, `completion_tokens`, `model` 포함 (meta.usage에서 추출).
 
 ---
 

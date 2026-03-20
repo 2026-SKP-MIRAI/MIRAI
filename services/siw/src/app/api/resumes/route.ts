@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   engineParseForm.append("file", file, file.name)
   let resumeText: string;
   try {
-    const parsed = await withEventLogging('resume_parse', null, async () => {
+    const parsed = await withEventLogging('resume_parse', null, async (meta) => {
       const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
         method: "POST",
         body: engineParseForm,
@@ -46,7 +46,9 @@ export async function POST(request: Request) {
         const key = mapDetailToKey(body.detail ?? "", parseResp.status);
         throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: parseResp.status });
       }
-      return parseResp.json() as Promise<{ resumeText: string }>;
+      const d = await parseResp.json();
+      if (d.usage) meta.usage = d.usage;
+      return d as { resumeText: string };
     });
     resumeText = parsed.resumeText;
   } catch (err) {
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
   try {
     const [storageKey, engineData, feedbackJson] = await Promise.all([
       uploadResumePdf(user.id, buffer, file.name),
-      withEventLogging('resume_questions', null, async () => {
+      withEventLogging('resume_questions', null, async (meta) => {
         const r = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -73,14 +75,22 @@ export async function POST(request: Request) {
           const key = mapDetailToKey(body.detail ?? "", r.status);
           throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: r.status, key });
         }
-        return r.json();
+        const d = await r.json();
+        if (d.usage) meta.usage = d.usage;
+        return d;
       }),
-      fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText, targetRole }),
-        signal: AbortSignal.timeout(35000),
-      }).then(r => r.ok ? r.json() : null).catch((err) => {
+      withEventLogging('resume_feedback', null, async (meta) => {
+        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText, targetRole }),
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!r.ok) return null;
+        const d = await r.json().catch(() => null);
+        if (d?.usage) meta.usage = d.usage;
+        return d;
+      }).catch((err) => {
         console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err));
         return null;
       }),
