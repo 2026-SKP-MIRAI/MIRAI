@@ -17,12 +17,12 @@ npx vitest run tests/api/resumes-analyze-route.test.ts tests/api/resumes-route.t
 
 | 파일 | 케이스 | 결과 |
 |------|--------|------|
-| `tests/api/resumes-analyze-route.test.ts` | 8 | ✅ 전부 통과 |
+| `tests/api/resumes-analyze-route.test.ts` | 9 | ✅ 전부 통과 (504 케이스 추가) |
 | `tests/api/resumes-route.test.ts` | 13 | ✅ 전부 통과 |
 | `tests/ui/upload-form.test.tsx` | 7 | ✅ 전부 통과 |
 | **합계** | **29** | ✅ **29/29 통과** |
 
-소요 시간: ~2.04s
+소요 시간: ~2.26s
 
 ---
 
@@ -38,6 +38,7 @@ npx vitest run tests/api/resumes-analyze-route.test.ts tests/api/resumes-route.t
 | 6 | 422: engine 422 → 422 전달 | ✅ |
 | 7 | 500: engine 500 → 500 반환 | ✅ |
 | 8 | engine `/api/resume/analyze` URL 호출 검증 | ✅ |
+| 9 | 504: engine 타임아웃 → TimeoutError → 504 반환 | ✅ |
 
 ---
 

@@ -23,7 +23,6 @@ type Persona = {
   iconColor: string
   desc: string
   traits: string
-  difficulty: string
   Icon: React.ElementType
 }
 
@@ -37,7 +36,6 @@ const PERSONAS: Persona[] = [
     iconColor: "#065F46",
     desc: "소프트 스킬, 팀워크, 조직 적합성 평가",
     traits: "STAR 기법, 가치관 탐색, 갈등 해결 경험",
-    difficulty: "보통",
     Icon: Users,
   },
   {
@@ -49,7 +47,6 @@ const PERSONAS: Persona[] = [
     iconColor: "#1E40AF",
     desc: "기술 깊이와 논리적 검증 중심",
     traits: "개념 정확도, 트레이드오프, 실전 문제해결",
-    difficulty: "높음",
     Icon: Code2,
   },
   {
@@ -61,7 +58,6 @@ const PERSONAS: Persona[] = [
     iconColor: "#5B21B6",
     desc: "비즈니스 임팩트와 ROI 중심",
     traits: "비즈니스 가치, 수치 기반, 전략적 사고",
-    difficulty: "매우 높음",
     Icon: Briefcase,
   },
 ]
@@ -109,6 +105,9 @@ function InterviewNewPageContent() {
       sessionStorage.setItem(`interview-first-${json.sessionId}`, JSON.stringify(json.firstQuestion))
       sessionStorage.setItem(`interview-mode-${json.sessionId}`, selectedMode ?? "real")
       router.push(`/interview/${json.sessionId}`)
+    } catch (err) {
+      console.error("[handleStart] error:", err)
+      setStartError("면접 시작에 실패했습니다. 잠시 후 다시 시도해주세요.")
     } finally {
       setStarting(false)
     }
@@ -155,7 +154,6 @@ function InterviewNewPageContent() {
                 <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold mb-2 ${p.tagColor}`}>{p.tag}</span>
                 <p className="text-xs text-gray-500 leading-[1.6] mb-2">{p.desc}</p>
                 <p className="text-[11px] text-gray-400">{p.traits}</p>
-                <p className="text-[11px] text-gray-400 mt-1">난이도: <strong>{p.difficulty}</strong></p>
               </div>
             ))}
           </div>

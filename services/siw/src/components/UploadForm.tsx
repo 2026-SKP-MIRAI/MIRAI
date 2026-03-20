@@ -80,20 +80,23 @@ export default function UploadForm({ onComplete, hideTitle }: Props) {
   return (
     <div className="glass-card rounded-2xl p-8 shadow-sm">
       {!hideTitle && <h2 className="text-2xl font-bold gradient-text mb-2">자소서 분석</h2>}
-      <p className="text-sm text-[#4B5563] mb-6">PDF 자소서를 업로드하면 맞춤 면접 질문을 생성해드립니다</p>
 
       {(state === "confirming" || state === "submitting") && (
-        <div className="mb-6 p-4 rounded-xl border border-indigo-200 bg-indigo-50/50">
-          <p className="text-sm font-medium text-[#374151] mb-3">지원 직무가 확인됐어요</p>
-          <input
-            type="text"
-            value={targetRole}
-            onChange={(e) => setTargetRole(e.target.value)}
-            placeholder="지원 직무를 입력하세요"
-            disabled={state === "submitting"}
-            className="w-full border border-indigo-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
-          />
-          <p className="text-xs text-[#6B7280] mt-2">지원 직무가 다르다면 수정해주세요</p>
+        <div className="mb-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 p-6 text-center">
+          <p className="text-xs font-medium text-indigo-400 uppercase tracking-wider mb-3">지원 직무 확인</p>
+          <div className="inline-flex items-center gap-2 bg-white rounded-xl px-5 py-2.5 shadow-sm border border-indigo-100 focus-within:ring-2 focus-within:ring-indigo-300 transition-all">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+            <input
+              type="text"
+              value={targetRole}
+              onChange={(e) => setTargetRole(e.target.value)}
+              placeholder="직무 미지정"
+              disabled={state === "submitting"}
+              className="text-base font-semibold text-[#1F2937] bg-transparent border-none outline-none disabled:opacity-60"
+              style={{ width: `${Math.max((targetRole || "직무 미지정").length + 4, 10)}ch` }}
+            />
+          </div>
+          <p className="text-xs text-[#9CA3AF] mt-3">AI가 추출한 직무 · 다르다면 수정해주세요</p>
         </div>
       )}
 
@@ -128,7 +131,7 @@ export default function UploadForm({ onComplete, hideTitle }: Props) {
             className="btn-primary rounded-xl px-5 py-3 flex-1 flex items-center justify-center gap-2"
           >
             {state === "submitting"
-              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />면접을 준비하고 있습니다...</>
+              ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />이력서를 분석하고 있습니다...</>
               : "이 직무로 면접 준비하기"
             }
           </button>

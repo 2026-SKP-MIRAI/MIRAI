@@ -19,7 +19,15 @@ export async function POST(request: Request) {
   try {
     const result = await interviewService.start(resumeId, personas as PersonaType[], user.id);
     return Response.json(result);
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[interview/start] error:", message, err);
+    if (message === "resume_not_found") {
+      return Response.json({ message: "이력서를 찾을 수 없습니다." }, { status: 404 });
+    }
+    if (message === "engine_start_failed") {
+      return Response.json({ message: "면접 엔진 호출에 실패했습니다. 엔진 서버가 실행 중인지 확인해주세요." }, { status: 503 });
+    }
     return Response.json({ message: ENGINE_ERROR_MESSAGES.interviewStartFailed }, { status: 500 });
   }
 }

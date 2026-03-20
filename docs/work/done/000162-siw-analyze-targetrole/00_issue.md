@@ -17,6 +17,20 @@
 - [x] 테스트 포함 (API 라우트 + UploadForm UI)
 - [x] `services/siw/.ai.md` 최신화
 
+## 추가 완료 기준 (세션 중 발견·요청)
+- [x] analyze route timeout 55s 증가 + TimeoutError → 504 처리
+- [x] 직무 확인 UI 리디자인 — gradient card, 편집 가능 input (텍스트 길이 자동 조절), focus ring
+- [x] "면접을 준비하고 있습니다" → "이력서를 분석하고 있습니다"
+- [x] PDF 안내 문구 삭제
+- [x] 면접관 소개 난이도 표시 제거 (`interview/new/page.tsx`)
+- [x] 이력서 업로드 완료 후 `/resumes/${resumeId}` 리다이렉션 (기존 `/interview/new?resumeId=...`)
+- [x] `resumes/[id]/page.tsx` 수정 버튼 삭제
+- [x] `resumes/[id]/page.tsx` 희망 직무 badge 표시 (API + UI)
+- [x] `handleStart` catch 블록 추가 — 네트워크 에러 시 `startError` 표시
+- [x] dashboard LLM 운영 현황 카드 관리자 전용(`isAdmin`) 조건부 렌더링
+- [x] engine `interview_hr_v2.md` — STAR 약어 `(S)(T)(A)(R)` 질문 출력 금지
+- [x] engine `interview_service.py` — `question` 필드 dict 반환 시 방어 처리
+
 ## 구현 플랜
 
 ### 변경 파일 (4개)

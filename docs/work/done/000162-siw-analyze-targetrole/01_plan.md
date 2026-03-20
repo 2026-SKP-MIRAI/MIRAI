@@ -69,6 +69,28 @@ idle
 
 ---
 
+## 세션 추가 변경사항 (2026-03-20)
+
+### 추가 변경 파일
+
+| 파일 | 변경 내용 |
+|------|---------|
+| `src/app/api/resumes/analyze/route.ts` | timeout 55s 증가, TimeoutError → 504 처리 |
+| `src/app/api/resumes/[id]/route.ts` | `inferredTargetRole` 응답에 추가 |
+| `src/app/(app)/resumes/[id]/page.tsx` | 수정 버튼 삭제, 희망 직무 badge 표시, `isAdmin` 추가 |
+| `src/app/(app)/resumes/page.tsx` | 업로드 완료 후 `/resumes/${resumeId}` 리다이렉션 |
+| `src/app/(app)/interview/new/page.tsx` | 난이도 표시 제거, `handleStart` catch 추가 |
+| `src/app/(app)/dashboard/page.tsx` | LLM 운영 현황 카드 `isAdmin` 조건부 |
+| `src/app/api/interview/start/route.ts` | 에러 타입별 상태 코드 분기 (404/503/500) |
+| `src/lib/interview/interview-service.ts` | fetch 에러 catch, `engine_start_failed` 로그 강화 |
+| `src/components/UploadForm.tsx` | UI 리디자인 (gradient card, 편집 가능 input, 문구 수정) |
+| `engine/app/prompts/interview_hr_v2.md` | Step 1 내부 추론 강화, STAR 약어 금지, Few-Shot 예시 자연어화 |
+| `engine/app/services/interview_service.py` | `question` 필드 dict 반환 방어 처리 |
+| `services/siw/.env.local` | `ENGINE_BASE_URL=http://localhost:8001` (로컬 포트 충돌 대응) |
+| `tests/api/resumes-analyze-route.test.ts` | 504 TimeoutError 케이스 추가 → 9케이스 |
+
+---
+
 ## Step 1: `src/lib/types.ts` 변경
 
 ### Before (line 8)
