@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 from app.parsers.exceptions import ResumeFeedbackParseError
-from app.schemas import ResumeFeedbackResponse, ResumeFeedbackScores, SuggestionItem
-from app.services.llm_client import call_llm, strip_code_block
+from app.schemas import ResumeFeedbackResponse, ResumeFeedbackScores, SuggestionItem, UsageMetadata
+from app.services.llm_client import call_llm, strip_code_block, UsageInfo
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -84,19 +84,30 @@ def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
     )
 
 
+def _usage_to_metadata(usage: UsageInfo | None, model: str) -> UsageMetadata | None:
+    if usage is None:
+        return None
+    return UsageMetadata(
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        model=model,
+    )
+
+
 def generate_resume_feedback(
     resume_text: str,
     target_role: str | None = None,
     *,
     model: str | None = None,
-) -> ResumeFeedbackResponse:
+) -> tuple[ResumeFeedbackResponse, UsageMetadata | None]:
     role_label = target_role.strip() if target_role and target_role.strip() else "미지정 직무"
     prompt = _build_prompt(resume_text, role_label)
-    raw = call_llm(
+    result = call_llm(
         prompt,
         model=model,
         timeout=30.0,
         max_tokens=2048,
         error_message="이력서 피드백 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     )
-    return _parse_feedback(raw)
+    return _parse_feedback(result.content), _usage_to_metadata(result.usage, result.model)

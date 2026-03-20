@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   engineParseForm.append("file", file, file.name);
   let resumeText: string;
   try {
-    const parsed = await withEventLogging('resume_parse', null, async () => {
+    const parsed = await withEventLogging('resume_parse', null, async (meta) => {
       const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
         method: "POST",
         body: engineParseForm,
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
         const key = mapDetailToKey(body.detail ?? "", parseResp.status);
         throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: parseResp.status });
       }
-      return parseResp.json() as Promise<{ resumeText: string }>;
+      const d = await parseResp.json();
+      if (d.usage) meta.usage = d.usage;
+      return d as { resumeText: string };
     });
     resumeText = parsed.resumeText;
   } catch (err) {
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const engineData = await withEventLogging('resume_questions', null, async () => {
+    const engineData = await withEventLogging('resume_questions', null, async (meta) => {
       const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,7 +64,9 @@ export async function POST(request: Request) {
         const key = mapDetailToKey(body.detail ?? "", resp.status);
         throw Object.assign(new Error(ENGINE_ERROR_MESSAGES[key]), { status: resp.status });
       }
-      return resp.json();
+      const d = await resp.json();
+      if (d.usage) meta.usage = d.usage;
+      return d;
     });
     return Response.json({ ...engineData });
   } catch (err) {

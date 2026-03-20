@@ -8,6 +8,9 @@ def make_mock_llm(content: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=content))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
 
 
@@ -40,7 +43,7 @@ def test_generate_practice_feedback_returns_valid_response():
     json_str = _single_json()
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert result.score is not None
     assert result.feedback is not None
     assert result.keywords is not None
@@ -54,7 +57,7 @@ def test_generate_practice_feedback_score_within_range():
     json_str = _single_json()
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert 0 <= result.score <= 100
 
 
@@ -64,7 +67,7 @@ def test_generate_practice_feedback_comparison_delta_none_without_previous():
     json_str = _single_json()
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변", None)
+        result, _ = generate_practice_feedback("질문", "답변", None)
     assert result.comparisonDelta is None
 
 
@@ -74,7 +77,7 @@ def test_generate_practice_feedback_comparison_delta_exists_with_previous():
     json_str = _retry_json()
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변", "이전답변")
+        result, _ = generate_practice_feedback("질문", "답변", "이전답변")
     assert result.comparisonDelta is not None
     assert isinstance(result.comparisonDelta.scoreDelta, int)
 
@@ -85,7 +88,7 @@ def test_generate_practice_feedback_score_clamped_over_100():
     json_str = _single_json(score=105)
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert result.score == 100
 
 
@@ -95,7 +98,7 @@ def test_generate_practice_feedback_score_clamped_negative():
     json_str = _single_json(score=-5)
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert result.score == 0
 
 
@@ -110,7 +113,7 @@ def test_generate_practice_feedback_good_truncated_to_3():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert len(result.feedback.good) == 3
 
 
@@ -125,7 +128,7 @@ def test_generate_practice_feedback_empty_good_uses_fallback():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert result.feedback.good != []
     assert len(result.feedback.good) >= 1
 
@@ -141,7 +144,7 @@ def test_generate_practice_feedback_empty_guide_uses_fallback():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert result.improvedAnswerGuide != ""
 
 
@@ -178,7 +181,7 @@ def test_generate_practice_feedback_improve_truncated_to_3():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert len(result.feedback.improve) == 3
 
 
@@ -193,5 +196,5 @@ def test_generate_practice_feedback_keywords_truncated_to_5():
     })
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(json_str)):
         from app.services.practice_service import generate_practice_feedback
-        result = generate_practice_feedback("질문", "답변")
+        result, _ = generate_practice_feedback("질문", "답변")
     assert len(result.keywords) == 5

@@ -13,11 +13,18 @@ def make_mock_client(response_text: str):
     fake.chat.completions.create.return_value.choices = [
         MagicMock(message=MagicMock(content=response_text))
     ]
+    fake.chat.completions.create.return_value.usage = MagicMock(
+        prompt_tokens=10, completion_tokens=5, total_tokens=15
+    )
     return fake
+
+def make_capture_response(content: str):
+    usage_mock = MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+    return MagicMock(choices=[MagicMock(message=MagicMock(content=content))], usage=usage_mock)
 
 def test_generate_questions_success():
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_client(VALID_RESPONSE)):
-        result = generate_questions("이력서 텍스트")
+        result, usage = generate_questions("이력서 텍스트")
     assert len(result) >= 8
     # TODO: 실제 LLM API를 호출해 질문 품질(구체성, 관련성)을 검증하는 테스트 필요
     #       현재는 형식(JSON 스키마, 개수) 검증만 수행하며 실제 API는 mock으로 대체됨
@@ -48,7 +55,7 @@ def test_generate_questions_truncates_long_text():
     def capture_create(**kwargs):
         msg = kwargs.get("messages", [{}])[0]
         captured["content"] = msg.get("content", "")
-        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+        return make_capture_response(VALID_RESPONSE)
 
     fake = MagicMock()
     fake.chat.completions.create.side_effect = capture_create
@@ -68,7 +75,7 @@ def test_generate_questions_with_target_role_injects_prompt():
     def capture_create(**kwargs):
         msg = kwargs.get("messages", [{}])[0]
         captured["content"] = msg.get("content", "")
-        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+        return make_capture_response(VALID_RESPONSE)
 
     fake = MagicMock()
     fake.chat.completions.create.side_effect = capture_create
@@ -86,7 +93,7 @@ def test_generate_questions_without_target_role_no_injection():
     def capture_create(**kwargs):
         msg = kwargs.get("messages", [{}])[0]
         captured["content"] = msg.get("content", "")
-        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+        return make_capture_response(VALID_RESPONSE)
 
     fake = MagicMock()
     fake.chat.completions.create.side_effect = capture_create
@@ -104,7 +111,7 @@ def test_generate_questions_empty_target_role_no_injection():
     def capture_create(**kwargs):
         msg = kwargs.get("messages", [{}])[0]
         captured["content"] = msg.get("content", "")
-        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+        return make_capture_response(VALID_RESPONSE)
 
     fake = MagicMock()
     fake.chat.completions.create.side_effect = capture_create
@@ -122,7 +129,7 @@ def test_generate_questions_target_role_angle_brackets_escaped():
     def capture_create(**kwargs):
         msg = kwargs.get("messages", [{}])[0]
         captured["content"] = msg.get("content", "")
-        return MagicMock(choices=[MagicMock(message=MagicMock(content=VALID_RESPONSE))])
+        return make_capture_response(VALID_RESPONSE)
 
     fake = MagicMock()
     fake.chat.completions.create.side_effect = capture_create

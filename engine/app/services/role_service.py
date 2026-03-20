@@ -18,14 +18,14 @@ def extract_target_role(
     # < > 전체를 HTML 엔티티로 치환해 XML 태그 인젝션(여는 태그·닫는 태그 모두)을 방지한다.
     truncated = resume_text[:max_input_chars].replace("<", "&lt;").replace(">", "&gt;")
     prompt = PROMPT_FILE.read_text(encoding="utf-8").replace("{resume_text}", truncated)
-    raw = call_llm(
+    result = call_llm(
         prompt,
         model=model,
         timeout=timeout_seconds,
         max_tokens=128,
         error_message="직무 추론 중 오류가 발생했습니다.",
     )
-    data = parse_object(raw, required_keys=["targetRole"])
+    data = parse_object(result.content, required_keys=["targetRole"])
     role = data["targetRole"]
     if not isinstance(role, str) or not role.strip():
         return "미지정"

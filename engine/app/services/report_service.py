@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 from app.parsers.exceptions import LLMError, InsufficientAnswersError, ReportParseError
-from app.schemas import HistoryItem, ReportResponse, AxisScores, AxisFeedback
-from app.services.llm_client import call_llm as _call_llm, strip_code_block as _strip_code_block
+from app.schemas import HistoryItem, ReportResponse, AxisScores, AxisFeedback, UsageMetadata
+from app.services.llm_client import call_llm as _call_llm, strip_code_block as _strip_code_block, UsageInfo
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -95,17 +95,28 @@ def _parse_report(raw: str) -> ReportResponse:
     )
 
 
+def _usage_to_metadata(usage: UsageInfo | None, model: str) -> UsageMetadata | None:
+    if usage is None:
+        return None
+    return UsageMetadata(
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        model=model,
+    )
+
+
 def generate_report(
     resumeText: str,
     history: list[HistoryItem],
     *,
     model: str | None = None,
-) -> ReportResponse:
+) -> tuple[ReportResponse, UsageMetadata | None]:
     if len(history) < MIN_ANSWERS:
         raise InsufficientAnswersError(
             f"최소 {MIN_ANSWERS}개 답변이 필요합니다. 현재 {len(history)}개입니다."
         )
     prompt = _build_prompt(resumeText, history)
-    raw = _call_llm(prompt, model=model, timeout=60.0, max_tokens=2048,
-                    error_message="리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
-    return _parse_report(raw)
+    result = _call_llm(prompt, model=model, timeout=60.0, max_tokens=2048,
+                       error_message="리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
+    return _parse_report(result.content), _usage_to_metadata(result.usage, result.model)

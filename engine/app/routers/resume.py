@@ -77,12 +77,13 @@ async def get_target_role(body: TargetRoleRequest):
 @router.post("/questions", response_model=QuestionsResponse)
 async def create_questions(body: QuestionsRequest):
     logger.info("[resume/questions] 요청 수신: resumeText 길이=%d", len(body.resumeText))
-    questions = generate_questions(body.resumeText, target_role=body.targetRole)
+    questions, usage = generate_questions(body.resumeText, target_role=body.targetRole)
     logger.info("[resume/questions] 질문 생성 완료: %d개", len(questions))
     categories_used = list(dict.fromkeys(q.category for q in questions))
     return QuestionsResponse(
         questions=questions,
         meta=Meta(extractedLength=len(body.resumeText), categoriesUsed=categories_used),
+        usage=usage,
     )
 
 
@@ -90,4 +91,6 @@ async def create_questions(body: QuestionsRequest):
 async def create_feedback(body: ResumeFeedbackRequest):
     logger.info("[resume/feedback] 요청 수신: resumeText 길이=%d, targetRole=%s",
                 len(body.resumeText), body.targetRole)
-    return generate_resume_feedback(body.resumeText, body.targetRole)
+    data, usage = generate_resume_feedback(body.resumeText, body.targetRole)
+    data.usage = usage
+    return data

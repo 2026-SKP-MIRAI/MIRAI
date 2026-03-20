@@ -4,26 +4,31 @@ from app.services.role_service import extract_target_role
 from app.parsers.exceptions import LLMError
 
 
+def make_llm_result(content: str):
+    from app.services.llm_client import LLMResult
+    return LLMResult(content=content, usage=None, model="test-model")
+
+
 def test_extract_target_role_success():
-    with patch("app.services.role_service.call_llm", return_value='{"targetRole": "경영기획"}'):
+    with patch("app.services.role_service.call_llm", return_value=make_llm_result('{"targetRole": "경영기획"}')):
         result = extract_target_role("경영기획 직무에 지원합니다.")
     assert result == "경영기획"
 
 
 def test_extract_target_role_strips_whitespace():
-    with patch("app.services.role_service.call_llm", return_value='{"targetRole": "  백엔드  "}'):
+    with patch("app.services.role_service.call_llm", return_value=make_llm_result('{"targetRole": "  백엔드  "}')):
         result = extract_target_role("백엔드 개발자입니다.")
     assert result == "백엔드"
 
 
 def test_extract_target_role_fallback_when_empty():
-    with patch("app.services.role_service.call_llm", return_value='{"targetRole": ""}'):
+    with patch("app.services.role_service.call_llm", return_value=make_llm_result('{"targetRole": ""}')):
         result = extract_target_role("직무를 알 수 없는 자소서.")
     assert result == "미지정"
 
 
 def test_extract_target_role_fallback_when_null():
-    with patch("app.services.role_service.call_llm", return_value='{"targetRole": null}'):
+    with patch("app.services.role_service.call_llm", return_value=make_llm_result('{"targetRole": null}')):
         result = extract_target_role("직무를 알 수 없는 자소서.")
     assert result == "미지정"
 
@@ -50,7 +55,7 @@ def test_extract_target_role_truncates_long_text():
 
     def fake_call_llm(prompt, **kwargs):
         captured["prompt"] = prompt
-        return '{"targetRole": "개발자"}'
+        return make_llm_result('{"targetRole": "개발자"}')
 
     with patch("app.services.role_service.call_llm", side_effect=fake_call_llm):
         extract_target_role(long_text, max_input_chars=16000)
@@ -65,7 +70,7 @@ def test_extract_target_role_truncates_output_to_100():
     """LLM이 100자 초과 targetRole을 반환해도 100자로 잘린다."""
     long_role = "개발자" * 40  # 120자
     with patch("app.services.role_service.call_llm",
-               return_value=f'{{"targetRole": "{long_role}"}}'):
+               return_value=make_llm_result(f'{{"targetRole": "{long_role}"}}')):
         result = extract_target_role("자소서 내용입니다.")
     assert len(result) == 100
     assert result == long_role[:100]
@@ -77,7 +82,7 @@ def test_extract_target_role_resume_text_angle_brackets_escaped():
 
     def fake_call_llm(prompt, **kwargs):
         captured["prompt"] = prompt
-        return '{"targetRole": "개발자"}'
+        return make_llm_result('{"targetRole": "개발자"}')
 
     with patch("app.services.role_service.call_llm", side_effect=fake_call_llm):
         extract_target_role("<tag>이력서 내용</tag>")

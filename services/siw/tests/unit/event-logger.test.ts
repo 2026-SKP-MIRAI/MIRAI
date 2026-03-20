@@ -267,6 +267,43 @@ describe("event-logger", () => {
     expect(parsed.retry_count).toBe(0);
   });
 
+  // TC11: estimateCostUsd — 알려진 모델
+  it("estimateCostUsd: google/gemini-2.5-flash 정확한 비용 반환", async () => {
+    const { estimateCostUsd } = await import("@/lib/observability/event-logger");
+    const cost = estimateCostUsd("google/gemini-2.5-flash", 1000, 500);
+    // (1000/1000)*0.00015 + (500/1000)*0.0006 = 0.00015 + 0.0003 = 0.00045
+    expect(cost).toBeCloseTo(0.00045, 8);
+  });
+
+  // TC12: estimateCostUsd — 알 수 없는 모델
+  it("estimateCostUsd: 알 수 없는 모델은 0.0 반환", async () => {
+    const { estimateCostUsd } = await import("@/lib/observability/event-logger");
+    const cost = estimateCostUsd("unknown-model", 100, 50);
+    expect(cost).toBe(0.0);
+  });
+
+  // TC13: withEventLogging usage 필드 전달
+  it("withEventLogging: usage 필드가 로그 이벤트에 포함됨", async () => {
+    vi.unstubAllEnvs();
+
+    const fs = await import("fs/promises");
+    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+    vi.mocked(fs.appendFile).mockResolvedValue(undefined);
+
+    const { withEventLogging } = await import("@/lib/observability/event-logger");
+
+    await withEventLogging("resume_parse", "session-usage", async (meta) => {
+      meta.usage = { prompt_tokens: 100, completion_tokens: 50, model: "google/gemini-2.5-flash" };
+      return "parsed";
+    });
+
+    const content = vi.mocked(fs.appendFile).mock.calls[0][1] as string;
+    const parsed = JSON.parse(content.trim());
+    expect(parsed.prompt_tokens).toBe(100);
+    expect(parsed.completion_tokens).toBe(50);
+    expect(parsed.model).toBe("google/gemini-2.5-flash");
+  });
+
   // TC8: S3 key 패턴 — YYYY/MM/DD/ 포함
   it("logLLMEvents: S3 key가 YYYY/MM/DD/ 패턴 포함", async () => {
     vi.stubEnv("S3_LOG_BUCKET", "mirai-logs");

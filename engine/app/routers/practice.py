@@ -7,8 +7,10 @@ router = APIRouter()
 
 @router.post("/practice/feedback", response_model=PracticeFeedbackResponse)
 async def practice_feedback_endpoint(body: PracticeFeedbackRequest):
-    return generate_practice_feedback(
+    data, usage = generate_practice_feedback(
         body.question,
         body.answer,
         body.previousAnswer,
     )
+    data.usage = usage
+    return data

@@ -11,17 +11,23 @@ router = APIRouter(prefix="/interview")
 
 @router.post("/start", response_model=InterviewStartResponse)
 async def start(req: InterviewStartRequest):
-    return start_interview(req.resumeText, req.personas)
+    data, usage = start_interview(req.resumeText, req.personas)
+    data.usage = usage
+    return data
 
 
 @router.post("/answer", response_model=InterviewAnswerResponse)
 async def answer(req: InterviewAnswerRequest):
-    return process_answer(
+    data, usage = process_answer(
         req.resumeText, req.history, req.questionsQueue,
         req.currentQuestion, req.currentPersona, req.currentAnswer
     )
+    data.usage = usage
+    return data
 
 
 @router.post("/followup", response_model=FollowupResponse)
 async def followup(req: FollowupRequest):
-    return generate_followup(req.question, req.answer, req.persona, req.resumeText)
+    data, usage = generate_followup(req.question, req.answer, req.persona, req.resumeText)
+    data.usage = usage
+    return data
