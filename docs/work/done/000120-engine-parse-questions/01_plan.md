@@ -6,15 +6,15 @@
 
 ## 완료 기준
 
-- [ ] `POST /api/resume/questions` 흐름: engine `/api/resume/parse` → `Promise.all([DB 저장, engine /api/resume/questions({ resumeText })])`
-- [ ] `route.ts` 내부 `extractTextFromPdf()` 함수 삭제
-- [ ] `engine-client.ts`의 `callEngineQuestions` 변경: `(file: File)` multipart → `(resumeText: string)` JSON `{ resumeText }`
-- [ ] `engine-client.ts`에 `callEngineParse(file: File)` 추가
-- [ ] `pdf-parse` 패키지 제거 (미사용 확인 후)
-- [ ] 기존 응답 형식 유지
-- [ ] `services/kwan/.ai.md` 최신화
-- [ ] 테스트 2개 이상
-- [ ] `services/kwan/` 내 파일만 변경 (engine 코드 수정 금지)
+- [x] `POST /api/resume/questions` 흐름: engine `/api/resume/parse` → `Promise.all([DB 저장, engine /api/resume/questions({ resumeText })])`
+- [x] `route.ts` 내부 `extractTextFromPdf()` 함수 삭제
+- [x] `engine-client.ts`의 `callEngineQuestions` 변경: `(file: File)` multipart → `(resumeText: string)` JSON `{ resumeText }`
+- [x] `engine-client.ts`에 `callEngineParse(file: File)` 추가
+- [x] `pdf-parse` 패키지 제거 (미사용 확인 후)
+- [x] 기존 응답 형식 유지
+- [x] `services/kwan/.ai.md` 최신화
+- [x] 테스트 2개 이상
+- [x] `services/kwan/` 내 파일만 변경 (engine 코드 수정 금지)
 
 ---
 
