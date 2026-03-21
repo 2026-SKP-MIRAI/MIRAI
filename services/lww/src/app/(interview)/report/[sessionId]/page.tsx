@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { TopBar } from "@/components/layout/TopBar";
 import type { ReportResponse } from "@/lib/types";
+import { SaveAccountCTA } from "@/components/interview/SaveAccountCTA";
 
 export default function ReportPage() {
   const params = useParams<{ sessionId: string }>();
@@ -126,6 +127,9 @@ export default function ReportPage() {
           <OrbPreviewCard />
         </div>
       </main>
+
+      {/* 비로그인 로그인/가입 유도 CTA */}
+      <SaveAccountCTA sessionId={sessionId} />
 
       {/* 하단 CTA */}
       <div

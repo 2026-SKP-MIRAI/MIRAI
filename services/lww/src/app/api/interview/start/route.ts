@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { engineFetch } from "@/lib/engine-client";
 import { getOrCreateAnonId, setAnonCookie } from "@/lib/anon-cookie";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getCurrentUserId } from "@/lib/supabase/get-current-user-id";
 
 export const runtime = "nodejs";
 
@@ -43,10 +44,12 @@ export async function POST(request: Request) {
     const data = await resp.json();
     // MVP: 5문항 제한 (첫 질문 1 + 큐 4)
     const { anonymousId, isNew } = await getOrCreateAnonId();
+    const userId = await getCurrentUserId();
     const supabase = createServiceClient();
     const { error: dbError } = await supabase.from("interview_sessions").insert({
       id: sessionId,
       anonymous_id: anonymousId,
+      user_id: userId,        // ← 추가 (로그인이면 auth.uid(), 아니면 null)
       job_category: jobCategories.join(", "),
       questions: [data.firstQuestion, ...(data.questionsQueue ?? []).slice(0, 4)],
       history: [],

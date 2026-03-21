@@ -2,6 +2,7 @@ import { z } from "zod";
 import { engineFetch } from "@/lib/engine-client";
 import { getAnonId } from "@/lib/anon-cookie";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getCurrentUserId } from "@/lib/supabase/get-current-user-id";
 
 export const runtime = "nodejs";
 export const maxDuration = 110;
@@ -55,12 +56,14 @@ export async function POST(request: Request) {
     if (!anonymousId) {
       return Response.json({ message: "세션이 유효하지 않습니다." }, { status: 401 });
     }
+    const userId = await getCurrentUserId();
     const supabase = createServiceClient();
     const { data: reportRow, error: reportErr } = await supabase
       .from("reports")
       .insert({
         session_id: sessionId,
         anonymous_id: anonymousId,
+        user_id: userId,
         status: "completed",
         total_score: report.totalScore,
         axis_scores: report.axisScores,

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { engineFetch } from "@/lib/engine-client";
 import { getAnonId } from "@/lib/anon-cookie";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getCurrentUserId } from "@/lib/supabase/get-current-user-id";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
     if (!anonymousId) {
       return Response.json({ message: "세션이 유효하지 않습니다." }, { status: 401 });
     }
+    const userId = await getCurrentUserId();
     const supabase = createServiceClient();
     const newHistoryItem = {
       question: currentQuestion,
