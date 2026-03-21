@@ -5,6 +5,32 @@ vi.mock("@/lib/engine-client", () => ({
   engineFetch: vi.fn(),
 }));
 
+// anon-cookie mock (cookies() 호출이 테스트 환경에서 동작하지 않음)
+vi.mock("@/lib/anon-cookie", () => ({
+  getOrCreateAnonId: vi.fn().mockResolvedValue({ anonymousId: "test-anon-uuid", isNew: false }),
+  setAnonCookie: vi.fn((response: Response) => response),
+  getAnonId: vi.fn().mockResolvedValue("test-anon-uuid"),
+}));
+
+// supabase/server mock (createClient, createServiceClient)
+vi.mock("@/lib/supabase/server", () => ({
+  createServiceClient: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }),
+    }),
+  }),
+  createClient: vi.fn().mockResolvedValue({
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+    },
+  }),
+}));
+
 import { engineFetch } from "@/lib/engine-client";
 import { POST } from "../start/route";
 

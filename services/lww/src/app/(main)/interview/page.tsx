@@ -1,6 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { Mic } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { InterviewHistoryCard } from "@/components/interview/InterviewHistoryCard";
@@ -13,16 +12,49 @@ interface InterviewRecord {
   score: number;
 }
 
-export default function InterviewPage() {
-  const [history, setHistory] = useState<InterviewRecord[]>([]);
+type SessionRow = { id: string; created_at: string; job_category: string; reports: { total_score: number }[] | null };
 
-  useEffect(() => {
-    // localStorage에서 면접 기록 읽기 (MVP)
-    try {
-      const stored = localStorage.getItem("interview_history");
-      if (stored) setHistory(JSON.parse(stored));
-    } catch {}
-  }, []);
+function toHistory(data: SessionRow[] | null): InterviewRecord[] {
+  return (data ?? []).map(s => ({
+    id: s.id,
+    date: new Date(s.created_at).toLocaleDateString("ko-KR"),
+    jobCategories: (s.job_category as string).split(", "),
+    score: s.reports?.[0]?.total_score ?? 0,
+  }));
+}
+
+export default async function InterviewPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let history: InterviewRecord[] = [];
+
+  if (user) {
+    // 로그인: user_id 기준 쿼리
+    const { data } = await supabase
+      .from("interview_sessions")
+      .select("id, created_at, job_category, reports(total_score)")
+      .eq("user_id", user.id)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false });
+
+    history = toHistory(data as SessionRow[]);
+  } else {
+    // 비로그인: anon_id 기준 (service client, RLS 우회)
+    const cookieStore = await cookies();
+    const anonId = cookieStore.get("lww_anon_id")?.value;
+    if (anonId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(anonId)) {
+      const serviceClient = createServiceClient();
+      const { data } = await serviceClient
+        .from("interview_sessions")
+        .select("id, created_at, job_category, reports(total_score)")
+        .eq("anonymous_id", anonId)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+
+      history = toHistory(data as SessionRow[]);
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-gray-50">
@@ -60,14 +92,6 @@ export default function InterviewPage() {
             {history.map(record => (
               <InterviewHistoryCard key={record.id} record={record} />
             ))}
-            {history.length < 3 && (
-              <div className="mt-4 flex flex-col items-center gap-2 py-6 opacity-60">
-                <span className="text-2xl">💪</span>
-                <p className="text-xs text-gray-400 text-center leading-relaxed">
-                  면접을 더 많이 쌓을수록<br />성장이 눈에 보여요!
-                </p>
-              </div>
-            )}
           </div>
         )}
       </main>
