@@ -34,6 +34,7 @@
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   }
 }
