@@ -146,6 +146,22 @@
       "sourceType": "github",
       "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
     },
+    "supanova-design-engine": {
+      "source": "github:uxjoseph/supanova-design-skill",
+      "scope": "local"
+    },
+    "supanova-full-output": {
+      "source": "github:uxjoseph/supanova-design-skill",
+      "scope": "local"
+    },
+    "supanova-premium-aesthetic": {
+      "source": "github:uxjoseph/supanova-design-skill",
+      "scope": "local"
+    },
+    "supanova-redesign-engine": {
+      "source": "github:uxjoseph/supanova-design-skill",
+      "scope": "local"
+    },
     "tailwind-design-system": {
       "source": "wshobson/agents",
       "sourceType": "github",
