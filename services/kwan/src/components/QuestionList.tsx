@@ -16,6 +16,8 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
   const router = useRouter()
   const [isStarting, setIsStarting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [isDiagnosing, setIsDiagnosing] = useState(false)
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null)
 
   async function handleInterviewStart() {
     if (!resumeId) return
@@ -37,6 +39,29 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
       setErrorMsg('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsStarting(false)
+    }
+  }
+
+  async function handleDiagnosis() {
+    if (!resumeId) return
+    setIsDiagnosing(true)
+    setDiagnosisError(null)
+    try {
+      const res = await fetch('/api/resume/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDiagnosisError(data.error ?? '진단 중 오류가 발생했습니다.')
+        return
+      }
+      router.push(`/diagnosis?resumeId=${resumeId}`)
+    } catch {
+      setDiagnosisError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setIsDiagnosing(false)
     }
   }
 
@@ -81,6 +106,10 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
         <p className="text-sm text-red-600" role="alert">{errorMsg}</p>
       )}
 
+      {diagnosisError && (
+        <p className="text-sm text-red-600" role="alert">{diagnosisError}</p>
+      )}
+
       <div className="flex gap-3 mt-2">
         <button
           onClick={handleInterviewStart}
@@ -88,6 +117,13 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
           className="py-2 px-6 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isStarting ? '면접 준비 중...' : '면접 시작'}
+        </button>
+        <button
+          onClick={handleDiagnosis}
+          disabled={!resumeId || isDiagnosing || isStarting}
+          className="py-2 px-6 rounded border border-indigo-400 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isDiagnosing ? '진단 중...' : '자소서 진단'}
         </button>
         <button
           onClick={onReset}
