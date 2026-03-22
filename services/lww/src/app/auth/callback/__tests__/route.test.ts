@@ -77,6 +77,21 @@ describe("GET /auth/callback", () => {
     expect(res.headers.get("location")).toBe(`${origin}/`);
   });
 
+  it("성공 + anonId 있으면 lww_anon_id 쿠키 삭제", async () => {
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { user: { id: "user-123" } },
+      error: null,
+    });
+    mockRpc.mockResolvedValue({ error: null });
+
+    const req = makeRequest(`${origin}/auth/callback?code=valid-code`);
+    const res = await GET(req);
+
+    // Set-Cookie 헤더에 lww_anon_id 만료 확인
+    const setCookie = res.headers.get("set-cookie");
+    expect(setCookie).toContain("lww_anon_id");
+  });
+
   it("next 파라미터로 safeRedirect", async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: { user: { id: "user-123" } },
