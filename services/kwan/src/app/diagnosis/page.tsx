@@ -146,7 +146,7 @@ function DiagnosisPageInner() {
         )}
 
         <button
-          onClick={() => router.push(`/interview?resumeId=${resumeId}`)}
+          onClick={() => router.push(`/interview?resumeId=${encodeURIComponent(resumeId)}`)}
           className="w-full bg-blue-600 text-white rounded-md py-3 text-sm font-semibold hover:bg-blue-700"
         >
           면접 시작

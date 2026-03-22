@@ -84,13 +84,15 @@ export async function POST(req: Request) {
   }
 
   if (!engineRes.ok) {
+    const errData = await engineRes.json().catch(() => ({}))
+    const detail = (errData as { detail?: string }).detail
     if (engineRes.status === 422) {
       return Response.json(
-        { error: '답변이 부족합니다. 더 많은 질문에 답변해 주세요.' },
+        { error: detail ?? '답변이 부족합니다. 더 많은 질문에 답변해 주세요.' },
         { status: 422 }
       )
     }
-    return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
+    return Response.json({ error: detail ?? '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
   let raw: unknown

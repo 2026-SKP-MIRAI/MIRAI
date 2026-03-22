@@ -148,7 +148,7 @@ export async function POST(req: Request) {
     return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
-  // questions DB 저장 — face-and-forget (면접 시작 시 questionsQueue 조회를 위해 필요)
+  // questions DB 저장 — fire-and-forget (면접 시작 시 questionsQueue 조회를 위해 필요)
   if (resumeId) {
     void prisma.resume
       .update({ where: { id: resumeId }, data: { questions: engineParse.data as object } })

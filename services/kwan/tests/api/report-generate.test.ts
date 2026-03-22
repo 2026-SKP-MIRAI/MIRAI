@@ -181,7 +181,7 @@ describe('POST /api/report/generate', () => {
     expect(body.error).toBe('요청 시간이 초과됐습니다. 잠시 후 다시 시도해주세요.')
   })
 
-  it('engine 422 → 422 전달', async () => {
+  it('engine 422 → 422 전달 + engine detail 메시지 사용', async () => {
     mockCallEngineReportGenerate.mockResolvedValueOnce(
       makeMockResponse(false, 422, { detail: '답변 부족' })
     )
@@ -189,6 +189,6 @@ describe('POST /api/report/generate', () => {
     const res = await POST(req)
     expect(res.status).toBe(422)
     const body = await res.json()
-    expect(body.error).toContain('답변이 부족합니다')
+    expect(body.error).toBe('답변 부족') // engine detail 그대로 전달
   })
 })

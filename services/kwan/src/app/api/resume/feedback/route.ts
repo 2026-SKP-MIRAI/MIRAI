@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
   // DB 저장 — await 필수: /diagnosis 접근 전 저장 완료 보장 (실패해도 결과 반환)
   await prisma.resume
-    .update({ where: { id: resumeId }, data: { diagnosisResult: raw as object } })
+    .update({ where: { id: resumeId }, data: { diagnosisResult: parsed.data as object } })
     .catch((err) => {
       console.error('[resume/feedback] DB update failed', { err })
     })

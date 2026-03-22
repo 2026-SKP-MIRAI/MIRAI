@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
+import path from 'path'
 
-const PDF_PATH = 'C:\\Users\\Dell3571\\Downloads\\mirai_포폴,이력서,자소서 (5)\\포트폴리오_003_반도체소프트웨어.pdf'
+const PDF_PATH = path.resolve(__dirname, '../tests/fixtures/input/test-resume.pdf')
 
 // ──────────────────────────────────────────────────────────────
 test.describe('kwan Phase 3 전체 플로우', () => {

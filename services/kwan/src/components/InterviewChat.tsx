@@ -94,6 +94,7 @@ export default function InterviewChat({
         // 연습 모드: 다음 질문 보류, practice/feedback 호출
         setPendingNextQuestion(data.nextQuestion ?? null)
         setPendingComplete(!!data.sessionComplete)
+        setLastAnswer(answer)
 
         const feedbackRes = await fetch('/api/practice/feedback', {
           method: 'POST',
@@ -111,12 +112,12 @@ export default function InterviewChat({
           setPracticePhase(previousAnswer !== undefined ? 'retry-feedback' : 'first-feedback')
         } else {
           // 피드백 실패 시 그냥 다음 질문으로 진행
-          advanceToNext(data)
+          advanceToNext(data, answer)
         }
         setAnswerInput('')
       } else {
         // 실전 모드 또는 면접 완료
-        advanceToNext(data)
+        advanceToNext(data, answer)
         setAnswerInput('')
       }
     } catch {
@@ -126,12 +127,12 @@ export default function InterviewChat({
     }
   }
 
-  function advanceToNext(data: { nextQuestion?: QuestionWithPersona | null; sessionComplete?: boolean }) {
+  function advanceToNext(data: { nextQuestion?: QuestionWithPersona | null; sessionComplete?: boolean }, answer: string) {
     const newHistoryItem: HistoryItem = {
       persona: currentQuestion.persona,
       personaLabel: currentQuestion.personaLabel,
       question: currentQuestion.question,
-      answer: lastAnswer,
+      answer,
       questionType: currentQuestion.type,
     }
     setHistory((prev) => [...prev, newHistoryItem])
