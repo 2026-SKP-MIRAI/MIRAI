@@ -33,6 +33,38 @@ function clearStorage() {
   } catch {}
 }
 
+/**
+ * sessionStorage에서 초기 면접 상태를 복구한다.
+ * interview_state(저장된 세션) 또는 interview_init(온보딩 직후) 순으로 확인한다.
+ * SSR 환경(sessionStorage 미접근)에서는 null을 반환한다.
+ */
+function loadInitialState(sessionId: string): InterviewState | null {
+  const stored = loadFromStorage();
+  if (stored?.sessionId === sessionId) return stored as InterviewState;
+
+  try {
+    const initRaw = sessionStorage.getItem("interview_init");
+    if (initRaw) {
+      const init = JSON.parse(initRaw);
+      if (init.sessionId === sessionId) {
+        sessionStorage.removeItem("interview_init");
+        return {
+          sessionId: init.sessionId,
+          resumeText: init.resumeText,
+          currentQuestion: init.firstQuestion?.question ?? "",
+          currentPersona: (init.firstQuestion?.persona ?? "hr") as PersonaType,
+          history: [],
+          questionsQueue: init.questionsQueue ?? [],
+          questionIndex: 0,
+          status: "answering",
+        };
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
 interface UseInterviewOptions {
   sessionId: string;
 }
@@ -46,34 +78,8 @@ interface UseInterviewReturn {
 
 export function useInterview({ sessionId }: UseInterviewOptions): UseInterviewReturn {
   const [state, setState] = useState<InterviewState>(() => {
-    // sessionStorage에서 초기 상태 복구 시도
-    const stored = loadFromStorage();
-    if (stored?.sessionId === sessionId) {
-      return stored as InterviewState;
-    }
-
-    // 온보딩 페이지에서 저장한 interview_init 확인
-    try {
-      const initRaw = sessionStorage.getItem("interview_init");
-      if (initRaw) {
-        const init = JSON.parse(initRaw);
-        if (init.sessionId === sessionId) {
-          sessionStorage.removeItem("interview_init");
-          return {
-            sessionId: init.sessionId,
-            resumeText: init.resumeText,
-            currentQuestion: init.firstQuestion?.question ?? "",
-            currentPersona: (init.firstQuestion?.persona ?? "hr") as PersonaType,
-            history: [],
-            questionsQueue: init.questionsQueue ?? [],
-            questionIndex: 0,
-            status: "answering",
-          };
-        }
-      }
-    } catch {}
-
-    return {
+    // SSR 중 sessionStorage 미접근 시 idle로 폴백 — useEffect에서 재복구
+    return loadInitialState(sessionId) ?? {
       sessionId,
       resumeText: "",
       currentQuestion: "",
@@ -86,6 +92,16 @@ export function useInterview({ sessionId }: UseInterviewOptions): UseInterviewRe
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // SSR 후 클라이언트 마운트 시 sessionStorage 재읽기
+  // Next.js App Router SSR 중 sessionStorage 미접근으로 idle 상태로 초기화되는 케이스 처리
+  useEffect(() => {
+    if (state.status === "idle") {
+      const recovered = loadInitialState(sessionId);
+      if (recovered) setState(recovered);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 상태 변경 시마다 sessionStorage 동기화
   useEffect(() => {
