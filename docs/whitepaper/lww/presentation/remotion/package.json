@@ -1,0 +1,21 @@
+{
+  "name": "lww-pitch-deck-remotion",
+  "version": "1.0.0",
+  "description": "lww 발표 동영상 — Remotion 프로젝트",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render LwwPresentation ../output/lww-pitch-video.mp4 --codec h264 --crf 18 --pixel-format yuv420p",
+    "render": "remotion render LwwPresentation ../output/lww-pitch-video.mp4 --codec h264 --crf 18 --pixel-format yuv420p"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "remotion": "^4.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

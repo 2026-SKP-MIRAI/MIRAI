@@ -1,0 +1,15 @@
+# 생성 산출물 (재생성 가능 또는 용량 큰 바이너리)
+*.mp3
+*.png
+*.pptx
+*.pdf
+*.mp4
+
+# Remotion
+remotion/node_modules/
+remotion/public/images
+remotion/public/audio/
+
+# 임시/검수용
+slide-exports/
+output/
