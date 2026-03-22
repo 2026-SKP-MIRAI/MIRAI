@@ -4,6 +4,23 @@
 
 ---
 
+## 2026년 3월 16일 주차 (Mar 16~22)
+
+### ✨ 새 기능
+- **이력서·자소서 피드백 엔진 구현** ([#90](../../issues/90)): `POST /api/resume/feedback` 엔드포인트 추가. 자소서 강점·약점 진단 및 맞춤 피드백을 LLM으로 생성합니다.
+- **`/parse` 신규 엔드포인트 + `/questions` JSON 수신 전환** ([#118](../../issues/118)): PDF 파싱 기능을 엔진으로 통합하고 서비스별 이중 파싱을 제거했습니다.
+- **이미지 PDF OCR 구현** ([#71](../../issues/71)): Dockerfile에 Tesseract 설치, 스캔 PDF에서 텍스트 추출이 가능해졌습니다.
+- **`targetRole` 자동 추출** ([#113](../../issues/113)): `/analyze`·`/target-role` 신규 엔드포인트 추가, `/questions`에 targetRole 주입, `/feedback` optional 처리.
+- **프롬프트 엔지니어링 고도화 v2** ([#53](../../issues/53)): HR·기술팀장·경영진 페르소나가 개선되어 면접 질문 품질이 향상되었습니다.
+- **usage 메타데이터 추가** ([#96](../../issues/96)): 모든 엔진 응답에 token 사용량 정보가 포함되어 비용 추적이 가능해졌습니다.
+- **embed API + trendComparison 뼈대** ([#97](../../issues/97)): LLM 옵저버빌리티 Pipeline 2-1 연동, inferredTargetRole 기반 트렌드 비교 분석 기반 구축.
+
+### 🐛 버그 수정
+- **interview 프롬프트 500 에러 수정** ([#188](../../issues/188)): Step 3 질문 분포 비율 지시문 제거로 간헐적 500 에러가 해결되었습니다.
+- **practice feedback scoreDelta 서버 계산으로 교체** ([#102](../../issues/102)): 클라이언트가 아닌 서버에서 점수 변화를 계산하도록 변경해 무결성이 강화되었습니다.
+
+---
+
 ## 2026년 3월 9일 주차 (Mar 9~15)
 
 ### ✨ 새 기능

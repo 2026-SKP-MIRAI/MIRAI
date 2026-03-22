@@ -4,6 +4,32 @@
 
 ---
 
+## 2026년 3월 16일 주차 (Mar 16~22)
+
+### ✨ 새 기능
+- **Supabase Auth end-to-end 연동** ([#88](../../issues/88)): 회원가입·로그인·OAuth·보호 라우트가 완성되었습니다.
+- **이력서 영속 저장** ([#89](../../issues/89)): Supabase Storage + Resume 모델 + 리포트 DB 캐시로 이력서가 재업로드 없이 재사용됩니다.
+- **연습 모드 UI 전체 구현** ([#86](../../issues/86)): 모드 선택·즉각 피드백·재답변 루프 UI가 추가되었습니다.
+- **이력서 피드백 실데이터 연동** ([#140](../../issues/140)): 엔진 `/api/resume/feedback`과 연동되어 실제 AI 피드백이 제공됩니다.
+- **이중 파싱 제거** ([#119](../../issues/119)): engine `/parse` 위임 + `Promise.all` 병렬화로 파싱 성능이 개선되었습니다.
+- **직무 확인·수정 UI** ([#162](../../issues/162)): engine `/analyze` 연동, targetRole 2-step 흐름이 추가되었습니다.
+- **LLM 옵저버빌리티 Pipeline 1** ([#95](../../issues/95)): 이벤트 로그 수집·S3 적재·Airflow 배치 집계 파이프라인이 구현되었습니다.
+- **LLM 옵저버빌리티 관리자 대시보드** ([#98](../../issues/98)): 관리자 전용 운영 현황 페이지가 추가되었습니다.
+- **Pipeline 2-1 뼈대** ([#97](../../issues/97)): inferredTargetRole·엔진 embed API·trendComparison 비교 분석 기반이 구축되었습니다.
+- **Airflow EC2 스케줄 자동 on/off** ([#154](../../issues/154)): EC2 비용 절감을 위한 스케줄링이 구성되었습니다.
+- **랜딩페이지 핵심 기능 섹션 문구 개선** ([#92](../../issues/92)).
+
+### 🔧 개선
+- **ECR + EC2 Docker CI/CD 파이프라인** ([#117](../../issues/117)): ECR 이미지 푸시 자동화, EC2 배포 워크플로우 구성.
+- **Docker 배포 안정화** ([#133](../../issues/133)): Prisma symlink 수정, 멀티스테이지 빌드 강화, 헬스체크 추가.
+
+### 🐛 버그 수정
+- **report/generate await 누락 + sessionComplete guard** ([#126](../../issues/126)): saveWithRetry await 누락 수정, 세션 완료 중복 처리 방지.
+- **pdf-parse GET /api/resumes 500 에러 수정** ([#138](../../issues/138)): require를 모듈 레벨에서 함수 내부로 이동.
+- **practice feedback scoreDelta 서버 계산으로 교체** ([#102](../../issues/102)).
+
+---
+
 ## 2026년 3월 9일 주차 (Mar 9~15)
 
 ### ✨ 새 기능

@@ -4,6 +4,42 @@
 
 ---
 
+## 2026년 3월 16일 주차 (Mar 16~22)
+
+### ✨ 새 기능
+- **lww 서비스 전면 출시**: 기획·브랜딩·초기 디자인, MVP 전체 화면(Teal 브랜딩, 채팅 UI), Vercel 배포, Phase 1 소셜 로그인(카카오·구글·이메일 + 익명→인증 마이그레이션)까지 lww 서비스의 핵심 기능이 완성되었습니다. ([#100](../../issues/100), [#112](../../issues/112), [#116](../../issues/116), [#179](../../issues/179))
+- **seung Supabase Auth + 대시보드**: 회원가입·로그인·보호 라우트·소유권 검증 연동([#151](../../issues/151)), 내 면접 기록 카드 대시보드([#157](../../issues/157)), targetRole 자동 감지·직무 맞춤 질문([#170](../../issues/170)), UX 흐름 개선(리다이렉트·진행률·이어하기·이탈경고·복수리포트)([#171](../../issues/171))이 완료되었습니다.
+- **siw 이력서 영속 저장 + Auth + 피드백**: Supabase Storage + Resume 모델([#89](../../issues/89)), Auth end-to-end 연동([#88](../../issues/88)), 이력서 피드백 실데이터 연동([#140](../../issues/140)), 직무 확인·수정 UI([#162](../../issues/162))가 완성되었습니다.
+- **siw LLM 옵저버빌리티 Pipeline 1·2**: 이벤트 로그 수집·S3 적재·Airflow 배치 집계([#95](../../issues/95)), 관리자 대시보드([#98](../../issues/98)), inferredTargetRole·embed API·trendComparison 뼈대([#97](../../issues/97)), Airflow EC2 스케줄 자동 on/off([#154](../../issues/154))가 구현되었습니다.
+- **engine 고도화**: `/parse` 신규 엔드포인트([#118](../../issues/118)), 이미지 PDF OCR + Tesseract([#71](../../issues/71)), 이력서·자소서 피드백([#90](../../issues/90)), targetRole 자동 추출(/analyze·/target-role·/questions 주입)([#113](../../issues/113)), 프롬프트 엔지니어링 페르소나 v2([#53](../../issues/53)), usage 메타데이터(token 비용 추적)([#96](../../issues/96))가 추가되었습니다.
+- **kwan 이중 파싱 제거**: engine `/parse` + `/questions`, DB 저장 병렬 전환. ([#120](../../issues/120))
+
+### 🔧 개선
+- **워크플로우 커맨드 개선**: `/cleanup-issue`·`/start-issue` 서버 프로세스 정리 + 포트 자동 할당 추가. `/broadpull-main` 커맨드 제거.
+- **`/fi` 커밋 전 자동 품질 검토**: 커밋 전 `/simplify` 스킬이 자동 호출됩니다.
+- **이중 파싱 제거 (seung·siw)**: engine `/parse` 위임 + `Promise.all` 병렬화로 응답 성능이 개선되었습니다. ([#119](../../issues/119), [#121](../../issues/121))
+
+### 🛡️ 인프라 / 배포
+- **신규 스킬 추가**: `auth-implementation-patterns`, `gamification-loops`, `remotion-best-practices`, `youtube-clipper` 등 다수 스킬 설치.
+- **Superpowers 플러그인 추가**: `/plan` 커맨드 연동 완료.
+- **seung Docker 배포 안정화** ([#132](../../issues/132), [#135](../../issues/135)): EC2 배포 워크플로우 + 헬스체크 API, Dockerize 완료.
+- **siw ECR + EC2 Docker CI/CD** ([#117](../../issues/117), [#133](../../issues/133)): 파이프라인 구축, Prisma symlink 수정, 헬스체크 추가.
+
+### 🐛 버그 수정
+- **interview 프롬프트 500 에러 수정** ([#188](../../issues/188)): Step 3 질문 분포 비율 지시문 제거.
+- **practice feedback scoreDelta 서버 계산으로 교체** ([#102](../../issues/102)): 클라이언트 조작 방지.
+- **siw report/generate await 누락 수정** ([#126](../../issues/126)): saveWithRetry await + sessionComplete guard 추가.
+- **pdf-parse GET /api/resumes 500 에러 수정** ([#138](../../issues/138)): require를 함수 내부로 이동.
+- **대시보드 헤더 버튼 겹침 수정** ([#172](../../issues/172)).
+
+### 📚 문서
+- **`docs/specs` 명세 현행화** ([#131](../../issues/131)): 엔진 API 변경·OCR fallback·targetRole 반영.
+- **lww 스펙 코인→크레딧 용어 통일**: 전체 스펙 파일 용어 일관성 정리.
+- **AI 사이트 디자인 문서 추가**: AI/바이브 코딩 관련 배경 자료 추가.
+- **`CLAUDE.md` 조사·리서치 규칙 추가**: 팩트 기반 작성 및 출처 명시 규칙.
+
+---
+
 ## 2026년 3월 9일 주차 (Mar 9~15)
 
 ### ✨ 새 기능
