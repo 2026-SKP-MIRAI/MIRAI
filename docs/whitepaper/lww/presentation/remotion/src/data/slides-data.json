@@ -1,0 +1,148 @@
+{
+  "slides": [
+    {
+      "id": 1,
+      "title": "표지",
+      "headline": "커리어를 재밌게",
+      "subheadline": "Fint — Find Interview",
+      "body": "AI 커리어 개발 플랫폼",
+      "image": "slide-01.png",
+      "audio": "slide-01-narration.mp3",
+      "targetSeconds": 10,
+      "durationInFrames": 331,
+      "narration": "안녕하세요. Fint는 커리어를 재밌게 만드는 AI 커리어 개발 플랫폼입니다."
+    },
+    {
+      "id": 2,
+      "title": "문제",
+      "headline": "왜 면접 준비는 이렇게 힘들까요?",
+      "subheadline": "3대 페인포인트",
+      "body": "① 돈없음 — 유료 컨설팅 1회 30~40만원\n② 지루함 — 모범 답안 암기, 자가분석\n③ 외로움 — 11.5개월 혼자, 현직자와 연결될 방법이 없다",
+      "image": "slide-02.png",
+      "audio": "slide-02-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "취업 준비생의 고통은 세 가지입니다. 첫째, 유료 면접 컨설팅은 1회에 30만원이 넘어 엄두도 못 냅니다. 둘째, 모범 답안 암기와 자가분석은 너무 지루합니다. 셋째, 평균 11.5개월의 취준 기간을 혼자 보내면서, 실제 현직자의 조언을 구할 방법이 없습니다."
+    },
+    {
+      "id": 3,
+      "title": "솔루션",
+      "headline": "Duolingo for 면접",
+      "subheadline": "취준생·현직자·AI가 함께 소통하는 커리어 플랫폼",
+      "body": "크레딧을 통한 부담 없는 AI 면접 시스템\n다양한 콘텐츠를 통한 재밌는 커리어 준비\n취준생·현직자·AI가 함께 소통하는 SNS 피드",
+      "image": "slide-03.png",
+      "audio": "slide-03-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "Fint는 Duolingo가 언어 학습을 일상 루틴으로 만들었듯, 커리어 준비를 일상 루틴으로 만듭니다. 크레딧으로 부담 없이 AI 면접을 연습하고, 다양한 콘텐츠로 재밌게 커리어를 준비하며, 취준생·현직자·AI가 함께 소통하는 SNS 피드에서 성장합니다."
+    },
+    {
+      "id": 4,
+      "title": "Aha Moment",
+      "headline": "3분 안에 첫 면접, 즉시 피드백",
+      "subheadline": "Aha Moment: 첫 AI 면접 완료 후 결과 리포트 수신 + SNS 공유",
+      "body": "직군 선택 → AI 모의면접 5문항 → 즉시 결과 리포트\n결과 리포트 카드 SNS 공유 → 바이럴\n\"저장하려면 로그인\" → 자연스러운 가입 유도",
+      "image": "slide-04.png",
+      "audio": "slide-04-narration.mp3",
+      "targetSeconds": 15,
+      "durationInFrames": 482,
+      "narration": "처음 사용하는 순간이 가장 중요합니다. 직군을 선택하고 5문항의 AI 모의면접을 마치면, 3분 안에 즉시 결과 리포트를 받습니다. 리포트 카드를 SNS에 공유해 바이럴이 시작됩니다. 이것이 Fint의 Aha Moment입니다."
+    },
+    {
+      "id": 5,
+      "title": "시장 규모",
+      "headline": "국내 면접 준비 시장 수천억원 규모",
+      "subheadline": "TAM → SAM → SOM",
+      "body": "TAM: 취업준비생 + 이직준비자 약 100만명\nSAM: 모바일 앱 수용 2030 약 40만명\nSOM: Phase 1 목표 MAU 25,000명 (TAM의 2.5%)",
+      "image": "slide-05.png",
+      "audio": "slide-05-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "시장 규모를 살펴보겠습니다. 전체 시장인 TAM은 취업준비생과 이직준비자를 합쳐 약 100만명입니다. 모바일 앱에 수용적인 SAM은 약 40만명이며, Phase 1 목표인 SOM은 TAM의 2.5%인 MAU 2만 5천명입니다."
+    },
+    {
+      "id": 6,
+      "title": "경쟁사 포지셔닝",
+      "headline": "링크드인과 유사한 포지션, AI 에이전트로 차별화",
+      "subheadline": "취준생/현직자(단면↔양면) × AI 에이전트 활용(없음↔있음) 포지셔닝 맵",
+      "body": "사람인: AI ✓, 취준생 단면\n블라인드: AI ✗, 현직자 단면\n링크드인: AI ✗, 취준생+현직자 양면\nFint: AI 에이전트 ✓ + 양면 플랫폼 ✓ (유일)",
+      "image": "slide-06.png",
+      "audio": "slide-06-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "포지셔닝 맵을 보겠습니다. 사람인은 AI는 있지만 취준생 단면 서비스입니다. 블라인드는 현직자 단면이고 AI가 없습니다. 링크드인은 취준생과 현직자 양면을 커버하지만 AI 에이전트가 없습니다. Fint는 링크드인과 유사한 양면 플랫폼이지만, AI 에이전트를 핵심 경쟁력으로 갖춘 유일한 서비스입니다."
+    },
+    {
+      "id": 7,
+      "title": "차별점",
+      "headline": "3가지 핵심 차별점",
+      "subheadline": "기존 서비스가 해결 못한 것을 Fint가 해결합니다",
+      "body": "① 컨텐츠/크레딧 — 재밌고 부담 없이 서비스 이용\n② 구직자/현직자/AI 통합 SNS — 프로필, 피드, 쪽지\n③ 수익화 — 구직자의 취업, 현직자의 멘토링·헤드헌팅",
+      "image": "slide-07.png",
+      "audio": "slide-07-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "Fint의 세 가지 핵심 차별점입니다. 첫째, 재밌는 콘텐츠와 크레딧으로 부담 없이 서비스를 이용할 수 있습니다. 둘째, 구직자·현직자·AI가 함께 활동하는 통합 SNS로, 프로필과 피드, 1:1 쪽지를 통해 서로 연결됩니다. 셋째, 자연스러운 수익화입니다. 구직자는 취업으로, 현직자는 멘토링과 헤드헌팅으로 가치를 얻습니다."
+    },
+    {
+      "id": 8,
+      "title": "AI 에이전트 전략",
+      "headline": "AI 에이전트로 콜드스타트 & 비용을 동시에 해결",
+      "subheadline": "사람이 없어도 돌아가는 플랫폼",
+      "body": "① 초기 콘텐츠 부족 → AI 페르소나가 현직자 역할 대행\n② 운영 비용 절감 → AI가 면접관·멘토 역할 자동화\n③ 사람이 늘수록 AI가 고도화 — 선순환 구조",
+      "image": "slide-08.png",
+      "audio": "slide-08-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "Fint의 핵심 전략은 AI 에이전트입니다. 초기엔 현직자가 없어도 AI 페르소나가 면접관과 멘토 역할을 대행합니다. 덕분에 콜드스타트 문제를 해결하고 운영 비용을 크게 낮출 수 있습니다. 사람이 늘어날수록 AI가 더 고도화되는 선순환 구조입니다."
+    },
+    {
+      "id": 9,
+      "title": "수익 모델",
+      "headline": "크레딧 경제 + 광고 + 현금 과금 삼중 레이어",
+      "subheadline": "단계적 수익화 — MVP는 핵심 루프 검증에 집중",
+      "body": "[크레딧 경제] 크레딧 구매/획득/소비\n[광고 수익] 채용공고 게재비·스폰서드 광고 (기업 B2B)\n[현금 과금] 멘토링 수수료·채용 매칭 수수료",
+      "image": "slide-09.png",
+      "audio": "slide-09-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 632,
+      "narration": "수익 모델은 세 가지 레이어로 구성됩니다. 첫째, 크레딧 경제로 유저 구매 수익을 만들고, 둘째, 기업이 채용 공고를 올리고 광고를 집행하는 B2B 광고 수익, 셋째, 멘토링·채용 매칭 현금 과금입니다. 장기적으로 광고 수익이 플랫폼의 가장 큰 수익원이 됩니다."
+    },
+    {
+      "id": 10,
+      "title": "로드맵",
+      "headline": "MVP → Phase 1 → Phase 2 — 속도가 경쟁력",
+      "subheadline": "2026년 1분기 집중 실행",
+      "body": "MVP (3/22): AI 면접 핵심 루프 검증\nPhase 1 (3/27): 소셜 로그인·자소서 분석·크레딧 기초\nPhase 2 (4/1): SNS 피드·프로필·쪽지 + 페르소나 마켓·채용 매칭",
+      "image": "slide-10.png",
+      "audio": "slide-12-narration.mp3",
+      "targetSeconds": 15,
+      "durationInFrames": 482,
+      "narration": "로드맵입니다. 3월 22일 MVP로 AI 면접 핵심 루프를 검증하고, 3월 27일 Phase 1에서 소셜 로그인, 자소서 분석, 크레딧 시스템을 출시합니다. 4월 1일 Phase 2에서 SNS 피드·프로필·쪽지를 열고, 페르소나 마켓과 채용 매칭으로 본격 수익화를 시작합니다."
+    },
+    {
+      "id": 11,
+      "title": "비전",
+      "headline": "취업 준비부터 직장생활까지 — 커리어 전 생애를 함께합니다",
+      "subheadline": "AI 에이전트 생태계로 커리어의 모든 순간을",
+      "body": "취준생 → 합격 → 현직자 → 멘토 — 선순환 커리어 생태계\n취준생이 현직자가 되어도 Fint에 남는다\nAI 페르소나로 후배를 코칭하고, 채용까지 연결",
+      "image": "slide-11.png",
+      "audio": "slide-13-narration.mp3",
+      "targetSeconds": 20,
+      "durationInFrames": 482,
+      "narration": "Fint의 장기 비전입니다. 취업 준비에서 시작해, 현직자가 되어서도 Fint에서 활동하고, 다시 후배 취준생을 코칭하는 선순환을 만듭니다. 취준생이 현직자가 되고, 현직자가 멘토가 되는, 커리어 전 생애를 함께하는 플랫폼이 Fint의 비전입니다."
+    },
+    {
+      "id": 12,
+      "title": "CTA",
+      "headline": "AI 모의면접, 직접 느껴보세요",
+      "subheadline": "커리어를 재밌게",
+      "body": "https://mirai-lww.vercel.app/",
+      "image": "slide-12.png",
+      "audio": "slide-14-narration.mp3",
+      "targetSeconds": 10,
+      "durationInFrames": 632,
+      "narration": "감사합니다. 말로 설명하는 것보다 직접 느껴보시는 게 빠릅니다. mirai-lww.vercel.app에서 지금 바로 AI 모의면접을 체험해 보세요. 여러분의 커리어가 재밌어집니다."
+    }
+  ]
+}
