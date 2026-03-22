@@ -8,55 +8,55 @@
 ## 완료 기준
 
 ### 1. 인프라 — analyze 전환 + targetRole 확정 + PDF 저장
-- [ ] `callEngineParse` → `callEngineAnalyze`로 변경; `/api/resume/analyze` 호출; 반환에 `targetRole` 포함
-- [ ] `callEngineQuestions(resumeText, targetRole)` — `{ resumeText, targetRole }` 전송
-- [ ] `POST /api/resume/questions` 라우트: analyze 응답에서 `targetRole` 추출 → questions에 전달
-- [ ] Prisma `Resume` 모델: `storageKey String?`, `inferredTargetRole String?` 컬럼 추가
-- [ ] Resume 생성 시 `inferredTargetRole` 저장; engine 질문 응답을 `questions` 필드에 업데이트
-- [ ] PDF 원본 저장 → `storageKey`에 경로 저장; 저장 실패해도 요청은 성공 (graceful degradation)
-- [ ] 기존 테스트 전체 업데이트: mock 이름 `/parse` → `/analyze` 전면 리네이밍
+- [x] `callEngineParse` → `callEngineAnalyze`로 변경; `/api/resume/analyze` 호출; 반환에 `targetRole` 포함
+- [x] `callEngineQuestions(resumeText, targetRole)` — `{ resumeText, targetRole }` 전송
+- [x] `POST /api/resume/questions` 라우트: analyze 응답에서 `targetRole` 추출 → questions에 전달
+- [x] Prisma `Resume` 모델: `storageKey String?`, `inferredTargetRole String?` 컬럼 추가
+- [x] Resume 생성 시 `inferredTargetRole` 저장; engine 질문 응답을 `questions` 필드에 업데이트
+- [x] PDF 원본 저장 → `storageKey`에 경로 저장; 저장 실패해도 요청은 성공 (graceful degradation)
+- [x] 기존 테스트 전체 업데이트: mock 이름 `/parse` → `/analyze` 전면 리네이밍
 
 ### 2. UX 플로우 — PDF 업로드 → targetRole 확정 → 자소서 진단 → 면접 시작
-- [ ] 메인 페이지: PDF 업로드 → engine `/analyze` 호출 → `targetRole` 표시 + 수정 input
-- [ ] targetRole 확정 버튼 클릭 시:
+- [x] 메인 페이지: PDF 업로드 → engine `/analyze` 호출 → `targetRole` 표시 + 수정 input
+- [x] targetRole 확정 버튼 클릭 시:
   - 포그라운드: `POST /api/resume/feedback` → 완료 후 `/diagnosis?resumeId=xxx` 이동
-  - 백그라운드 (feedback 응답 대기 중): `POST /api/resume/questions` (질문 생성 + DB 저장 + PDF 저장)
-- [ ] `/diagnosis` 페이지에 "면접 시작" 버튼 추가 → `POST /api/interview/start { resumeId }` → `/interview?sessionId=xxx`
-- [ ] 질문 목록은 사용자에게 노출하지 않음 (백그라운드 처리)
+  - 백그라운드 (feedback 응답 대기 중): `POST /api/resume/questions` (질문 생성 + 기존 row 업데이트)
+- [x] `/diagnosis` 페이지에 "면접 시작" 버튼 추가 → `/interview?resumeId=xxx` 이동 (모드 선택은 interview 페이지에서)
+- [x] 질문 목록은 사용자에게 노출하지 않음 (백그라운드 처리)
 
 ### 3. 기능 02 — 이력서·자소서 피드백 (진단 5축 점수)
-- [ ] `POST /api/resume/feedback` 라우트: `{ resumeId, targetRole? }` 수신
-- [ ] `GET /api/resume/diagnosis?resumeId=xxx` 라우트: 저장된 `diagnosisResult` 반환; 404 처리
-- [ ] Prisma `Resume`: `diagnosisResult Json?` 추가
-- [ ] `engine-client.ts`: `callEngineResumeFeedback(resumeText, targetRole)` 추가
-- [ ] Zod: `ResumeFeedbackResponseSchema` (scores 5키, strengths, weaknesses, suggestions)
-- [ ] `diagnosisResult` DB 저장은 **await** 처리 — 저장 완료 후 응답 반환 (저장 실패 시에도 결과 반환)
-- [ ] UI `/diagnosis?resumeId=xxx` 페이지: 5축 점수 바, 강점/약점 목록, 개선 제안 카드, **"면접 시작" 버튼**
-- [ ] 테스트: happy path, resumeId 누락(400), resume 없음(404), 엔진 에러(500), 타임아웃, Zod 검증 실패(500), DB 저장 실패 → 200 (결과 반환)
+- [x] `POST /api/resume/feedback` 라우트: `{ resumeId, targetRole? }` 수신
+- [x] `GET /api/resume/diagnosis?resumeId=xxx` 라우트: 저장된 `diagnosisResult` 반환; 404 처리
+- [x] Prisma `Resume`: `diagnosisResult Json?` 추가
+- [x] `engine-client.ts`: `callEngineResumeFeedback(resumeText, targetRole)` 추가
+- [x] Zod: `ResumeFeedbackResponseSchema` (scores 5키, strengths, weaknesses, suggestions)
+- [x] `diagnosisResult` DB 저장은 **await** 처리 — 저장 완료 후 응답 반환 (저장 실패 시에도 결과 반환)
+- [x] UI `/diagnosis?resumeId=xxx` 페이지: 5축 점수 바, 강점/약점 목록, 개선 제안 카드, **"면접 시작" 버튼**
+- [x] 테스트: happy path, resumeId 누락(400), resume 없음(404), 엔진 에러(500), 타임아웃, Zod 검증 실패(500), DB 저장 실패 → 200 (결과 반환)
 
 ### 4. 기능 05 — 연습 모드 즉각 피드백
-- [ ] `POST /api/practice/feedback` 라우트: `{ question, answer, previousAnswer? }`
-- [ ] Prisma `InterviewSession`: `interviewMode String @default("real")` 추가
-- [ ] `POST /api/interview/start`: `mode` 파라미터 수신 → `interviewMode` DB 저장 (engine에는 항상 `mode: "panel"` 전달)
-- [ ] `engine-client.ts`: `callEnginePracticeFeedback(question, answer, previousAnswer?)` 추가
-- [ ] Zod: `PracticeFeedbackResponseSchema` — `comparisonDelta`는 `.nullable().optional()`
-- [ ] UI: 모드 선택(실전/연습), 피드백 패널(점수·good/improve·키워드·가이드), "다시 답변하기" 버튼
-- [ ] 테스트: happy path, 필수 필드 누락(400), 타입 불일치(400), 타임아웃, previousAnswer 포함 시 comparisonDelta 확인
+- [x] `POST /api/practice/feedback` 라우트: `{ question, answer, previousAnswer? }`
+- [x] Prisma `InterviewSession`: `interviewMode String @default("real")` 추가
+- [x] `POST /api/interview/start`: `mode` 파라미터 수신 → `interviewMode` DB 저장 (engine에는 항상 `mode: "panel"` 전달)
+- [x] `engine-client.ts`: `callEnginePracticeFeedback(question, answer, previousAnswer?)` 추가
+- [x] Zod: `PracticeFeedbackResponseSchema` — `comparisonDelta`는 `.nullable().optional()`
+- [x] UI: 모드 선택(실전/연습), 피드백 패널(점수·good/improve·키워드·가이드), "다시 답변하기" 버튼
+- [x] 테스트: happy path, 필수 필드 누락(400), 타입 불일치(400), 타임아웃, previousAnswer 포함 시 comparisonDelta 확인
 
 ### 5. 기능 07 — 8축 역량 평가 리포트
-- [ ] Prisma `Report` 모델: `id`, `sessionId @unique` FK, `totalScore Int`, `scores Json`, `summary String`, `axisFeedbacks Json`, `createdAt`, **`@@map("reports")`**
-- [ ] `POST /api/report/generate`: `{ sessionId }`
-- [ ] `GET /api/report?reportId=xxx`: Report 조회, 404 처리
-- [ ] `engine-client.ts`: `callEngineReportGenerate(resumeText, history)` — **90s timeout**
-- [ ] Zod: `ReportGenerateResponseSchema` (totalScore, 8축 scores, summary, axisFeedbacks)
-- [ ] UI `/report?reportId=xxx` 페이지: totalScore, 8축 점수 바, summary, axisFeedbacks, 로딩("약 15초 소요")
-- [ ] `InterviewChat.tsx` 완료 상태에 "리포트 생성" 버튼 + 기존 테스트 업데이트
-- [ ] 테스트: happy path(201), 세션 미완료(400), history 비배열(500), history<5(422), 타임아웃, 중복(멱등 200), engine 422
+- [x] Prisma `Report` 모델: `id`, `sessionId @unique` FK, `totalScore Int`, `scores Json`, `summary String`, `axisFeedbacks Json`, `createdAt`, **`@@map("reports")`**
+- [x] `POST /api/report/generate`: `{ sessionId }`
+- [x] `GET /api/report?reportId=xxx`: Report 조회, 404 처리
+- [x] `engine-client.ts`: `callEngineReportGenerate(resumeText, history)` — **90s timeout**
+- [x] Zod: `ReportGenerateResponseSchema` (totalScore, 8축 scores, summary, axisFeedbacks)
+- [x] UI `/report?reportId=xxx` 페이지: totalScore, 8축 점수 바, summary, axisFeedbacks, 로딩("약 15초 소요")
+- [x] `InterviewChat.tsx` 완료 상태에 "리포트 생성" 버튼 + 기존 테스트 업데이트
+- [x] 테스트: happy path(201), 세션 미완료(400), history 비배열(500), history<5(422), 타임아웃, 중복(멱등 200), engine 422
 
 ### 6. 공통
-- [ ] `npm test` 전체 통과
-- [ ] `npm run build` 성공
-- [ ] `.ai.md` 업데이트
+- [x] `npm test` 전체 통과 (14파일 119개 TC)
+- [x] `npm run build` 성공
+- [x] `.ai.md` 업데이트
 
 ---
 
@@ -72,8 +72,8 @@
 
 **Task 1: Prisma 스키마 확장** (`prisma/schema.prisma`)
 
-- [ ] Resume 모델에 `storageKey String?`, `inferredTargetRole String?`, `diagnosisResult Json?` 추가 (기존 `@@map("resumes")` 유지)
-- [ ] InterviewSession에 `interviewMode String @default("real")`, `report Report?` 관계 추가 (기존 `@@map("interview_sessions")` 유지)
+- [x] Resume 모델에 `storageKey String?`, `inferredTargetRole String?`, `diagnosisResult Json?` 추가 (기존 `@@map("resumes")` 유지)
+- [x] InterviewSession에 `interviewMode String @default("real")`, `report Report?` 관계 추가 (기존 `@@map("interview_sessions")` 유지)
 - [ ] Report 모델 신규 생성:
   ```prisma
   model Report {
@@ -90,8 +90,8 @@
   }
   ```
   > ⚠️ `@@map("reports")` 필수 — 기존 kwan 컨벤션(`resumes`, `interview_sessions`) 유지
-- [ ] `npx prisma db push && npx prisma generate`
-- [ ] 기존 테스트 통과 확인
+- [x] `npx prisma db push && npx prisma generate`
+- [x] 기존 테스트 통과 확인
 
 ---
 
@@ -99,27 +99,27 @@
 
 **Task 2: engine-client 확장** (`src/lib/engine-client.ts`)
 
-- [ ] `callEngineParse` → `callEngineAnalyze`로 이름 변경, 엔드포인트 `/api/resume/analyze`로 변경 (timeout: 30s 유지)
+- [x] `callEngineParse` → `callEngineAnalyze`로 이름 변경, 엔드포인트 `/api/resume/analyze`로 변경 (timeout: 30s 유지)
   - **파라미터 타입**: `(file: Blob)` — `File extends Blob`이므로 기존 File 전달도 호환
-- [ ] `callEngineQuestions(resumeText, targetRole)` — targetRole 파라미터 추가
+- [x] `callEngineQuestions(resumeText, targetRole)` — targetRole 파라미터 추가
   - `targetRole`이 빈 문자열인 경우 필드 생략: `body: JSON.stringify({ resumeText, ...(targetRole ? { targetRole } : {}) })`
-- [ ] `callEngineResumeFeedback(resumeText, targetRole)` — 40s timeout
-- [ ] `callEnginePracticeFeedback(question, answer, previousAnswer?)` — 40s timeout
-- [ ] `callEngineReportGenerate(resumeText, history)` — **90s timeout**
+- [x] `callEngineResumeFeedback(resumeText, targetRole)` — 40s timeout
+- [x] `callEnginePracticeFeedback(question, answer, previousAnswer?)` — 40s timeout
+- [x] `callEngineReportGenerate(resumeText, history)` — **90s timeout**
 
 **Task 3: Supabase 클라이언트 + PDF 스토리지 유틸**
 
-- [ ] `src/lib/supabase.ts` — `createServiceClient()` (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
+- [x] `src/lib/supabase.ts` — `createServiceClient()` (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
   ```ts
   import { createClient } from '@supabase/supabase-js'
   export function createServiceClient() {
     return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
   }
   ```
-- [ ] `src/lib/resume-storage.ts` — `uploadResumePdf(buffer, originalFileName): Promise<string>`
+- [x] `src/lib/resume-storage.ts` — `uploadResumePdf(buffer, originalFileName): Promise<string>`
   - storageKey: `uploads/${uuid}.pdf` (인증 없으므로 userId 없음)
   - 실패 시 `throw new Error(...)` — 호출부에서 `.catch()` 처리
-- [ ] `npm install --save @supabase/supabase-js`
+- [x] `npm install --save @supabase/supabase-js`
 
 **Task 4: POST /api/resume/questions — analyze 전환 + questions DB 저장 + PDF 저장** (TDD)
 
@@ -197,8 +197,8 @@ Step 5: PDF 저장 비동기 체인 (fire-and-forget)
 
 **Task 5: Zod 스키마 + 타입 — ResumeFeedback**
 
-- [ ] `schemas.ts`: `ResumeFeedbackScoresSchema` (5축), `SuggestionSchema`, `ResumeFeedbackResponseSchema`
-- [ ] `types.ts`: `FeedbackScores`, `SuggestionItem` 인터페이스 추가
+- [x] `schemas.ts`: `ResumeFeedbackScoresSchema` (5축), `SuggestionSchema`, `ResumeFeedbackResponseSchema`
+- [x] `types.ts`: `FeedbackScores`, `SuggestionItem` 인터페이스 추가
 
 **Task 6: POST /api/resume/feedback** (TDD)
 
@@ -293,11 +293,11 @@ export const PracticeFeedbackResponseSchema = z.object({
 
 **Task 10: interview/start mode 파라미터 + session 응답 확장**
 
-- [ ] `interview/start`: body에 `mode?: string` 추가
+- [x] `interview/start`: body에 `mode?: string` 추가
   - `interviewMode = mode === 'practice' ? 'practice' : 'real'` → DB 저장
   - engine에는 항상 `mode: 'panel'` 전달 (engine 계약 불변)
-- [ ] `interview/session`: 응답에 `interviewMode` 필드 추가
-- [ ] `src/app/interview/page.tsx` 수정: 면접 시작 전 모드 선택 UI
+- [x] `interview/session`: 응답에 `interviewMode` 필드 추가
+- [x] `src/app/interview/page.tsx` 수정: 면접 시작 전 모드 선택 UI
   - "실전 모드" / "연습 모드" 버튼 → `POST /api/interview/start { resumeId, mode }` 호출
   - 연습 모드: 답변 후 `/api/practice/feedback` 호출 → 피드백 패널 + "다시 답변하기"
 
@@ -315,8 +315,8 @@ export const PracticeFeedbackResponseSchema = z.object({
 
 **Task 11: Zod 스키마 + 타입 — Report**
 
-- [ ] `schemas.ts`: `AxisScoresSchema` (8축), `AxisFeedbackSchema`, `ReportGenerateResponseSchema`
-- [ ] `types.ts`: `AxisScores`, `AxisFeedback` 인터페이스 추가
+- [x] `schemas.ts`: `AxisScoresSchema` (8축), `AxisFeedbackSchema`, `ReportGenerateResponseSchema`
+- [x] `types.ts`: `AxisScores`, `AxisFeedback` 인터페이스 추가
 
 **Task 12: POST /api/report/generate** (TDD)
 
@@ -384,9 +384,9 @@ route 핵심:
 
 **Task 15: 전체 테스트 + 빌드 + .ai.md 최신화**
 
-- [ ] `npm test` — 전체 테스트 통과
-- [ ] `npm run build` — TypeScript strict 빌드 성공
-- [ ] `services/kwan/.ai.md` 업데이트: Phase 3 구현 내역, 새 API 라우트, Report 모델, Supabase 환경변수
+- [x] `npm test` — 전체 테스트 통과 (14파일 119개 TC)
+- [x] `npm run build` — TypeScript strict 빌드 성공
+- [x] `services/kwan/.ai.md` 업데이트: Phase 3 구현 내역, 새 API 라우트, Report 모델, Supabase 환경변수
 
 ---
 
