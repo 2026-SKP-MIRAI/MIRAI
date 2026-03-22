@@ -1,23 +1,29 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCallEngineParse, mockCallEngineQuestions, mockPrisma } = vi.hoisted(() => ({
-  mockCallEngineParse: vi.fn(),
+const { mockCallEngineAnalyze, mockCallEngineQuestions, mockPrisma, mockUploadResumePdf } = vi.hoisted(() => ({
+  mockCallEngineAnalyze: vi.fn(),
   mockCallEngineQuestions: vi.fn(),
+  mockUploadResumePdf: vi.fn(),
   mockPrisma: {
     resume: {
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }))
 
 vi.mock('@/lib/engine-client', () => ({
-  callEngineParse: mockCallEngineParse,
+  callEngineAnalyze: mockCallEngineAnalyze,
   callEngineQuestions: mockCallEngineQuestions,
 }))
 
 vi.mock('@/lib/db', () => ({
   prisma: mockPrisma,
+}))
+
+vi.mock('@/lib/resume-storage', () => ({
+  uploadResumePdf: mockUploadResumePdf,
 }))
 
 import { POST } from '@/app/api/resume/questions/route'
@@ -50,13 +56,15 @@ const DEFAULT_META = { extractedLength: 1000, categoriesUsed: ['직무 역량'] 
 describe('POST /api/resume/questions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCallEngineParse.mockResolvedValue(
-      makeMockResponse(true, 200, { resumeText: '안녕하세요. 저는 소프트웨어 엔지니어입니다.', extractedLength: 100 })
+    mockCallEngineAnalyze.mockResolvedValue(
+      makeMockResponse(true, 200, { resumeText: '안녕하세요. 저는 소프트웨어 엔지니어입니다.', extractedLength: 100, targetRole: '백엔드 엔지니어' })
     )
     mockCallEngineQuestions.mockResolvedValue(
       makeMockResponse(true, 200, { questions: DEFAULT_QUESTIONS, meta: DEFAULT_META })
     )
     mockPrisma.resume.create.mockResolvedValue({ id: 'resume-1' })
+    mockPrisma.resume.update.mockResolvedValue({})
+    mockUploadResumePdf.mockResolvedValue('uploads/uuid.pdf')
   })
 
   it('파일 없음 → 400', async () => {
@@ -67,16 +75,16 @@ describe('POST /api/resume/questions', () => {
     expect(body.error).toBe('PDF 파일을 선택해주세요.')
   })
 
-  it('/parse 네트워크 오류 → 500', async () => {
-    mockCallEngineParse.mockRejectedValueOnce(new Error('network error'))
+  it('/analyze 네트워크 오류 → 500', async () => {
+    mockCallEngineAnalyze.mockRejectedValueOnce(new Error('network error'))
     const res = await POST(makeRequest(makePdfFile()))
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toContain('서버 오류')
   })
 
-  it('/parse JSON 파싱 실패 → 500', async () => {
-    mockCallEngineParse.mockResolvedValueOnce({
+  it('/analyze JSON 파싱 실패 → 500', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => { throw new Error('invalid json') },
@@ -85,8 +93,8 @@ describe('POST /api/resume/questions', () => {
     expect(res.status).toBe(500)
   })
 
-  it('/parse 400 에러 → { error } 형식으로 전달', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 400 에러 → { error } 형식으로 전달', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(false, 400, { detail: '파일 크기가 5MB를 초과합니다.' })
     )
     const res = await POST(makeRequest(makePdfFile()))
@@ -95,8 +103,8 @@ describe('POST /api/resume/questions', () => {
     expect(body.error).toBe('파일 크기가 5MB를 초과합니다.')
   })
 
-  it('/parse 422 에러 → { error } 형식으로 전달', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 422 에러 → { error } 형식으로 전달', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(false, 422, { detail: '이미지로만 구성된 PDF입니다.' })
     )
     const res = await POST(makeRequest(makePdfFile()))
@@ -105,23 +113,23 @@ describe('POST /api/resume/questions', () => {
     expect(body.error).toBe('이미지로만 구성된 PDF입니다.')
   })
 
-  it('/parse 성공이지만 resumeText 누락 → 500', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 성공이지만 resumeText 누락 → 500', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(true, 200, { extractedLength: 100 })
     )
     const res = await POST(makeRequest(makePdfFile()))
     expect(res.status).toBe(500)
   })
 
-  it('/parse 성공이지만 resumeText 공백 → 500', async () => {
-    mockCallEngineParse.mockResolvedValueOnce(
+  it('/analyze 성공이지만 resumeText 공백 → 500', async () => {
+    mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(true, 200, { resumeText: '   ', extractedLength: 0 })
     )
     const res = await POST(makeRequest(makePdfFile()))
     expect(res.status).toBe(500)
   })
 
-  it('정상 흐름 → 200 + questions + resumeId', async () => {
+  it('정상 흐름 → 200 + questions + resumeId + inferredTargetRole', async () => {
     const res = await POST(makeRequest(makePdfFile()))
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -129,7 +137,22 @@ describe('POST /api/resume/questions', () => {
     expect(body.questions[0].category).toBe('직무 역량')
     expect(body.meta.extractedLength).toBe(1000)
     expect(body.resumeId).toBe('resume-1')
+    expect(body.inferredTargetRole).toBe('백엔드 엔지니어')
     expect(mockPrisma.resume.create).toHaveBeenCalledTimes(1)
+    expect(mockCallEngineQuestions).toHaveBeenCalledWith('안녕하세요. 저는 소프트웨어 엔지니어입니다.', '백엔드 엔지니어')
+    expect(mockPrisma.resume.create).toHaveBeenCalledWith({ data: expect.objectContaining({ inferredTargetRole: '백엔드 엔지니어' }) })
+  })
+
+  it('정상 흐름 → questions DB 업데이트', async () => {
+    await POST(makeRequest(makePdfFile()))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(mockPrisma.resume.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'resume-1' },
+        data: expect.objectContaining({ questions: expect.any(Object) }),
+      })
+    )
   })
 
   it('/questions 에러 → 에러 전달', async () => {
@@ -159,10 +182,10 @@ describe('POST /api/resume/questions', () => {
     expect(body.resumeId).toBeNull()
   })
 
-  it('/parse 타임아웃 (TimeoutError) → 타임아웃 메시지', async () => {
+  it('/analyze 타임아웃 (TimeoutError) → 타임아웃 메시지', async () => {
     const timeoutError = new Error('timeout')
     timeoutError.name = 'TimeoutError'
-    mockCallEngineParse.mockRejectedValueOnce(timeoutError)
+    mockCallEngineAnalyze.mockRejectedValueOnce(timeoutError)
     const res = await POST(makeRequest(makePdfFile()))
     expect(res.status).toBe(500)
     const body = await res.json()
@@ -199,5 +222,26 @@ describe('POST /api/resume/questions', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toContain('서버 오류')
+  })
+
+  it('PDF 저장 실패해도 요청 성공 → 200', async () => {
+    mockUploadResumePdf.mockRejectedValueOnce(new Error('storage error'))
+    const res = await POST(makeRequest(makePdfFile()))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.questions).toHaveLength(1)
+    expect(body.resumeId).toBe('resume-1')
+  })
+
+  it('PDF 저장 성공 시 storageKey DB 업데이트', async () => {
+    mockUploadResumePdf.mockResolvedValueOnce('uploads/test-uuid.pdf')
+    await POST(makeRequest(makePdfFile()))
+    // flush fire-and-forget chains (questions update + PDF .then chain)
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(mockPrisma.resume.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { storageKey: 'uploads/test-uuid.pdf' } })
+    )
   })
 })

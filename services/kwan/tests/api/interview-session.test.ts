@@ -22,6 +22,7 @@ const MOCK_SESSION = {
   currentQuestionType: 'main',
   questionsQueue: [],
   sessionComplete: false,
+  interviewMode: 'real',
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -67,6 +68,15 @@ describe('GET /api/interview/session', () => {
     expect(body.currentQuestionType).toBe('main')
     expect(body.sessionComplete).toBe(false)
     expect(body.history).toHaveLength(1)
+    expect(body.interviewMode).toBe('real')
+  })
+
+  it('DB lookup 실패 → 500', async () => {
+    vi.mocked(prisma.interviewSession.findUnique).mockRejectedValueOnce(new Error('DB connection failed'))
+    const res = await GET(makeRequest('session-id-123'))
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toBeTruthy()
   })
 
   it('sessionComplete=true 세션 → 완료 상태 반환', async () => {

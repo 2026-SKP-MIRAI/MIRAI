@@ -45,6 +45,56 @@ export interface GenerateResult {
     categoriesUsed: string[]
   }
   resumeId: string | null
+  inferredTargetRole: string | null
 }
 
-export type UploadState = 'idle' | 'uploading' | 'done' | 'error'
+export type UploadState = 'idle' | 'uploading' | 'confirming' | 'processing' | 'done' | 'error'
+
+export type InterviewMode = 'real' | 'practice'
+export type PracticeStepState = 'idle' | 'first-feedback' | 'retry-feedback'
+
+export interface FeedbackScores {
+  specificity: number
+  achievementClarity: number
+  logicStructure: number
+  roleAlignment: number
+  differentiation: number
+}
+
+export interface SuggestionItem {
+  section: string
+  issue: string
+  suggestion: string
+}
+
+export interface AxisScores {
+  communication: number
+  problemSolving: number
+  logicalThinking: number
+  jobExpertise: number
+  cultureFit: number
+  leadership: number
+  creativity: number
+  sincerity: number
+}
+
+export interface AxisFeedback {
+  axis: string
+  axisLabel: string
+  score: number
+  type: 'strength' | 'improvement'
+  feedback: string
+}
+
+export interface ComparisonDelta {
+  scoreDelta: number
+  improvements: string[]
+}
+
+export interface PracticeFeedback {
+  score: number
+  feedback: { good: string[]; improve: string[] }
+  keywords: string[]
+  improvedAnswerGuide: string
+  comparisonDelta?: ComparisonDelta | null
+}

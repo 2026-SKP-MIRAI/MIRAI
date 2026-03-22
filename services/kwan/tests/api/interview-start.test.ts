@@ -86,6 +86,28 @@ describe('POST /api/interview/start', () => {
     expect(body.firstQuestion.question).toBe(mockStartResponse.firstQuestion.question)
   })
 
+  it('DB lookup 실패 → 500', async () => {
+    vi.mocked(prisma.resume.findUnique).mockRejectedValueOnce(new Error('DB connection failed'))
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toBeTruthy()
+  })
+
+  it('DB session create 실패 → 500', async () => {
+    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
+    mockCallStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    vi.mocked(prisma.interviewSession.create).mockRejectedValueOnce(new Error('DB connection failed'))
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toBeTruthy()
+  })
+
   it('엔진 호출 실패 → 500', async () => {
     vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as ReturnType<typeof prisma.resume.findUnique> extends Promise<infer T> ? T : never)
     mockCallStart.mockRejectedValueOnce(new Error('engine down'))
@@ -102,5 +124,42 @@ describe('POST /api/interview/start', () => {
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
     expect(res.status).toBe(500)
+  })
+
+  it("mode='practice' → interviewMode='practice' 저장", async () => {
+    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
+    mockCallStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    vi.mocked(prisma.interviewSession.create).mockResolvedValueOnce({
+      ...MOCK_SESSION,
+      interviewMode: 'practice',
+    } as any)
+
+    const req = makeRequest({ resumeId: 'resume-123', mode: 'practice' })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    expect(vi.mocked(prisma.interviewSession.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ interviewMode: 'practice' }),
+      })
+    )
+  })
+
+  it("mode 미제공 → interviewMode='real' 기본값", async () => {
+    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
+    mockCallStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    vi.mocked(prisma.interviewSession.create).mockResolvedValueOnce(MOCK_SESSION as any)
+
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    expect(vi.mocked(prisma.interviewSession.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ interviewMode: 'real' }),
+      })
+    )
   })
 })
