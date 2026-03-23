@@ -17,6 +17,7 @@ model Resume {
   resumeText  String
   questions          Json     @default("[]")
   feedbackJson       Json?
+  trendComparison    Json?
   inferredTargetRole String?
   createdAt          DateTime @default(now())
 

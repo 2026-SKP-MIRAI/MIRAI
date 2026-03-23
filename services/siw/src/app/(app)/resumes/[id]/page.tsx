@@ -4,8 +4,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { ChevronLeft, Download, TrendingUp, TrendingDown, Lightbulb } from "lucide-react"
-import type { ResumeFeedback, ResumeFeedbackScores, SuggestionItem, TrendComparison } from "@/lib/types"
-import TrendComparisonCard from "@/components/TrendComparisonCard"
+import type { ResumeFeedback, ResumeFeedbackScores, SuggestionItem } from "@/lib/types"
 
 type InterviewSummary = {
   id: string
@@ -60,7 +59,7 @@ export default function ResumeDetailPage() {
   const [resume, setResume] = useState<ResumeItem | null>(null)
   const [sessions, setSessions] = useState<InterviewSummary[]>([])
   const [feedback, setFeedback] = useState<ResumeFeedback | null>(null)
-  const [trendComparison, setTrendComparison] = useState<TrendComparison | null>(null)
+
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
@@ -69,11 +68,10 @@ export default function ResumeDetailPage() {
       fetch(`/api/resumes/${id}`).then(r => r.ok ? r.json() : null),
       fetch(`/api/resumes/${id}/sessions`).then(r => r.ok ? r.json() : []),
       fetch(`/api/resumes/${id}/feedback`).then(r => r.ok ? r.json() : null),
-    ]).then(([resumeData, sessionsData, feedbackWithTrends]: [ResumeItem | null, InterviewSummary[], { feedback: ResumeFeedback | null; trendComparison: TrendComparison | null } | null]) => {
+    ]).then(([resumeData, sessionsData, feedbackWithTrends]: [ResumeItem | null, InterviewSummary[], { feedback: ResumeFeedback | null } | null]) => {
       setResume(resumeData)
       setSessions(Array.isArray(sessionsData) ? sessionsData : [])
       setFeedback(feedbackWithTrends?.feedback ?? null)
-      setTrendComparison(feedbackWithTrends?.trendComparison ?? null)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [id])
@@ -254,13 +252,6 @@ export default function ResumeDetailPage() {
             </div>
           )}
         </motion.div>
-
-        {/* 트렌드 스킬 비교 */}
-        {trendComparison && (
-          <motion.div variants={itemVariants}>
-            <TrendComparisonCard trendComparison={trendComparison} />
-          </motion.div>
-        )}
 
         {/* 8축 역량 평가 */}
         <motion.div
