@@ -9,9 +9,10 @@ CREATE TABLE IF NOT EXISTS job_posting_embeddings (
   company     TEXT NOT NULL,
   content     TEXT NOT NULL,
   embedding   vector(1024) NOT NULL,
-  source_url  TEXT NOT NULL UNIQUE,
+  source_url  TEXT NOT NULL,
   crawled_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (source_url, job_role)
 );
 
 -- 검색 인덱스 (job_role 필터링)

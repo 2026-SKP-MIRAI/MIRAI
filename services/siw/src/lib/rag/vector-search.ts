@@ -6,6 +6,7 @@ export interface SimilarPosting {
   similarity: number
   sourceUrl: string
   jobRole: string
+  content: string  // 스킬 빈도 추출용 (UI 노출 X)
 }
 
 const TECH_SKILLS: Record<string, string[]> = {
@@ -21,6 +22,8 @@ const TECH_SKILLS: Record<string, string[]> = {
   '기획': ['기획', 'UX', '데이터 분석', 'SQL', 'Figma', 'Jira', 'Agile'],
 }
 
+const ALL_SKILLS = Array.from(new Set(Object.values(TECH_SKILLS).flat()))
+
 export async function searchSimilarPostings(
   roleVector: number[],
   jobRole: string,
@@ -31,13 +34,14 @@ export async function searchSimilarPostings(
     Array<{
       title: string
       company: string
+      content: string
       source_url: string
       job_role: string
       similarity: number
     }>
   >`
     WITH q AS (SELECT ${vectorStr}::vector AS qvec)
-    SELECT title, company, source_url, job_role,
+    SELECT title, company, content, source_url, job_role,
            1 - (embedding <=> q.qvec) AS similarity
     FROM job_posting_embeddings, q
     WHERE job_role = ${jobRole}
@@ -47,18 +51,43 @@ export async function searchSimilarPostings(
   return results.map((r) => ({
     title: r.title,
     company: r.company,
+    content: r.content ?? '',
     similarity: Number(r.similarity),
     sourceUrl: r.source_url,
     jobRole: r.job_role,
   }))
 }
 
-export function extractTrendSkills(jobRole: string): string[] {
-  const skills = TECH_SKILLS[jobRole]
-  if (skills) return skills
-  // fallback: union of all skills, deduplicated
-  const all = Array.from(new Set(Object.values(TECH_SKILLS).flat()))
-  return all.slice(0, 10)
+/** 공고 content 텍스트에서 스킬 빈도 기반 추출 → { skill, weight }[] */
+export function extractTrendSkills(
+  postings: SimilarPosting[]
+): { skill: string; weight: number }[] {
+  if (postings.length === 0) return []
+
+  const freq: Record<string, number> = {}
+  for (const posting of postings) {
+    const text = `${posting.title} ${posting.content}`.toLowerCase()
+    for (const skill of ALL_SKILLS) {
+      if (text.includes(skill.toLowerCase())) {
+        freq[skill] = (freq[skill] ?? 0) + 1
+      }
+    }
+  }
+
+  if (Object.keys(freq).length === 0) {
+    // fallback: role 기반 정적 스킬 목록
+    const fallbackRole = postings[0]?.jobRole
+    const fallback = (fallbackRole && TECH_SKILLS[fallbackRole]) ?? []
+    return fallback.slice(0, 10).map((skill, i) => ({
+      skill,
+      weight: Math.max(0.1, 1 - i * 0.1),
+    }))
+  }
+
+  return Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([skill, count]) => ({ skill, weight: count / postings.length }))
 }
 
 export async function getTrendSkillsForRole(
@@ -68,7 +97,7 @@ export async function getTrendSkillsForRole(
   try {
     const postings = await searchSimilarPostings(roleVector, jobRole, 10)
     if (postings.length === 0) return []
-    return extractTrendSkills(jobRole)
+    return extractTrendSkills(postings).map((s) => s.skill)
   } catch {
     return []
   }

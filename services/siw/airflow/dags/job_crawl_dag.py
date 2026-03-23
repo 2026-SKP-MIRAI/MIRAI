@@ -23,20 +23,24 @@ log = logging.getLogger(__name__)
 JOBKOREA_BASE = "https://www.jobkorea.co.kr"
 TOP100_BASE_URL = "https://www.jobkorea.co.kr/top100/?Search_Type=2&BCtgrCode={code}"
 
-# 전공 대분류 (BCtgrCode=0 전공전체 제외, 1~11 세부 전공)
+# 전공 대분류 (실제 HTML data-bctgrcode 기준, BCtgrCode=0 전공전체 제외)
 MAJOR_CATEGORIES = {
     1:  "어문학",
     2:  "인문과학",
     3:  "사회과학",
-    4:  "경상",
-    5:  "법학",
-    6:  "교육학",
-    7:  "공학/기술",
-    8:  "자연과학",
-    9:  "의약/보건",
-    10: "예체능",
-    11: "농/수산/해양학",
+    4:  "자연과학",
+    5:  "공학",
+    6:  "법학",
+    7:  "사범학",
+    8:  "상경",
+    9:  "생활과학",
+    10: "예/체능학",
+    12: "의/약학",
+    13: "농/수산/해양학",
 }
+
+# 우대사항·자격요건 추출 대상 키워드
+QUALIF_KEYWORDS = ["우대사항", "자격요건", "담당업무", "주요업무", "필수요건", "우대조건", "복리후생", "지원자격"]
 
 USER_AGENT = "MirAI-Crawler/1.0 (+https://mirai.example.com/bot)"
 RATE_LIMIT_SEC = 1.0
@@ -53,7 +57,7 @@ dag = DAG(
     schedule_interval="0 15 * * 0",
     start_date=datetime(2026, 1, 1),
     catchup=False,
-    tags=["crawl", "rag"],
+    tags=["mirai", "rag", "crawl"],
 )
 
 
@@ -115,7 +119,7 @@ def _parse_top10(soup: "BeautifulSoup", job_role: str) -> list:
 
 def crawl_jobkorea(ds: str, **context) -> None:
     """잡코리아 전공 대분류별 TOP10 채용공고 크롤링 → S3 raw.jsonl 업로드
-    총 요청: 11 listing + 최대 110 detail ≈ 121회 (Rate limit 1s 준수)
+    총 요청: 12 listing + 최대 120 detail ≈ 132회 (Rate limit 1s 준수)
     """
     bucket = Variable.get("S3_RAG_BUCKET_NAME")
     s3_key = f"job-crawl/{ds.replace('-', '/')}/raw.jsonl"
@@ -125,8 +129,9 @@ def crawl_jobkorea(ds: str, **context) -> None:
     session.headers["User-Agent"] = USER_AGENT
     session.headers["Accept-Language"] = "ko-KR,ko;q=0.9"
 
-    # 1단계: 전공 대분류별 TOP10 목록 수집 (중복 source_url 제거)
-    seen_urls: set = set()
+    # 1단계: 전공 대분류별 TOP10 목록 수집
+    # 같은 공고가 여러 카테고리에 등장할 수 있으나 job_role이 다르므로 모두 수집
+    # DB upsert 단계에서 (source_url, job_role) 기준 중복 처리
     postings = []
 
     for code, category_name in MAJOR_CATEGORIES.items():
@@ -140,19 +145,14 @@ def crawl_jobkorea(ds: str, **context) -> None:
             resp.raise_for_status()
             soup = BeautifulSoup(resp.content, "lxml")
             items = _parse_top10(soup, job_role=category_name)
-            added = 0
-            for p in items:
-                if p["source_url"] not in seen_urls:
-                    seen_urls.add(p["source_url"])
-                    postings.append(p)
-                    added += 1
-            log.info("[%s] listing: %d new / %d total", category_name, added, len(items))
+            postings.extend(items)
+            log.info("[%s] listing: %d건 (누적 %d건)", category_name, len(items), len(postings))
         except Exception as e:
             log.error("Listing crawl error [%s]: %s", category_name, e)
 
-    log.info("Listing done: %d unique postings across %d categories", len(postings), len(MAJOR_CATEGORIES))
+    log.info("Listing done: %d건 across %d categories", len(postings), len(MAJOR_CATEGORIES))
 
-    # 2단계: 각 공고 상세 페이지 방문 → 우대사항·자격요건 포함 전문 추출
+    # 2단계: 각 공고 상세 페이지 방문 → 우대사항·자격요건 추출
     for posting in postings:
         detail_url = posting["source_url"]
         if not rp.can_fetch(USER_AGENT, detail_url):
@@ -163,12 +163,44 @@ def crawl_jobkorea(ds: str, **context) -> None:
             dresp = session.get(detail_url, timeout=10)
             dresp.raise_for_status()
             dsoup = BeautifulSoup(dresp.content, "lxml")
-            texts = []
-            for el in dsoup.select("table.tplTbl td, div.jskDesk, div.contArea, .artsCont"):
-                t = el.get_text(" ", strip=True)
-                if t:
-                    texts.append(t)
-            detail_text = " ".join(texts) if texts else ""
+
+            parts = []
+
+            # 방법 1: table.tplTbl 행별 추출 (잡코리아 표준 템플릿)
+            for table in dsoup.select("table.tplTbl"):
+                for row in table.find_all("tr"):
+                    th = row.find("th")
+                    tds = row.find_all("td")
+                    if not th or not tds:
+                        continue
+                    header = th.get_text(strip=True)
+                    if any(kw in header for kw in QUALIF_KEYWORDS):
+                        content = " ".join(td.get_text(" ", strip=True) for td in tds)
+                        if len(content) > 5:
+                            parts.append(f"[{header}] {content}")
+
+            # 방법 2: 키워드 포함 텍스트 스니펫 (body 전체 스캔)
+            if not parts:
+                for tag in dsoup(["script", "style", "header", "footer", "nav", "aside"]):
+                    tag.decompose()
+                full_text = dsoup.get_text(" ", strip=True)
+                for kw in QUALIF_KEYWORDS:
+                    idx = full_text.find(kw)
+                    while idx != -1 and len(parts) < 6:
+                        snippet = full_text[idx:idx + 500].strip()
+                        if snippet not in parts:
+                            parts.append(snippet)
+                        idx = full_text.find(kw, idx + len(kw))
+
+            # 방법 3: 폴백 — body 앞부분
+            if not parts:
+                for tag in dsoup(["script", "style", "header", "footer", "nav", "aside"]):
+                    tag.decompose()
+                body_text = dsoup.get_text(" ", strip=True)
+                if len(body_text) > 100:
+                    parts = [body_text[:2000]]
+
+            detail_text = " ".join(parts)[:3000] if parts else ""
             posting["content"] = f"{posting['title']} {posting['skills']} {detail_text}".strip()
         except Exception as e:
             log.error("Detail crawl error [%s]: %s", detail_url, e)
@@ -212,6 +244,7 @@ def embed_postings(ds: str, **context) -> None:
         vectors = resp.json()["embeddings"]
         for posting, vec in zip(batch, vectors):
             embedded.append({**posting, "embedding": vec})
+        log.info("임베딩 완료: %d / %d", len(embedded), len(postings))
 
     body = "\n".join(json.dumps(e, ensure_ascii=False) for e in embedded)
     s3.put_object(Bucket=bucket, Key=embedded_key, Body=body.encode("utf-8"))
@@ -242,7 +275,7 @@ def upsert_vectors(ds: str, **context) -> None:
                     INSERT INTO job_posting_embeddings
                       (job_role, title, company, content, embedding, source_url)
                     VALUES (%s, %s, %s, %s, %s::vector, %s)
-                    ON CONFLICT (source_url) DO UPDATE SET
+                    ON CONFLICT (source_url, job_role) DO UPDATE SET
                       title = EXCLUDED.title,
                       company = EXCLUDED.company,
                       content = EXCLUDED.content,
