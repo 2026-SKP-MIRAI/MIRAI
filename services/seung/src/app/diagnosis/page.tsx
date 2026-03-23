@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ResumeFeedbackResponse, FeedbackScores } from '@/lib/types'
 import { getGrade } from '@/lib/grade'
+import Spinner from '@/components/Spinner'
+import ScoreGauge from '@/components/ScoreGauge'
 
 const SCORE_LABEL_MAP: Record<keyof FeedbackScores, string> = {
   specificity: '서술의 구체성',
@@ -16,10 +18,7 @@ const SCORE_LABEL_MAP: Record<keyof FeedbackScores, string> = {
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <svg className="h-8 w-8 animate-spin text-[#4361ee]" viewBox="0 0 24 24" fill="none">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-      </svg>
+      <Spinner />
       <p className="text-sm text-gray-500">진단 결과를 불러오는 중...</p>
     </div>
   )
@@ -92,31 +91,7 @@ function DiagnosisContent() {
         {/* 종합 점수 카드 */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-5 mb-6">
-            {/* 점수 서클 */}
-            <div className="relative w-24 h-24 shrink-0">
-              <svg viewBox="0 0 96 96" className="w-24 h-24 -rotate-90">
-                <circle cx="48" cy="48" r="38" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                <circle
-                  cx="48" cy="48" r="38"
-                  fill="none"
-                  stroke={avgScore >= 80 ? '#10b981' : avgScore >= 60 ? '#f59e0b' : '#ef4444'}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 38}
-                  strokeDashoffset={2 * Math.PI * 38 * (1 - avgScore / 100)}
-                  className="transition-all duration-700"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span
-                  className="text-2xl font-extrabold leading-none"
-                  style={{ color: avgScore >= 80 ? '#10b981' : avgScore >= 60 ? '#f59e0b' : '#ef4444' }}
-                >
-                  {avgScore}
-                </span>
-                <span className="text-xs text-gray-400 mt-0.5">/ 100</span>
-              </div>
-            </div>
+            <ScoreGauge score={avgScore} />
 
             <div>
               <p className="text-xs text-gray-400 mb-1">종합 점수</p>

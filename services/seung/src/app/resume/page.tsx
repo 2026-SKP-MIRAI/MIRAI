@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import UploadForm from '@/components/UploadForm'
+import Spinner from '@/components/Spinner'
 import QuestionList from '@/components/QuestionList'
 import type { UploadState, QuestionsResponse } from '@/lib/types'
 import { ERROR_MESSAGES, DEFAULT_ERROR_MESSAGE } from '@/lib/types'
@@ -188,7 +189,7 @@ function ResumeContent() {
                       }`}
                     >
                       <div className="text-xl mb-2">🎤</div>
-                      <p className="font-bold text-sm">면접 시작</p>
+                      <p className="font-bold text-sm">면접 시작하기</p>
                       <p className={`mt-1 text-xs leading-relaxed ${selectedAction === 'interview' ? 'text-gray-300' : 'text-gray-500'}`}>
                         AI 패널 면접 시뮬레이션
                       </p>
@@ -307,10 +308,7 @@ export default function ResumePage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-          <svg className="h-8 w-8 animate-spin text-[#4361ee]" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
+          <Spinner />
           <p className="text-sm text-gray-500">불러오는 중...</p>
         </div>
       }

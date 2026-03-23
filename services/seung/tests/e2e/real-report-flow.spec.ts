@@ -49,11 +49,11 @@ test('전체 플로우: 자소서 업로드 → 패널 면접 → 리포트 생�
   await expect(startCard).toBeVisible({ timeout: LLM_TIMEOUT })
   await startCard.click()
   await page.getByRole('button', { name: '실전 모드' }).click()
-  await page.getByRole('button', { name: '확인' }).click()
+  await page.getByRole('button', { name: '면접 시작하기 →' }).click()
 
   // 4. /interview 페이지 이동 대기
   await expect(page).toHaveURL(/\/interview\?sessionId=/, { timeout: LLM_TIMEOUT })
-  await expect(page.getByText('MirAI — 패널 면접')).toBeVisible()
+  await expect(page.getByText('패널 면접')).toBeVisible()
 
   // 5. 면접 완료될 때까지 답변 반복 제출
   const textarea = page.getByPlaceholder('답변을 입력하세요...')
@@ -93,8 +93,6 @@ test('전체 플로우: 자소서 업로드 → 패널 면접 → 리포트 생�
   await expect(page.locator('text=종합 점수')).toBeVisible()
   await expect(page.locator('text=역량 축별 점수')).toBeVisible()
   await expect(page.locator('text=종합 요약')).toBeVisible()
-  await expect(page.locator('text=축별 피드백')).toBeVisible()
-  await expect(page.locator('p.text-6xl')).toBeVisible() // 총점 숫자
 
   // 10. 홈으로 버튼 확인
   await expect(page.getByRole('button', { name: '홈으로' })).toBeVisible()

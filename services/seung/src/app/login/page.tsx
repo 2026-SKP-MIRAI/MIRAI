@@ -87,34 +87,6 @@ function LoginContent() {
           </button>
         </form>
 
-        {/* 구분선 */}
-        <div className="relative my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-gray-400">또는</span>
-          </div>
-        </div>
-
-        {/* 소셜 로그인 버튼 (UI만, 기능 연결 없음) */}
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-[#FEE500] px-4 py-2.5 text-sm font-medium text-[#3C1E1E] hover:bg-[#F5DC00] transition-colors"
-          >
-            <span className="text-base">💬</span>
-            카카오로 로그인
-          </button>
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-base">🌐</span>
-            구글로 로그인
-          </button>
-        </div>
-
         <p className="mt-5 text-center text-sm text-gray-500">
           계정이 없으신가요?{' '}
           <Link href="/signup" className="font-semibold text-[#4361ee] hover:underline">회원가입</Link>

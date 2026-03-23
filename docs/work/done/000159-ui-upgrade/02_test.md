@@ -44,15 +44,24 @@ Duration    21.43s
 |------|-----------|
 | `src/app/page.tsx` | 랜딩 페이지 신규 구현 (2열 히어로, 채팅 목업, 이용 방법, CTA) |
 | `src/app/layout.tsx` | 로그아웃 리다이렉트 `/login` → `/` |
-| `src/app/login/page.tsx` | CTA 버튼 색상 `#1a1a2e` → `#4361ee` |
+| `src/app/login/page.tsx` | CTA 버튼 색상 `#1a1a2e` → `#4361ee`, 소셜 로그인 버튼 제거 |
 | `src/app/signup/page.tsx` | CTA 버튼 색상 `#1a1a2e` → `#4361ee` |
 | `src/app/resume/page.tsx` | sticky 헤더(← 대시보드), Step 배지, Suspense 래퍼, 면접 모드 그리드 개선 |
-| `src/app/interview/page.tsx` | 스피너 로딩, 모드 배지, 나가기 confirm, beforeunload, 진행률 바 하단 배치 |
-| `src/app/diagnosis/page.tsx` | SVG 원형 게이지 + 등급 배지, 수평 스코어바로 교체 (RadarChart 제거), 강점·약점·개선방향 카드 재설계 |
-| `src/app/report/page.tsx` | SVG 원형 게이지 + 등급 배지, 수평 스코어바로 교체 (RadarChart 제거), 강점·개선 피드백 그룹 카드 재설계 |
-| `src/app/dashboard/page.tsx` | 스피너 로딩, PDF 아이콘 카드, 색상 계층 액션 버튼, 아이콘 EmptyState |
+| `src/app/interview/page.tsx` | 스피너 로딩(`<Spinner />`), 모드 배지, 나가기 confirm, beforeunload, 진행률 바 하단 배치 |
+| `src/app/diagnosis/page.tsx` | `<ScoreGauge />` + 등급 배지, 수평 스코어바로 교체 (RadarChart 제거), 강점·약점·개선방향 카드 재설계 |
+| `src/app/report/page.tsx` | `<ScoreGauge />` + 등급 배지, 수평 스코어바로 교체 (RadarChart 제거), 강점·개선 피드백 그룹 카드 재설계 |
+| `src/app/dashboard/page.tsx` | `<Spinner />` 로딩, PDF 아이콘 카드, 색상 계층 액션 버튼, 아이콘 EmptyState |
+| `src/components/Spinner.tsx` | 신규 — 공통 로딩 스피너 (className prop, 기본값 h-8 w-8 text-[#4361ee]) |
+| `src/components/ScoreGauge.tsx` | 신규 — 공통 원형 점수 게이지 (score prop 0–100, 구간별 색상 자동 결정) |
+| `src/lib/grade.ts` | 신규 — getGrade() 유틸 추출 (report/diagnosis 중복 제거) |
 | `src/components/InterviewChat.tsx` | `totalQuestions` prop 제거 (진행률 바를 page.tsx로 이동) |
 | `tests/components/InterviewChat.test.tsx` | `totalQuestions` prop 관련 테스트 2개 → 1개로 정리 |
+| `tests/e2e/dashboard.spec.ts` | 모크 데이터 포맷(`reports[]`), 버튼 텍스트 6곳 업데이트 |
+| `tests/e2e/interview-flow.spec.ts` | `'확인'` → `'면접 시작하기 →'` |
+| `tests/e2e/practice-flow.spec.ts` | `'확인'` → `'면접 시작하기 →'` |
+| `tests/e2e/real-interview-flow.spec.ts` | `'확인'` → `'면접 시작하기 →'`, `'MirAI — 패널 면접'` → `'패널 면접'` |
+| `tests/e2e/real-practice-flow.spec.ts` | `'확인'` → `'면접 시작하기 →'`, `'MirAI — 패널 면접'` → `'패널 면접'` |
+| `tests/e2e/real-report-flow.spec.ts` | `'확인'` → `'면접 시작하기 →'`, `'패널 면접'`, 구버전 셀렉터 제거 |
 
 ---
 
@@ -80,16 +89,20 @@ npx tsc --noEmit → 에러 없음
 
 ---
 
-## E2E (Playwright) 비고
+## E2E (Playwright) 셀렉터 업데이트 내역
 
-본 이슈는 UI 레이아웃·시각 고도화 변경으로, 기존 E2E 테스트 셀렉터에 영향을 줄 수 있는 텍스트 변경 내역:
+UI 변경으로 인한 셀렉터 파손을 수정 완료:
 
-| 변경 위치 | 기존 텍스트 | 변경 후 텍스트 | 비고 |
-|-----------|-------------|----------------|------|
-| `interview/page.tsx` 나가기 버튼 | `나가기` | `나가기` | 동일 유지 |
-| `resume/page.tsx` 시작 버튼 | `확인` | `면접 시작하기 →` | 셀렉터 변경 가능성 있음 |
-| `dashboard/page.tsx` 빈 상태 버튼 | `새 면접 시작` | `자소서 업로드하기 →` | 셀렉터 변경 가능성 있음 |
-| `dashboard/page.tsx` 헤더 버튼 | `새 면접 시작` | `+ 자소서 업로드` | 셀렉터 변경 가능성 있음 |
+| 변경 위치 | 기존 텍스트 | 변경 후 텍스트 | 수정된 테스트 파일 |
+|-----------|-------------|----------------|-------------------|
+| `resume/page.tsx` 시작 버튼 | `확인` | `면접 시작하기 →` | interview-flow, practice-flow, real-* 5개 |
+| `dashboard/page.tsx` 빈 상태 버튼 | `새 면접 시작` | `자소서 업로드하기 →` | dashboard.spec.ts |
+| `dashboard/page.tsx` 헤더 버튼 | `새 면접 시작` | `+ 자소서 업로드` | dashboard.spec.ts |
+| `dashboard/page.tsx` 카드 버튼 | `이 자소서로 다시 면접하기` | `다시 면접하기` | dashboard.spec.ts |
+| `dashboard/page.tsx` 헤더 | `MirAI — 내 면접 기록` | `내 면접 기록` | dashboard.spec.ts |
+| `dashboard/page.tsx` 리포트 버튼 | `역량 리포트 보기` | `역량 리포트` | dashboard.spec.ts |
+| `dashboard/page.tsx` 진단 버튼 | `서류 진단 보기` | `서류 진단` | dashboard.spec.ts |
+| `interview/page.tsx` 헤더 | `MirAI — 패널 면접` | `패널 면접` | real-interview, real-practice, real-report |
 
 E2E 전체 재실행은 실제 엔진·Supabase 연동 환경에서 별도 수행 필요.
-기존 Vitest 137개는 회귀 없이 통과함.
+Vitest 137개 회귀 없이 통과.

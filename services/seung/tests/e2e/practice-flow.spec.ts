@@ -105,7 +105,7 @@ test.describe('연습 모드 플로우', () => {
 
     // 연습 모드 선택 후 확인
     await page.getByRole('button', { name: /연습 모드/ }).click()
-    await page.getByRole('button', { name: '확인' }).click()
+    await page.getByRole('button', { name: '면접 시작하기 →' }).click()
 
     // 면접 페이지로 이동 + 첫 질문 표시
     await expect(page.getByText('자기소개를 해주세요.')).toBeVisible()
