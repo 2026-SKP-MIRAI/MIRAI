@@ -17,6 +17,24 @@ export const maxDuration = 300
 
 const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000"
 
+async function fetchFeedback(resumeText: string, targetRole: string, jobContext?: string[]) {
+  return withEventLogging('resume_feedback', null, async (meta) => {
+    const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeText, targetRole, ...(jobContext ? { job_context: jobContext } : {}) }),
+      signal: AbortSignal.timeout(35000),
+    })
+    if (!r.ok) return null
+    const d = await r.json().catch(() => null)
+    if (d?.usage) meta.usage = d.usage
+    return d
+  }).catch((err) => {
+    console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err))
+    return null
+  })
+}
+
 export async function POST(request: Request) {
   const cookieStore = await cookies()
   const supabase = createServerClient(cookieStore)
@@ -78,18 +96,7 @@ export async function POST(request: Request) {
       const relevantPostings = postings.filter((p) => p.similarity >= MIN_SIMILARITY)
       const jobContext = relevantPostings.map((p) => p.content)
 
-      feedbackJson = await withEventLogging('resume_feedback', null, async (meta) => {
-        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText, targetRole, job_context: jobContext }),
-          signal: AbortSignal.timeout(35000),
-        })
-        if (!r.ok) return null
-        const d = await r.json().catch(() => null)
-        if (d?.usage) meta.usage = d.usage
-        return d
-      }).catch(() => null)
+      feedbackJson = await fetchFeedback(resumeText, targetRole, jobContext)
 
       const rawSkills = extractTrendSkills(postings)
       const resumeTextLower = resumeText.toLowerCase()
@@ -108,22 +115,7 @@ export async function POST(request: Request) {
         coverageScore,
       }
     } else {
-      // RAG 비활성 시 기본 feedback
-      feedbackJson = await withEventLogging('resume_feedback', null, async (meta) => {
-        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText, targetRole }),
-          signal: AbortSignal.timeout(35000),
-        })
-        if (!r.ok) return null
-        const d = await r.json().catch(() => null)
-        if (d?.usage) meta.usage = d.usage
-        return d
-      }).catch((err) => {
-        console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err))
-        return null
-      })
+      feedbackJson = await fetchFeedback(resumeText, targetRole)
     }
 
     const resumeId = await resumeRepository.create({

@@ -23,6 +23,7 @@ const TECH_SKILLS: Record<string, string[]> = {
 }
 
 const ALL_SKILLS = Array.from(new Set(Object.values(TECH_SKILLS).flat()))
+const ALL_SKILLS_LOWER = ALL_SKILLS.map((s) => s.toLowerCase())
 
 export async function searchSimilarPostings(
   roleVector: number[],
@@ -67,9 +68,9 @@ export function extractTrendSkills(
   const freq: Record<string, number> = {}
   for (const posting of postings) {
     const text = `${posting.title} ${posting.content}`.toLowerCase()
-    for (const skill of ALL_SKILLS) {
-      if (text.includes(skill.toLowerCase())) {
-        freq[skill] = (freq[skill] ?? 0) + 1
+    for (let i = 0; i < ALL_SKILLS.length; i++) {
+      if (text.includes(ALL_SKILLS_LOWER[i])) {
+        freq[ALL_SKILLS[i]] = (freq[ALL_SKILLS[i]] ?? 0) + 1
       }
     }
   }

@@ -12,6 +12,7 @@ from urllib.parse import urljoin
 
 import boto3
 import psycopg2
+import psycopg2.extras
 import requests
 from bs4 import BeautifulSoup
 from airflow import DAG
@@ -41,6 +42,15 @@ MAJOR_CATEGORIES = {
 
 # 우대사항·자격요건 추출 대상 키워드
 QUALIF_KEYWORDS = ["우대사항", "자격요건", "담당업무", "주요업무", "필수요건", "우대조건", "복리후생", "지원자격"]
+
+NOISE_PATTERNS = [
+    "스마트픽", "AD 로그인", "TOP 궁금해요", "기업정보 더보기",
+    "지도보기", "🏘️", "접수기간", "마감일은 기업의 사정",
+]
+
+
+def _is_noisy(text: str) -> bool:
+    return any(p in text for p in NOISE_PATTERNS)
 
 USER_AGENT = "MirAI-Crawler/1.0 (+https://mirai.example.com/bot)"
 RATE_LIMIT_SEC = 1.0
@@ -165,13 +175,6 @@ def crawl_jobkorea(ds: str, **context) -> None:
             dsoup = BeautifulSoup(dresp.content, "lxml")
 
             parts = []
-            NOISE_PATTERNS = [
-                "스마트픽", "AD 로그인", "TOP 궁금해요", "기업정보 더보기",
-                "지도보기", "🏘️", "접수기간", "마감일은 기업의 사정",
-            ]
-
-            def _is_noisy(text: str) -> bool:
-                return any(p in text for p in NOISE_PATTERNS)
 
             # 방법 1: table.tplTbl 행별 추출 (잡코리아 표준 템플릿)
             for table in dsoup.select("table.tplTbl"):
@@ -186,11 +189,13 @@ def crawl_jobkorea(ds: str, **context) -> None:
                         if len(cell_text) > 5 and not _is_noisy(cell_text):
                             parts.append(f"[{header}] {cell_text}")
 
-            # 방법 2: 키워드 포함 텍스트 스니펫 (첫 번째 발견만, 중복 방지)
+            # 방법 2·3에서만 DOM 정리 (방법 1은 table selector로 충분)
             if not parts:
                 for tag in dsoup(["script", "style", "header", "footer", "nav", "aside"]):
                     tag.decompose()
                 full_text = dsoup.get_text(" ", strip=True)
+
+                # 방법 2: 키워드 포함 텍스트 스니펫
                 seen_snippets: set[str] = set()
                 for kw in QUALIF_KEYWORDS:
                     idx = full_text.find(kw)
@@ -203,13 +208,9 @@ def crawl_jobkorea(ds: str, **context) -> None:
                     if len(parts) >= 4:
                         break
 
-            # 방법 3: 폴백 — body 앞부분
-            if not parts:
-                for tag in dsoup(["script", "style", "header", "footer", "nav", "aside"]):
-                    tag.decompose()
-                body_text = dsoup.get_text(" ", strip=True)
-                if len(body_text) > 100:
-                    parts = [body_text[:1500]]
+                # 방법 3: 폴백 — body 앞부분
+                if not parts and len(full_text) > 100:
+                    parts = [full_text[:1500]]
 
             detail_text = " ".join(parts)[:2000] if parts else ""
             # detail_text가 있으면 그것만 사용 (title/skills 중복 방지)
@@ -284,23 +285,29 @@ def upsert_vectors(ds: str, **context) -> None:
     conn = psycopg2.connect(pg_conn_str)
     try:
         with conn.cursor() as cur:
-            for r in records:
-                # embedding은 문자열 직렬화 필수 (psycopg2 pgvector 호환)
-                vec_str = "[" + ",".join(str(v) for v in r["embedding"]) + "]"
-                cur.execute(
-                    """
-                    INSERT INTO job_posting_embeddings
-                      (job_role, title, company, content, embedding, source_url)
-                    VALUES (%s, %s, %s, %s, %s::vector, %s)
-                    ON CONFLICT (source_url, job_role) DO UPDATE SET
-                      title = EXCLUDED.title,
-                      company = EXCLUDED.company,
-                      content = EXCLUDED.content,
-                      embedding = EXCLUDED.embedding,
-                      crawled_at = now()
-                    """,
-                    (r["job_role"], r["title"], r["company"], r["content"], vec_str, r["source_url"]),
-                )
+            # embedding은 문자열 직렬화 필수 (psycopg2 pgvector 호환)
+            rows = [
+                (r["job_role"], r["title"], r["company"], r["content"],
+                 "[" + ",".join(str(v) for v in r["embedding"]) + "]",
+                 r["source_url"])
+                for r in records
+            ]
+            psycopg2.extras.execute_values(
+                cur,
+                """
+                INSERT INTO job_posting_embeddings
+                  (job_role, title, company, content, embedding, source_url)
+                VALUES %s
+                ON CONFLICT (source_url, job_role) DO UPDATE SET
+                  title = EXCLUDED.title,
+                  company = EXCLUDED.company,
+                  content = EXCLUDED.content,
+                  embedding = EXCLUDED.embedding::vector,
+                  crawled_at = now()
+                """,
+                rows,
+                template="(%s, %s, %s, %s, %s::vector, %s)",
+            )
         conn.commit()
         log.info("Upserted %d records", len(records))
     finally:
