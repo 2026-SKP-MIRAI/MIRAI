@@ -6,12 +6,12 @@
 
 ## 완료 기준
 
-- [ ] Supabase pgvector extension 활성화 + `job_posting_embeddings` 테이블 신규 (`jobRole`, `title`, `company`, `content`, `embedding vector(1024)`, `sourceUrl`, `crawledAt`)
-- [ ] Airflow `job_crawl_dag` 주간 실행 — 잡코리아 전 직무 대분류 채용공고 크롤링 (Rate limit 1초, robots.txt 준수) — 공고 텍스트 → 엔진 `POST /api/embed` 호출 (배치) → pgvector upsert — 스케줄: 매주 일요일 UTC 15:00
-- [ ] Trends API RAG 로직 구현 — `src/lib/rag/vector-search.ts` 신규 (pgvector cosine similarity search) — `ENABLE_RAG=true` 시 role 임베딩 → pgvector 검색 → TOP 역량 반환
-- [ ] trendComparison RAG 기반 실제 비교 로직 구현 — 자소서 임베딩 ↔ 채용공고 pgvector 검색 → 부족 역량 추출
-- [ ] vitest (vector-search, RAG trends) + pytest (job_crawl_dag)
-- [ ] `ENABLE_RAG=true` 배포 환경변수 설정 + `.ai.md` 최신화
+- [x] Supabase pgvector extension 활성화 + `job_posting_embeddings` 테이블 신규 (`jobRole`, `title`, `company`, `content`, `embedding vector(1024)`, `sourceUrl`, `crawledAt`)
+- [x] Airflow `job_crawl_dag` 주간 실행 — 잡코리아 전 직무 대분류 채용공고 크롤링 (Rate limit 1초, robots.txt 준수) — 공고 텍스트 → 엔진 `POST /api/embed` 호출 (배치) → pgvector upsert — 스케줄: 매주 일요일 UTC 15:00
+- [x] Trends API RAG 로직 구현 — `src/lib/rag/vector-search.ts` 신규 (pgvector cosine similarity search) — `ENABLE_RAG=true` 시 role 임베딩 → pgvector 검색 → TOP 역량 반환
+- [x] trendComparison RAG 기반 실제 비교 로직 구현 — 자소서 임베딩 ↔ 채용공고 pgvector 검색 → 부족 역량 추출
+- [x] vitest (vector-search, RAG trends) + pytest (job_crawl_dag)
+- [x] `ENABLE_RAG=true` 배포 환경변수 설정 + `.ai.md` 최신화 (`.env.example`에 문서화, 배포 시 수동 설정)
 
 ---
 

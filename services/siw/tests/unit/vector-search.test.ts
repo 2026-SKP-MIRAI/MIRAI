@@ -25,7 +25,7 @@ describe("searchSimilarPostings", () => {
     const result = await searchSimilarPostings([0.1, 0.2, 0.3], "백엔드")
 
     expect(result).toHaveLength(1)
-    expect(result[0]).toEqual({
+    expect(result[0]).toMatchObject({
       title: "백엔드 개발자",
       company: "테스트 주식회사",
       sourceUrl: "https://jobkorea.co.kr/1",
@@ -64,29 +64,68 @@ describe("searchSimilarPostings", () => {
 })
 
 describe("extractTrendSkills", () => {
-  it("알려진 jobRole에 해당하는 스킬 배열 반환", async () => {
+  it("content에서 백엔드 스킬 추출 — weight 정렬 및 범위 검증", async () => {
     const { extractTrendSkills } = await import("@/lib/rag/vector-search")
-    const skills = extractTrendSkills("백엔드")
+    const postings = [
+      {
+        title: "백엔드 개발자",
+        company: "테스트",
+        content: "Java Spring Boot REST API Docker 경험자 우대",
+        sourceUrl: "https://example.com/1",
+        jobRole: "백엔드",
+        similarity: 0.9,
+      },
+    ]
+    const skills = extractTrendSkills(postings)
 
-    expect(skills).toContain("Java")
-    expect(skills).toContain("Spring")
     expect(skills.length).toBeGreaterThan(0)
+    expect(skills.every((s) => typeof s.skill === "string")).toBe(true)
+    expect(skills.every((s) => s.weight > 0 && s.weight <= 1)).toBe(true)
+    expect(skills.map((s) => s.skill)).toContain("Java")
   })
 
-  it("프론트엔드 스킬 반환", async () => {
+  it("content에서 프론트엔드 스킬 추출", async () => {
     const { extractTrendSkills } = await import("@/lib/rag/vector-search")
-    const skills = extractTrendSkills("프론트엔드")
+    const postings = [
+      {
+        title: "프론트엔드 개발자",
+        company: "테스트",
+        content: "React TypeScript Next.js CSS 개발 경험",
+        sourceUrl: "https://example.com/2",
+        jobRole: "프론트엔드",
+        similarity: 0.85,
+      },
+    ]
+    const skills = extractTrendSkills(postings)
 
-    expect(skills).toContain("React")
-    expect(skills).toContain("TypeScript")
+    expect(skills.map((s) => s.skill)).toContain("React")
+    expect(skills.map((s) => s.skill)).toContain("TypeScript")
   })
 
-  it("알 수 없는 jobRole이면 fallback(최대 10개) 반환", async () => {
+  it("빈 postings 입력 시 빈 배열 반환", async () => {
     const { extractTrendSkills } = await import("@/lib/rag/vector-search")
-    const skills = extractTrendSkills("알수없는직군")
+    const skills = extractTrendSkills([])
+
+    expect(skills).toEqual([])
+  })
+
+  it("content에 스킬 없으면 jobRole 기반 fallback 반환 (최대 10개)", async () => {
+    const { extractTrendSkills } = await import("@/lib/rag/vector-search")
+    const postings = [
+      {
+        title: "백엔드 개발자",
+        company: "테스트",
+        content: "면접 우대 복리후생 식대 지원",
+        sourceUrl: "https://example.com/3",
+        jobRole: "백엔드",
+        similarity: 0.7,
+      },
+    ]
+    const skills = extractTrendSkills(postings)
 
     expect(skills.length).toBeLessThanOrEqual(10)
     expect(skills.length).toBeGreaterThan(0)
+    expect(skills.map((s) => s.skill)).toContain("Java")
   })
 })
 

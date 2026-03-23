@@ -7,9 +7,21 @@ services:
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__WEBSERVER__SECRET_KEY: "${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY 환경변수를 설정하세요}"
+      # Airflow Variables — AIRFLOW_VAR_* 패턴으로 자동 등록
+      AIRFLOW_VAR_AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AIRFLOW_VAR_AWS_REGION: "${AWS_REGION}"
+      AIRFLOW_VAR_ENGINE_BASE_URL: "${ENGINE_BASE_URL}"
+      AIRFLOW_VAR_S3_LOG_BUCKET: "${S3_LOG_BUCKET}"
+      AIRFLOW_VAR_S3_RAG_BUCKET_NAME: "${S3_RAG_BUCKET_NAME}"
+      AIRFLOW_VAR_RAG_POSTGRES_CONN_ID: "${RAG_DATABASE_URL}"
+      # Airflow Connections — AIRFLOW_CONN_* 패턴으로 자동 등록
+      AIRFLOW_CONN_ANALYTICS_DB: "${ANALYTICS_DB_CONN}"
     volumes:
       - ./dags:/opt/airflow/dags   # 로컬 DAG 수정 즉시 반영
       - airflow_db:/home/airflow   # SQLite + logs 영속화
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 컨테이너→호스트 localhost 접근
     command: standalone
 
 volumes:

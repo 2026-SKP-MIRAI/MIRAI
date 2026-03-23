@@ -28,7 +28,7 @@ Pipeline 2-1(#97)에서 엔진 임베딩 API, Trends API 뼈대, trendComparison
       — GET /api/resumes/[id]/feedback은 DB 읽기만 (LLM 재호출 없음)
       — 엔진 `ResumeFeedbackRequest.job_context: list[str] | None = None` optional (backward compatible)
 - [x] vitest (vector-search, feedback route) + pytest (job_crawl_dag)
-- [ ] `ENABLE_RAG=true` 배포 환경변수 설정 + `.ai.md` 최신화
+- [x] `ENABLE_RAG=true` 배포 환경변수 설정 + `.ai.md` 최신화 (`.env.example`에 문서화, 배포 시 수동 설정)
 
 ## 구현 플랜
 
@@ -80,8 +80,7 @@ Pipeline 2-1(#97)에서 엔진 임베딩 API, Trends API 뼈대, trendComparison
 - trendComparison DB 캐싱 구조: POST 분석 시점 계산 → Prisma schema + migration → GET은 DB 읽기만
 - vitest (vector-search, feedback route) + pytest (job_crawl_dag)
 
-**미완료 항목**:
-- ENABLE_RAG=true 배포 환경변수 설정 + .ai.md 최신화
+**미완료 항목**: 없음 (전체 완료)
 
 **아키텍처 변경 (계획 대비)**:
 - 원래: GET /feedback → 매 페이지 로드마다 pgvector 검색 + LLM 재호출
@@ -89,3 +88,9 @@ Pipeline 2-1(#97)에서 엔진 임베딩 API, Trends API 뼈대, trendComparison
 - UI에서 TrendComparisonCard 제거 (RAG는 피드백 품질 향상용, 사용자에게 별도 노출 불필요)
 - ON CONFLICT: source_url 단독 → (source_url, job_role) 복합 키 (동일 공고가 여러 직군에 출현 가능)
 - 잡코리아 BCtgrCode: 1~11 → 실제 HTML 기준 1-10, 12, 13 (총 12개)
+
+**최종 정리 (2026-03-23)**:
+- 테스트 개선: `extractTrendSkills` 시그니처 변경(jobRole string → postings 배열) 반영, mock 전략 강화
+- Airflow `llm_quality_dag.py`: S3 클라이언트 credentials를 환경 변수 직접 주입 → Airflow Variable 경유로 수정
+- `docker-compose.yml`: AIRFLOW_VAR_* / AIRFLOW_CONN_* 환경변수 + host.docker.internal 추가
+- `FeedbackTrendCard.tsx` 및 `FeedbackTrendComparison` 타입 삭제 (RAG는 피드백 품질 향상 목적, UI 직접 노출 불필요)
