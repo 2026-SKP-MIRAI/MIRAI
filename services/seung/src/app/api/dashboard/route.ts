@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+
+type ResumeWithSessions = Prisma.ResumeGetPayload<{
+  include: { sessions: { include: { report: true } } }
+}>
 
 export async function GET() {
   const supabase = await createClient()
@@ -9,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
   }
 
-  let resumes
+  let resumes: ResumeWithSessions[]
   try {
     resumes = await prisma.resume.findMany({
       where: { userId: user.id },
