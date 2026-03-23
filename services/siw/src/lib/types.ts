@@ -119,3 +119,13 @@ export type ResumeFeedback = {
   weaknesses: string[]
   suggestions: SuggestionItem[]
 }
+
+export interface FeedbackTrendComparison {
+  trendingSkills: string[]
+  similarPostings: Array<{
+    title: string
+    company: string
+    similarity: number
+    sourceUrl: string
+  }>
+}

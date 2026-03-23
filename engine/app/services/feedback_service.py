@@ -16,17 +16,25 @@ def _validate_score(key: str, val: int | None) -> int:
     return val
 
 
-def _build_prompt(resume_text: str, target_role: str) -> str:
+def _build_prompt(resume_text: str, target_role: str, job_context: list[str] | None = None) -> str:
     template = (PROMPT_DIR / "resume_feedback_v1.md").read_text(encoding="utf-8")
     # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
     # < > 전체를 HTML 엔티티로 치환해 XML 태그 인젝션(여는 태그·닫는 태그 모두)을 방지한다.
     safe_resume = resume_text[:16000].replace("<", "&lt;").replace(">", "&gt;")
     safe_role = target_role.replace("<", "&lt;").replace(">", "&gt;")
-    return (
+    prompt = (
         template
         .replace("{resume_text}", safe_resume)
         .replace("{target_role}", safe_role)
     )
+    if job_context:
+        context_block = "\n\n## 관련 채용공고 컨텍스트\n"
+        for i, ctx in enumerate(job_context, 1):
+            safe_ctx = ctx[:2000].replace("<", "&lt;").replace(">", "&gt;")
+            context_block += f"{i}. {safe_ctx}\n"
+        context_block += "\n위 채용공고들을 참고하여 자소서의 직무 적합성을 평가해주세요."
+        prompt += context_block
+    return prompt
 
 
 def _parse_feedback(raw: str) -> ResumeFeedbackResponse:
@@ -100,9 +108,10 @@ def generate_resume_feedback(
     target_role: str | None = None,
     *,
     model: str | None = None,
+    job_context: list[str] | None = None,
 ) -> tuple[ResumeFeedbackResponse, UsageMetadata | None]:
     role_label = target_role.strip() if target_role and target_role.strip() else "미지정 직무"
-    prompt = _build_prompt(resume_text, role_label)
+    prompt = _build_prompt(resume_text, role_label, job_context)
     result = call_llm(
         prompt,
         model=model,

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import { fetchTrendSkills } from "@/lib/rag/embedding-client"
+import { embedText, fetchTrendSkills } from "@/lib/rag/embedding-client"
+import { getTrendSkillsForRole } from "@/lib/rag/vector-search"
 
 export const runtime = "nodejs"
 
@@ -26,6 +27,12 @@ export async function GET(request: Request) {
   const topK = parseInt(searchParams.get("topK") ?? "10", 10)
 
   try {
+    const embResult = await embedText(role)
+    if (embResult) {
+      const skills = await getTrendSkillsForRole(embResult.vector, role)
+      return NextResponse.json({ skills, enabled: true })
+    }
+    // embedText returned null — fallback to stub
     const skills = await fetchTrendSkills(role, topK)
     return NextResponse.json({ skills, enabled: true })
   } catch (err) {

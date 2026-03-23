@@ -29,6 +29,10 @@ next-env.d.ts
 
 # Python build artifacts
 *.egg-info/
+build/
+dist/
+__pycache__/
+*.pyc
 
 # Test artifacts
 test-results/

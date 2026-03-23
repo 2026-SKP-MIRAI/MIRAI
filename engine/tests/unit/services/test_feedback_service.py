@@ -303,3 +303,43 @@ def test_generate_resume_feedback_target_role_angle_brackets_escaped():
 
     assert "<script>" not in captured_prompt["value"]
     assert "&lt;script&gt;" in captured_prompt["value"]
+
+
+# ── 테스트 21 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_with_job_context_injects_into_prompt():
+    """job_context 리스트가 프롬프트에 포함됨을 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return make_llm_result(_feedback_json())
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback(
+            "자소서 내용",
+            "백엔드 개발자",
+            job_context=["Spring Boot 경험 필수", "AWS 클라우드 인프라 운영"],
+        )
+
+    assert "Spring Boot 경험 필수" in captured_prompt["value"]
+    assert "AWS 클라우드 인프라 운영" in captured_prompt["value"]
+    assert "채용공고 컨텍스트" in captured_prompt["value"]
+
+
+# ── 테스트 22 ─────────────────────────────────────────────────────────────────
+
+def test_generate_resume_feedback_none_job_context_no_injection():
+    """job_context=None 시 컨텍스트 블록이 프롬프트에 없음을 검증."""
+    captured_prompt = {}
+
+    def fake_call_llm(prompt, **kwargs):
+        captured_prompt["value"] = prompt
+        return make_llm_result(_feedback_json())
+
+    with patch("app.services.feedback_service.call_llm", side_effect=fake_call_llm):
+        from app.services.feedback_service import generate_resume_feedback
+        generate_resume_feedback("자소서 내용", "백엔드 개발자", job_context=None)
+
+    assert "채용공고 컨텍스트" not in captured_prompt["value"]
