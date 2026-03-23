@@ -32,41 +32,43 @@ export default function QuestionList({ questions, onReset }: Props) {
   const orderedCategories = [...knownCategories, ...otherCategories]
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">
-          예상 면접 질문 ({questions.length}개)
-        </h2>
-        <button
-          onClick={onReset}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          다시 하기
-        </button>
-      </div>
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">
+            예상 면접 질문 ({questions.length}개)
+          </h2>
+          <button
+            onClick={onReset}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            다시 하기
+          </button>
+        </div>
 
-      <div className="flex flex-col gap-6">
-        {orderedCategories.map((category) => {
-          const items = grouped[category]
-          if (!items?.length) return null
-          return (
-            <section key={category}>
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-600">
-                {category}
-              </h3>
-              <ul className="flex flex-col gap-3">
-                {items.map((q, idx) => (
-                  <li
-                    key={idx}
-                    className="rounded-lg border border-gray-200 bg-white px-5 py-4 text-sm text-gray-800 shadow-sm"
-                  >
-                    {q.question}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )
-        })}
+        <div className="flex flex-col gap-6">
+          {orderedCategories.map((category) => {
+            const items = grouped[category]
+            if (!items?.length) return null
+            return (
+              <section key={category}>
+                <h3 className="mb-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold uppercase tracking-wide text-blue-600">
+                  {category}
+                </h3>
+                <ul className="flex flex-col gap-3">
+                  {items.map((q, idx) => (
+                    <li
+                      key={idx}
+                      className="rounded-lg border border-gray-100 bg-gray-50 px-5 py-4 text-sm text-gray-800 shadow-sm transition-colors hover:bg-white"
+                    >
+                      {q.question}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

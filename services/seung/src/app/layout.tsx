@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import NavBar from "@/components/NavBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +24,7 @@ async function signOut() {
   "use server";
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
 
 export default async function RootLayout({
@@ -41,18 +42,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {user && (
-          <div className="fixed top-3 right-4 z-50">
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50"
-              >
-                로그아웃
-              </button>
-            </form>
-          </div>
-        )}
+        {user && <NavBar onSignOut={signOut} />}
         {children}
       </body>
     </html>

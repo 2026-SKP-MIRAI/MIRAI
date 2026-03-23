@@ -3,24 +3,34 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { DashboardResumeItem, DashboardResponse } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-gray-500">대시보드를 불러오는 중...</p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <Spinner />
+      <p className="text-sm text-gray-500">대시보드를 불러오는 중...</p>
     </div>
   )
 }
 
 function EmptyState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <p className="text-gray-500">아직 업로드한 자소서가 없습니다.</p>
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
+        <svg className="w-8 h-8 text-[#4361ee]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h3 className="text-base font-bold text-gray-900 mb-1.5">아직 자소서가 없습니다</h3>
+      <p className="text-sm text-gray-500 mb-7 max-w-xs leading-relaxed">
+        자소서를 업로드하면 AI 면접관 3인이 맞춤 질문을 만들어드립니다.
+      </p>
       <button
         onClick={onStart}
-        className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-700"
+        className="rounded-xl bg-[#4361ee] px-7 py-3 text-sm font-bold text-white hover:bg-[#3a56d4] transition-colors shadow-lg shadow-[#4361ee]/25"
       >
-        새 면접 시작
+        자소서 업로드하기 →
       </button>
     </div>
   )
@@ -53,27 +63,39 @@ function ResumeCard({ item, onDelete }: { item: DashboardResumeItem; onDelete: (
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-800">{item.fileName}</p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+      {/* 파일명 + 메타 + 삭제 */}
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0 mt-0.5">
+            <svg className="w-4.5 h-4.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 leading-snug break-all">{item.fileName}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-xs text-gray-400">{date}</span>
+              <span className="text-gray-300 text-xs">·</span>
+              <span className="text-xs text-gray-400">면접 {item.sessionCount}회</span>
+            </div>
+          </div>
+        </div>
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="text-xs text-gray-300 hover:text-red-400 disabled:opacity-50 transition-colors"
+          className="text-xs text-gray-300 hover:text-red-400 disabled:opacity-50 transition-colors shrink-0 pt-0.5"
         >
           {deleting ? '삭제 중...' : '삭제'}
         </button>
       </div>
-      <div className="flex items-center gap-2">
-        <p className="text-xs text-gray-400">{date}</p>
-        <span className="text-xs text-gray-300">·</span>
-        <span className="text-xs text-gray-400">면접 {item.sessionCount}회</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
+
+      {/* 액션 버튼 */}
+      <div className="flex flex-wrap items-center gap-2">
         {item.inProgressSessionId && (
           <button
             onClick={() => router.push(`/interview?sessionId=${item.inProgressSessionId}`)}
-            className="rounded-md bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+            className="rounded-lg bg-green-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-400 transition-colors"
           >
             이어하기
           </button>
@@ -82,7 +104,7 @@ function ResumeCard({ item, onDelete }: { item: DashboardResumeItem; onDelete: (
           <button
             key={r.id}
             onClick={() => router.push(`/report?reportId=${r.id}`)}
-            className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+            className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
           >
             역량 리포트{item.reports.length > 1 ? ` #${i + 1}` : ''}
           </button>
@@ -90,18 +112,16 @@ function ResumeCard({ item, onDelete }: { item: DashboardResumeItem; onDelete: (
         {item.hasDiagnosis && (
           <button
             onClick={() => router.push(`/diagnosis?resumeId=${item.id}`)}
-            className="rounded-md bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
+            className="rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
           >
-            서류 진단 보기
+            서류 진단
           </button>
         )}
-      </div>
-      <div className="pt-1">
         <button
           onClick={() => router.push(`/resume?resumeId=${item.id}`)}
-          className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors ml-auto"
         >
-          이 자소서로 다시 면접하기
+          다시 면접하기
         </button>
       </div>
     </div>
@@ -132,29 +152,32 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white pl-6 pr-28 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900">MirAI — 내 면접 기록</h1>
+      <header className="sticky top-[57px] z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center justify-between">
+        <h1 className="text-base font-bold text-gray-900">내 면접 기록</h1>
         <button
           onClick={handleStart}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          className="rounded-lg bg-[#4361ee] px-4 py-2 text-sm font-bold text-white hover:bg-[#3a56d4] transition-colors"
         >
-          새 면접 시작
+          + 자소서 업로드
         </button>
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 py-8">
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-8">
         {error && (
-          <p className="text-sm text-red-600 text-center py-8" role="alert">
+          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-center" role="alert">
             {error}
-          </p>
+          </div>
         )}
         {!error && resumes.length === 0 && <EmptyState onStart={handleStart} />}
         {!error && resumes.length > 0 && (
-          <div className="space-y-4">
-            {resumes.map((item) => (
-              <ResumeCard key={item.id} item={item} onDelete={handleDelete} />
-            ))}
-          </div>
+          <>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">내 자소서</p>
+            <div className="space-y-4">
+              {resumes.map((item) => (
+                <ResumeCard key={item.id} item={item} onDelete={handleDelete} />
+              ))}
+            </div>
+          </>
         )}
       </main>
     </div>

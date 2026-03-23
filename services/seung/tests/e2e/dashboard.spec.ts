@@ -7,18 +7,18 @@ const MOCK_DASHBOARD_WITH_DATA = {
       createdAt: '2026-01-15T00:00:00.000Z',
       fileName: 'backend_resume.pdf',
       sessionCount: 2,
-      hasReport: true,
-      reportId: 'report-1',
+      reports: [{ id: 'report-1' }],
       hasDiagnosis: true,
+      inProgressSessionId: null,
     },
     {
       id: 'resume-2',
       createdAt: '2026-01-10T00:00:00.000Z',
       fileName: 'frontend_resume.pdf',
       sessionCount: 1,
-      hasReport: false,
-      reportId: null,
+      reports: [],
       hasDiagnosis: false,
+      inProgressSessionId: null,
     },
   ],
 }
@@ -49,12 +49,12 @@ test.describe('대시보드', () => {
     await page.goto('/dashboard')
 
     // 헤더
-    await expect(page.getByText('MirAI — 내 면접 기록')).toBeVisible()
+    await expect(page.getByText('내 면접 기록')).toBeVisible()
 
     // 첫 번째 카드: 리포트 + 진단 링크 있음
     await expect(page.getByText('면접 2회')).toBeVisible()
-    await expect(page.getByRole('button', { name: '역량 리포트 보기' })).toBeVisible()
-    await expect(page.getByRole('button', { name: '서류 진단 보기' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '역량 리포트' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '서류 진단' })).toBeVisible()
 
     // 두 번째 카드: 리포트 없음
     await expect(page.getByText('면접 1회')).toBeVisible()
@@ -71,12 +71,11 @@ test.describe('대시보드', () => {
 
     await page.goto('/dashboard')
 
-    await expect(page.getByText('아직 업로드한 자소서가 없습니다.')).toBeVisible()
-    // 빈 상태 + 헤더에 버튼이 각각 있으므로 first() 사용
-    await expect(page.getByRole('button', { name: '새 면접 시작' }).first()).toBeVisible()
+    await expect(page.getByText('아직 자소서가 없습니다')).toBeVisible()
+    await expect(page.getByRole('button', { name: '자소서 업로드하기 →' })).toBeVisible()
   })
 
-  test('"새 면접 시작" 버튼 클릭 → /resume로 이동', async ({ page }) => {
+  test('"자소서 업로드하기 →" 버튼 클릭 → /resume로 이동', async ({ page }) => {
     await page.route('**/api/dashboard', (route) =>
       route.fulfill({
         status: 200,
@@ -86,13 +85,12 @@ test.describe('대시보드', () => {
     )
 
     await page.goto('/dashboard')
-    // 빈 상태 + 헤더에 버튼이 각각 있으므로 first() 사용
-    await page.getByRole('button', { name: '새 면접 시작' }).first().click()
+    await page.getByRole('button', { name: '자소서 업로드하기 →' }).click()
 
     await expect(page).toHaveURL(/\/resume/)
   })
 
-  test('헤더 "새 면접 시작" 버튼 클릭 → /resume로 이동', async ({ page }) => {
+  test('헤더 "+ 자소서 업로드" 버튼 클릭 → /resume로 이동', async ({ page }) => {
     await page.route('**/api/dashboard', (route) =>
       route.fulfill({
         status: 200,
@@ -103,14 +101,12 @@ test.describe('대시보드', () => {
 
     await page.goto('/dashboard')
 
-    // 헤더 버튼 (데이터 있을 때)
-    const headerBtn = page.getByRole('button', { name: '새 면접 시작' }).first()
-    await headerBtn.click()
+    await page.getByRole('button', { name: '+ 자소서 업로드' }).click()
 
     await expect(page).toHaveURL(/\/resume/)
   })
 
-  test('"이 자소서로 다시 면접하기" 클릭 → /resume?resumeId=... 이동', async ({ page }) => {
+  test('"다시 면접하기" 클릭 → /resume?resumeId=... 이동', async ({ page }) => {
     await page.route('**/api/dashboard', (route) =>
       route.fulfill({
         status: 200,
@@ -121,7 +117,7 @@ test.describe('대시보드', () => {
 
     await page.goto('/dashboard')
 
-    await page.getByRole('button', { name: '이 자소서로 다시 면접하기' }).first().click()
+    await page.getByRole('button', { name: '다시 면접하기' }).first().click()
 
     await expect(page).toHaveURL(/\/resume\?resumeId=resume-1/)
   })

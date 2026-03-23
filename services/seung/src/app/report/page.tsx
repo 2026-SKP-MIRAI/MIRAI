@@ -3,11 +3,15 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ReportResponse } from '@/lib/types'
+import { getGrade } from '@/lib/grade'
+import Spinner from '@/components/Spinner'
+import ScoreGauge from '@/components/ScoreGauge'
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-gray-500">리포트를 불러오는 중...</p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <Spinner />
+      <p className="text-sm text-gray-500">리포트를 불러오는 중...</p>
     </div>
   )
 }
@@ -37,7 +41,7 @@ function ReportContent() {
       return
     }
 
-    fetch(`/api/report?reportId=${reportId}`)
+    fetch(`/api/report?reportId=${encodeURIComponent(reportId)}`)
       .then((r) => {
         if (!r.ok) {
           router.replace('/dashboard')
@@ -57,53 +61,84 @@ function ReportContent() {
       })
   }, [reportId, router])
 
-  if (loading) {
-    return <LoadingScreen />
-  }
-
-  if (!report) return null
+  if (loading) return <LoadingScreen />
+  if (!report) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <p className="text-sm text-gray-500">리포트를 찾을 수 없습니다.</p>
+      <button onClick={() => router.push('/dashboard')} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
+        대시보드로 이동
+      </button>
+    </div>
+  )
 
   const scoreEntries = Object.entries(report.scores ?? {}) as [string, number][]
+  const grade = getGrade(report.totalScore)
+  const strengths = (report.axisFeedbacks ?? []).filter(fb => fb.type === 'strength')
+  const improvements = (report.axisFeedbacks ?? []).filter(fb => fb.type === 'improvement')
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-bold text-gray-900">MirAI — 역량 평가 리포트</h1>
+      <header className="sticky top-[57px] z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center justify-between">
+        <h1 className="text-base font-bold text-gray-900">역량 평가 리포트</h1>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          홈으로
+        </button>
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 py-8 space-y-8">
-        {/* 총점 */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm text-gray-500 mb-1">종합 점수</p>
-          <p className="text-6xl font-bold text-gray-900">{report.totalScore}</p>
-          <p className="text-sm text-gray-400 mt-1">/ 100</p>
+      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-8 space-y-6 pb-16">
+
+        {/* 종합 요약 */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">종합 요약</h2>
+          <p className="text-gray-700 leading-relaxed text-sm">{report.summary}</p>
         </section>
 
-        {/* 8축 점수 */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">역량 축별 점수</h2>
-          <div className="space-y-3">
+        {/* 총점 + 8축 점수 */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          {/* 점수 헤더 */}
+          <div className="flex items-center gap-5 mb-6">
+            <ScoreGauge score={report.totalScore} />
+
+            <div>
+              <p className="text-xs text-gray-400 mb-1">종합 점수</p>
+              <span className={`inline-block rounded-full px-4 py-1.5 text-2xl font-extrabold ${grade.bg} ${grade.color}`}>
+                {grade.label}
+              </span>
+              <p className="text-xs text-gray-500 mt-2">등급 {grade.label} · 8개 역량 축 평균</p>
+            </div>
+          </div>
+
+          {/* 8축 점수 바 */}
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">역량 축별 점수</h2>
+          <div className="space-y-4">
             {scoreEntries.map(([axis, score]) => {
-              const feedback = (report.axisFeedbacks ?? []).find((f) => f.axis === axis)
-              const colorClass =
-                feedback?.type === 'strength'
-                  ? { text: 'text-blue-600', bar: 'bg-blue-500' }
-                  : feedback?.type === 'improvement'
-                    ? { text: 'text-orange-500', bar: 'bg-orange-400' }
-                    : { text: 'text-gray-600', bar: 'bg-gray-400' }
+              const feedback = (report.axisFeedbacks ?? []).find(f => f.axis === axis)
+              const isStrength = feedback?.type === 'strength'
+              const isImprovement = feedback?.type === 'improvement'
+              const barColor = isStrength ? 'bg-blue-500' : isImprovement ? 'bg-orange-400' : 'bg-gray-400'
+              const textColor = isStrength ? 'text-blue-600' : isImprovement ? 'text-orange-500' : 'text-gray-600'
               return (
                 <div key={axis}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-700 font-medium">
-                      {AXIS_LABEL_MAP[axis] ?? axis}
-                    </span>
-                    <span className={`font-semibold ${colorClass.text}`}>
-                      {score}
-                    </span>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        {AXIS_LABEL_MAP[axis] ?? axis}
+                      </span>
+                      {isStrength && (
+                        <span className="text-xs rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-blue-600 font-medium">강점</span>
+                      )}
+                      {isImprovement && (
+                        <span className="text-xs rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 font-medium">개선</span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-bold ${textColor}`}>{score}점</span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-2 rounded-full ${colorClass.bar}`}
+                      className={`h-2.5 rounded-full transition-[width] duration-700 ease-out ${barColor}`}
                       style={{ width: `${score}%` }}
                     />
                   </div>
@@ -113,51 +148,58 @@ function ReportContent() {
           </div>
         </section>
 
-        {/* 종합 요약 */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">종합 요약</h2>
-          <p className="text-gray-700 leading-relaxed">{report.summary}</p>
-        </section>
-
-        {/* 축별 피드백 카드 */}
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">축별 피드백</h2>
-          {(report.axisFeedbacks ?? []).map((fb) => (
-            <div
-              key={fb.axis}
-              className={`rounded-xl border p-4 ${
-                fb.type === 'strength'
-                  ? 'bg-blue-50 border-blue-200'
-                  : 'bg-orange-50 border-orange-200'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold text-gray-900 text-sm">{fb.axisLabel}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    fb.type === 'strength'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-orange-100 text-orange-700'
-                  }`}
-                >
-                  {fb.type === 'strength' ? '강점' : '개선'}
-                </span>
-                <span className="ml-auto text-sm font-semibold text-gray-600">{fb.score}점</span>
+        {/* 강점 피드백 */}
+        {strengths.length > 0 && (
+          <section className="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <p className="text-sm text-gray-700">{fb.feedback}</p>
+              <h2 className="text-base font-bold text-gray-900">강점 역량</h2>
+              <span className="rounded-full bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5">{strengths.length}개</span>
             </div>
-          ))}
-        </section>
+            <div className="space-y-3">
+              {strengths.map(fb => (
+                <div key={fb.axis} className="rounded-xl bg-blue-50 px-4 py-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-gray-900">{fb.axisLabel}</span>
+                    <span className="text-sm font-bold text-blue-600">{fb.score}점</span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{fb.feedback}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* 홈으로 */}
-        <div className="flex justify-center pb-8">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-700"
-          >
-            홈으로
-          </button>
-        </div>
+        {/* 개선 필요 피드백 */}
+        {improvements.length > 0 && (
+          <section className="rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 rounded-full bg-orange-400 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
+                </svg>
+              </div>
+              <h2 className="text-base font-bold text-gray-900">개선 필요 역량</h2>
+              <span className="rounded-full bg-orange-100 text-orange-700 text-xs font-semibold px-2 py-0.5">{improvements.length}개</span>
+            </div>
+            <div className="space-y-3">
+              {improvements.map(fb => (
+                <div key={fb.axis} className="rounded-xl bg-orange-50 px-4 py-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold text-gray-900">{fb.axisLabel}</span>
+                    <span className="text-sm font-bold text-orange-500">{fb.score}점</span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{fb.feedback}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
       </main>
     </div>
   )
