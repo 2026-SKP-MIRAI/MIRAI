@@ -22,6 +22,7 @@ function InterviewContent() {
   const [totalQuestions, setTotalQuestions] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
   const [interviewMode, setInterviewMode] = useState<'real' | 'practice'>('real')
@@ -84,6 +85,7 @@ function InterviewContent() {
         setMessages(initialMessages)
         setSessionComplete(data.sessionComplete ?? false)
         setTotalQuestions(data.totalQuestions ?? 0)
+        setFileName(data.fileName ?? null)
         // URL param 없이 접근(새로고침 등)할 때 session DB 값으로 복원
         if (data.interviewMode === 'practice') setInterviewMode('practice')
         setLoading(false)
@@ -262,6 +264,9 @@ function InterviewContent() {
           }`}>
             {interviewMode === 'practice' ? '연습 모드' : '실전 모드'}
           </span>
+          {fileName && (
+            <p className="text-xs text-gray-400">{fileName}</p>
+          )}
         </div>
         <button
           onClick={() => {

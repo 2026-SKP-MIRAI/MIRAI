@@ -228,6 +228,21 @@ describe('POST /api/interview/answer', () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
+  it('엔진 타임아웃 시 504 반환', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({ resumeText: '자소서' })
+
+    const timeoutError = new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+    mockFetch.mockRejectedValueOnce(timeoutError)
+
+    const response = await POST(
+      makeRequest({ sessionId: 'session-1', answer: '답변' })
+    )
+    expect(response.status).toBe(504)
+    const body = await response.json()
+    expect(body.error).toContain('지연')
+  })
+
   it('엔진 에러 시 500 + generic 메시지 반환 (내부 에러 미노출)', async () => {
     mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
     mockPrisma.resume.findUnique.mockResolvedValueOnce({ resumeText: '자소서' })

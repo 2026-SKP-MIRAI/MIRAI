@@ -165,6 +165,60 @@ describe('InterviewChat', () => {
 
     expect(screen.queryByRole('button', { name: '리포트 생성하기' })).not.toBeInTheDocument()
   })
+
+  it('answerCount < 5이고 sessionComplete=false이면 리포트 안내 문구가 표시된다', () => {
+    const messages: Message[] = Array.from({ length: 3 }, (_, i) => ({
+      id: `a${i}`,
+      type: 'answer' as const,
+      text: `답변${i}`,
+    }))
+
+    render(
+      <InterviewChat
+        messages={messages}
+        sessionComplete={false}
+        onReport={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).toBeInTheDocument()
+  })
+
+  it('answerCount >= 5이면 리포트 안내 문구가 표시되지 않는다', () => {
+    const messages: Message[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `a${i}`,
+      type: 'answer' as const,
+      text: `답변${i}`,
+    }))
+
+    render(
+      <InterviewChat
+        messages={messages}
+        sessionComplete={false}
+        onReport={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).not.toBeInTheDocument()
+  })
+
+  it('sessionComplete=true이면 리포트 안내 문구가 표시되지 않는다', () => {
+    const messages: Message[] = Array.from({ length: 2 }, (_, i) => ({
+      id: `a${i}`,
+      type: 'answer' as const,
+      text: `답변${i}`,
+    }))
+
+    render(
+      <InterviewChat
+        messages={messages}
+        sessionComplete={true}
+        onReport={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).not.toBeInTheDocument()
+  })
 })
 
 describe('practice 모드 피드백 UI', () => {

@@ -61,6 +61,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error('[resume/feedback] engine fetch failed', { err })
+    // TODO: extract to shared fetchEngine wrapper
+    if ((err as { name?: string }).name === 'TimeoutError') {
+      return NextResponse.json({ error: '응답이 지연되고 있습니다. 다시 시도해주세요.' }, { status: 504 })
+    }
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
       { status: 500 }
