@@ -177,6 +177,12 @@ export default function InterviewChat({
         )
       })}
 
+      {!sessionComplete && answerCount < 5 && interviewMode !== 'practice' && (
+        <p className="text-xs text-gray-400 text-center">
+          리포트는 5개 이상 답변 후 생성할 수 있습니다
+        </p>
+      )}
+
       {!sessionComplete && answerCount >= 5 && onReport && (
         <div className="flex justify-end">
           <button

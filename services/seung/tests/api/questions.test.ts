@@ -233,6 +233,28 @@ describe('POST /api/resume/questions', () => {
     expect(mockCallEngineQuestions).toHaveBeenCalledWith('extracted text', undefined)
   })
 
+  it('callEngineAnalyze TimeoutError 시 504 반환', async () => {
+    const timeoutError = new DOMException('timeout', 'TimeoutError')
+    mockCallEngineAnalyze.mockRejectedValueOnce(timeoutError)
+    const formData = new FormData()
+    formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
+    const response = await POST(makeRequest(formData))
+    expect(response.status).toBe(504)
+    const body = await response.json()
+    expect(body.error).toContain('지연')
+  })
+
+  it('callEngineQuestions TimeoutError 시 504 반환', async () => {
+    const timeoutError = new DOMException('timeout', 'TimeoutError')
+    mockCallEngineQuestions.mockRejectedValueOnce(timeoutError)
+    const formData = new FormData()
+    formData.append('file', new File(['pdf'], 'resume.pdf', { type: 'application/pdf' }))
+    const response = await POST(makeRequest(formData))
+    expect(response.status).toBe(504)
+    const body = await response.json()
+    expect(body.error).toContain('지연')
+  })
+
   it('targetRole 필드 누락 시 callEngineQuestions에 생략', async () => {
     mockCallEngineAnalyze.mockResolvedValueOnce(
       makeMockResponse(true, 200, { resumeText: 'extracted text', extractedLength: 100 })

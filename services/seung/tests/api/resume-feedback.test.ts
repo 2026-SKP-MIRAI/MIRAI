@@ -230,4 +230,20 @@ describe('POST /api/resume/feedback', () => {
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
     expect(res.status).toBe(500)
   })
+
+  it('엔진 TimeoutError 시 504 반환', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      id: 'resume-1',
+      userId: 'user-1',
+      resumeText: '자소서',
+      diagnosisResult: null,
+    })
+    const timeoutError = new DOMException('timeout', 'TimeoutError')
+    mockFetch.mockRejectedValueOnce(timeoutError)
+
+    const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
+    expect(res.status).toBe(504)
+    const body = await res.json()
+    expect(body.error).toContain('지연')
+  })
 })

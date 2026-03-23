@@ -35,6 +35,7 @@ const mockSession = {
   questionsQueue: [{ persona: 'tech_lead', type: 'main' }, { persona: 'executive', type: 'main' }],
   sessionComplete: false,
   interviewMode: 'real',
+  resume: { fileName: '지원서.pdf' },
 }
 
 describe('GET /api/interview/session', () => {
@@ -55,6 +56,25 @@ describe('GET /api/interview/session', () => {
     expect(body.sessionComplete).toBe(false)
     // history=0, queue=2, sessionComplete=false → totalQuestions=3
     expect(body.totalQuestions).toBe(3)
+  })
+
+  it('성공: fileName이 응답에 포함된다', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
+    const response = await GET(makeRequest('session-1'))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.fileName).toBe('지원서.pdf')
+  })
+
+  it('resume.fileName이 null이면 fileName: null 반환', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce({
+      ...mockSession,
+      resume: { fileName: null },
+    })
+    const response = await GET(makeRequest('session-1'))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.fileName).toBeNull()
   })
 
   it('sessionId 누락 시 400 반환', async () => {
