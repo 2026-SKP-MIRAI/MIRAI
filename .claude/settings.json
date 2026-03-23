@@ -30,6 +30,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/skill-activation-prompt.sh"
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
