@@ -165,6 +165,13 @@ def crawl_jobkorea(ds: str, **context) -> None:
             dsoup = BeautifulSoup(dresp.content, "lxml")
 
             parts = []
+            NOISE_PATTERNS = [
+                "스마트픽", "AD 로그인", "TOP 궁금해요", "기업정보 더보기",
+                "지도보기", "🏘️", "접수기간", "마감일은 기업의 사정",
+            ]
+
+            def _is_noisy(text: str) -> bool:
+                return any(p in text for p in NOISE_PATTERNS)
 
             # 방법 1: table.tplTbl 행별 추출 (잡코리아 표준 템플릿)
             for table in dsoup.select("table.tplTbl"):
@@ -175,22 +182,26 @@ def crawl_jobkorea(ds: str, **context) -> None:
                         continue
                     header = th.get_text(strip=True)
                     if any(kw in header for kw in QUALIF_KEYWORDS):
-                        content = " ".join(td.get_text(" ", strip=True) for td in tds)
-                        if len(content) > 5:
-                            parts.append(f"[{header}] {content}")
+                        cell_text = " ".join(td.get_text(" ", strip=True) for td in tds)
+                        if len(cell_text) > 5 and not _is_noisy(cell_text):
+                            parts.append(f"[{header}] {cell_text}")
 
-            # 방법 2: 키워드 포함 텍스트 스니펫 (body 전체 스캔)
+            # 방법 2: 키워드 포함 텍스트 스니펫 (첫 번째 발견만, 중복 방지)
             if not parts:
                 for tag in dsoup(["script", "style", "header", "footer", "nav", "aside"]):
                     tag.decompose()
                 full_text = dsoup.get_text(" ", strip=True)
+                seen_snippets: set[str] = set()
                 for kw in QUALIF_KEYWORDS:
                     idx = full_text.find(kw)
-                    while idx != -1 and len(parts) < 6:
-                        snippet = full_text[idx:idx + 500].strip()
-                        if snippet not in parts:
-                            parts.append(snippet)
-                        idx = full_text.find(kw, idx + len(kw))
+                    if idx == -1:
+                        continue
+                    snippet = full_text[idx:idx + 300].strip()
+                    if snippet not in seen_snippets and not _is_noisy(snippet):
+                        parts.append(snippet)
+                        seen_snippets.add(snippet)
+                    if len(parts) >= 4:
+                        break
 
             # 방법 3: 폴백 — body 앞부분
             if not parts:
@@ -198,10 +209,14 @@ def crawl_jobkorea(ds: str, **context) -> None:
                     tag.decompose()
                 body_text = dsoup.get_text(" ", strip=True)
                 if len(body_text) > 100:
-                    parts = [body_text[:2000]]
+                    parts = [body_text[:1500]]
 
-            detail_text = " ".join(parts)[:3000] if parts else ""
-            posting["content"] = f"{posting['title']} {posting['skills']} {detail_text}".strip()
+            detail_text = " ".join(parts)[:2000] if parts else ""
+            # detail_text가 있으면 그것만 사용 (title/skills 중복 방지)
+            if detail_text:
+                posting["content"] = detail_text
+            else:
+                posting["content"] = f"{posting['title']} {posting['skills']}".strip()
         except Exception as e:
             log.error("Detail crawl error [%s]: %s", detail_url, e)
             posting["content"] = f"{posting['title']} {posting['skills']}".strip()
@@ -221,7 +236,9 @@ def crawl_jobkorea(ds: str, **context) -> None:
 def embed_postings(ds: str, **context) -> None:
     """raw.jsonl → 엔진 /api/embed 배치 호출 → embedded.jsonl → S3"""
     bucket = Variable.get("S3_RAG_BUCKET_NAME")
-    engine_url = Variable.get("ENGINE_BASE_URL")
+    engine_url = Variable.get("ENGINE_BASE_URL", default_var=None)
+    if not engine_url:
+        raise ValueError("Airflow Variable 'ENGINE_BASE_URL'이 설정되지 않았습니다. Admin → Variables에서 엔진 URL을 설정하세요.")
     raw_key = context["ti"].xcom_pull(task_ids="crawl_jobkorea", key="raw_s3_key")
     embedded_key = f"job-crawl/{ds.replace('-', '/')}/embedded.jsonl"
 
