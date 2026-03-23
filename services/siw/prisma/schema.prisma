@@ -17,6 +17,7 @@ model Resume {
   resumeText  String
   questions          Json     @default("[]")
   feedbackJson       Json?
+  trendComparison    Json?
   inferredTargetRole String?
   createdAt          DateTime @default(now())
 
@@ -50,3 +51,7 @@ model InterviewSession {
 
   @@map("interview_sessions")
 }
+
+// job_posting_embeddings, accepted_resume_embeddings 는 공용 RAG Supabase (RAG_DATABASE_URL) 테이블.
+// ragPrisma.$queryRaw로 직접 쿼리하므로 Prisma 모델 불필요.
+// DDL: airflow/sql/003_enable_pgvector.sql, 004_accepted_resumes.sql 참고.

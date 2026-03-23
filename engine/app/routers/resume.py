@@ -91,6 +91,6 @@ async def create_questions(body: QuestionsRequest):
 async def create_feedback(body: ResumeFeedbackRequest):
     logger.info("[resume/feedback] 요청 수신: resumeText 길이=%d, targetRole=%s",
                 len(body.resumeText), body.targetRole)
-    data, usage = generate_resume_feedback(body.resumeText, body.targetRole)
+    data, usage = generate_resume_feedback(body.resumeText, body.targetRole, job_context=body.job_context)
     data.usage = usage
     return data

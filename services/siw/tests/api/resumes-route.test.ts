@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+
 // --- mocks ---
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({ getAll: () => [] }),
@@ -57,8 +58,17 @@ function makePdfRequest() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
+  vi.doMock("@/lib/rag/embedding-client", () => ({
+    embedText: vi.fn().mockResolvedValue(null),
+    fetchTrendSkills: vi.fn().mockResolvedValue([]),
+  }));
+  vi.doMock("@/lib/rag/vector-search", () => ({
+    searchSimilarPostings: vi.fn().mockResolvedValue([]),
+    extractTrendSkills: vi.fn().mockReturnValue([]),
+  }));
   process.env.ENGINE_BASE_URL = "http://localhost:8000";
   process.env.SUPABASE_STORAGE_BUCKET = "resumes";
+  delete process.env.ENABLE_RAG;
 });
 
 // ============================================================

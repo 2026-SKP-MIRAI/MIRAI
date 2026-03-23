@@ -6,11 +6,34 @@ import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages"
 import { cookies } from "next/headers"
 import { withEventLogging } from "@/lib/observability/event-logger"
 import { normalizeRole } from "@/lib/role-normalizer"
+import { embedText } from "@/lib/rag/embedding-client"
+import { searchSimilarPostings, extractTrendSkills } from "@/lib/rag/vector-search"
+import type { TrendComparison } from "@/lib/types"
+
+const MIN_SIMILARITY = 0.6
 
 export const runtime = "nodejs"
 export const maxDuration = 300
 
 const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000"
+
+async function fetchFeedback(resumeText: string, targetRole: string, jobContext?: string[]) {
+  return withEventLogging('resume_feedback', null, async (meta) => {
+    const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeText, targetRole, ...(jobContext ? { job_context: jobContext } : {}) }),
+      signal: AbortSignal.timeout(35000),
+    })
+    if (!r.ok) return null
+    const d = await r.json().catch(() => null)
+    if (d?.usage) meta.usage = d.usage
+    return d
+  }).catch((err) => {
+    console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err))
+    return null
+  })
+}
 
 export async function POST(request: Request) {
   const cookieStore = await cookies()
@@ -38,8 +61,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.llmError }, { status: 400 })
   }
 
+  const normalizedRole = normalizeRole(targetRole) || null
+  const enableRag = process.env.ENABLE_RAG === "true" && !!normalizedRole
+
   try {
-    const [storageKey, engineData, feedbackJson] = await Promise.all([
+    // upload + questions + (RAG 활성 시 embed) 병렬 실행
+    const [storageKey, engineData, embResult] = await Promise.all([
       uploadResumePdf(user.id, buffer, file.name),
       withEventLogging('resume_questions', null, async (meta) => {
         const r = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
@@ -57,22 +84,39 @@ export async function POST(request: Request) {
         if (d.usage) meta.usage = d.usage;
         return d;
       }),
-      withEventLogging('resume_feedback', null, async (meta) => {
-        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText, targetRole }),
-          signal: AbortSignal.timeout(35000),
-        });
-        if (!r.ok) return null;
-        const d = await r.json().catch(() => null);
-        if (d?.usage) meta.usage = d.usage;
-        return d;
-      }).catch((err) => {
-        console.warn("[POST /api/resumes] feedback fetch failed:", err instanceof Error ? err.message : String(err));
-        return null;
-      }),
+      enableRag ? embedText(resumeText).catch(() => null) : Promise.resolve(null),
     ])
+
+    // RAG: pgvector 검색 → job_context 포함 단 1회 LLM 호출
+    let feedbackJson = null
+    let trendComparison: TrendComparison | null = null
+
+    if (enableRag && embResult) {
+      const postings = await searchSimilarPostings(embResult.vector, normalizedRole!, 5)
+      const relevantPostings = postings.filter((p) => p.similarity >= MIN_SIMILARITY)
+      const jobContext = relevantPostings.map((p) => p.content)
+
+      feedbackJson = await fetchFeedback(resumeText, targetRole, jobContext)
+
+      const rawSkills = extractTrendSkills(postings)
+      const resumeTextLower = resumeText.toLowerCase()
+      const trendSkillsWithMeta = rawSkills.map(({ skill, weight }) => ({
+        skill,
+        weight,
+        inResume: resumeTextLower.includes(skill.toLowerCase()),
+      }))
+      const coveredCount = trendSkillsWithMeta.filter((s) => s.inResume).length
+      const coverageScore = trendSkillsWithMeta.length > 0
+        ? Math.round((coveredCount / trendSkillsWithMeta.length) * 100)
+        : 0
+      trendComparison = {
+        role: normalizedRole!,
+        trendSkills: trendSkillsWithMeta,
+        coverageScore,
+      }
+    } else {
+      feedbackJson = await fetchFeedback(resumeText, targetRole)
+    }
 
     const resumeId = await resumeRepository.create({
       userId: user.id,
@@ -81,7 +125,8 @@ export async function POST(request: Request) {
       resumeText,
       questions: engineData.questions ?? [],
       feedbackJson: feedbackJson ?? null,
-      inferredTargetRole: normalizeRole(targetRole) || null,
+      trendComparison: trendComparison ?? null,
+      inferredTargetRole: normalizedRole,
     })
 
     return NextResponse.json({ ...engineData, resumeId })

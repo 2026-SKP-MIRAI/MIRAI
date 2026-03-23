@@ -9,6 +9,7 @@ export type ResumeRecord = {
   resumeText: string;
   questions: Prisma.JsonValue;
   feedbackJson: Prisma.JsonValue | null;
+  trendComparison: Prisma.JsonValue | null;
   inferredTargetRole: string | null;
   createdAt: Date;
 };
@@ -21,6 +22,7 @@ export const resumeRepository = {
     resumeText: string;
     questions: Prisma.InputJsonValue;
     feedbackJson?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+    trendComparison?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
     inferredTargetRole?: string | null;
   }): Promise<string> {
     const resume = await prisma.resume.create({ data });

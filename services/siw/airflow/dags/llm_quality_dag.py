@@ -29,7 +29,12 @@ def extract_events(ds: str, **kwargs):
     prefix_base = Variable.get("S3_LOG_PREFIX", default_var="llm-events")
     date_path = ds.replace("-", "/")
     prefix = f"{prefix_base}/{date_path}/"
-    s3 = boto3.client("s3")
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=Variable.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=Variable.get("AWS_SECRET_ACCESS_KEY"),
+        region_name=Variable.get("AWS_REGION", default_var="ap-northeast-2"),
+    )
     paginator = s3.get_paginator("list_objects_v2")
     events = []
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
