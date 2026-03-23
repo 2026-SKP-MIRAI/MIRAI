@@ -18,15 +18,17 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
 
   const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
-  const redirectTo = `${typeof window !== "undefined" ? window.location.origin : ""}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 
-  // createClient()는 핸들러 내부에서만 호출 (SSR 프리렌더링 시 env var 없음)
+  // createClient()와 redirectTo는 핸들러 내부에서만 계산 (SSR 프리렌더링 시 window 미정의)
+  const oauthRedirectTo = () =>
+    `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
+
   const handleKakao = async () => {
     setLoading(true);
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "kakao",
-      options: { redirectTo },
+      options: { redirectTo: oauthRedirectTo() },
     });
   };
 
@@ -35,7 +37,7 @@ function LoginContent() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo },
+      options: { redirectTo: oauthRedirectTo() },
     });
   };
 
@@ -58,7 +60,7 @@ function LoginContent() {
           email,
           password,
           options: {
-            emailRedirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth/confirm?next=${encodeURIComponent(safeNext)}`,
+            emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(safeNext)}`,
           },
         });
         if (error) {

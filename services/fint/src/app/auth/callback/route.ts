@@ -36,5 +36,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${safeRedirect}`);
+  const response = NextResponse.redirect(`${origin}${safeRedirect}`);
+  if (anonId) {
+    // 마이그레이션 후 쿠키 삭제 — 재로그인 시 중복 마이그레이션 방지
+    response.cookies.delete("lww_anon_id");
+  }
+  return response;
 }
