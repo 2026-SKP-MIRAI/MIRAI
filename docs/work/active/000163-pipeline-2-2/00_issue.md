@@ -14,20 +14,20 @@ Pipeline 2-1(#97)에서 엔진 임베딩 API, Trends API 뼈대, trendComparison
 > ⚠️ ENABLE_RAG 미설정 시 기존 Pipeline 2-1 동작 그대로 유지
 
 ## 완료 기준
-- [ ] Supabase pgvector extension 활성화 + `job_posting_embeddings` 테이블 신규
+- [x] Supabase pgvector extension 활성화 + `job_posting_embeddings` 테이블 신규
       (`jobRole`, `title`, `company`, `content`, `embedding vector(1024)`, `sourceUrl`, `crawledAt`)
-- [ ] Airflow `job_crawl_dag` 주간 실행
-      — 잡코리아 전 직무 대분류 채용공고 크롤링 (Rate limit 1초, robots.txt 준수)
-      — 공고 텍스트 → 엔진 `POST /api/embed` 호출 (배치) → pgvector upsert
+- [x] Airflow `job_crawl_dag` 주간 실행
+      — 잡코리아 12개 대분류 채용공고 크롤링 (BCtgrCode 1-10, 12, 13) (Rate limit 1초, robots.txt 준수)
+      — 공고 텍스트 → 엔진 `POST /api/embed` 호출 (배치) → pgvector upsert (ON CONFLICT source_url, job_role)
       — 스케줄: 매주 일요일 UTC 15:00
-- [ ] Trends API RAG 로직 구현
-      — `src/lib/rag/vector-search.ts` 신규 (pgvector cosine similarity search)
-      — `ENABLE_RAG=true` 시 role 임베딩 → pgvector 검색 → TOP 역량 반환
-- [ ] trendComparison RAG 기반 실제 비교 로직 구현
-      — 자소서 임베딩 ↔ 채용공고 pgvector 검색 → `job_context`로 엔진에 전달 → LLM 피드백 퀄리티 향상
-      — 엔진 `FeedbackRequest.job_context: list[str] | None = None` optional 파라미터 추가 (backward compatible)
-      — UI에 `trendingSkills` 배지 + `similarPostings` 참고 공고 표시
-- [ ] vitest (vector-search, RAG trends) + pytest (job_crawl_dag)
+- [x] Trends API RAG 로직 구현
+      — `src/lib/rag/vector-search.ts` 신규 (pgvector cosine similarity search, MIN_SIMILARITY=0.6)
+      — `ENABLE_RAG=true` 시 자소서 임베딩 → pgvector 검색 → job_context로 엔진 전달 → LLM 피드백 퀄리티 향상
+- [x] trendComparison RAG 기반 실제 비교 로직 구현
+      — POST /api/resumes 분석 시점에 RAG 계산 → `trendComparison` DB 캐싱
+      — GET /api/resumes/[id]/feedback은 DB 읽기만 (LLM 재호출 없음)
+      — 엔진 `ResumeFeedbackRequest.job_context: list[str] | None = None` optional (backward compatible)
+- [x] vitest (vector-search, feedback route) + pytest (job_crawl_dag)
 - [ ] `ENABLE_RAG=true` 배포 환경변수 설정 + `.ai.md` 최신화
 
 ## 구현 플랜
@@ -71,17 +71,21 @@ Pipeline 2-1(#97)에서 엔진 임베딩 API, Trends API 뼈대, trendComparison
 
 ### 2026-03-23
 
-**현황**: 0/6 완료
+**현황**: 5/6 완료
 
 **완료된 항목**:
-- 없음
+- Supabase pgvector extension + job_posting_embeddings 테이블 (`airflow/sql/003_enable_pgvector.sql`)
+- Airflow job_crawl_dag: 12개 대분류 크롤링, ON CONFLICT (source_url, job_role), 임베딩 진행 로그
+- src/lib/rag/vector-search.ts + embedding-client.ts (pgvector cosine similarity, MIN_SIMILARITY=0.6)
+- trendComparison DB 캐싱 구조: POST 분석 시점 계산 → Prisma schema + migration → GET은 DB 읽기만
+- vitest (vector-search, feedback route) + pytest (job_crawl_dag)
 
 **미완료 항목**:
-- Supabase pgvector extension 활성화 + job_posting_embeddings 테이블 신규 (vector(1024))
-- Airflow job_crawl_dag 주간 실행
-- Trends API RAG 로직 구현 (vector-search.ts)
-- trendComparison RAG 기반 실제 비교 로직 구현
-- vitest + pytest 테스트
 - ENABLE_RAG=true 배포 환경변수 설정 + .ai.md 최신화
 
-**변경 파일**: 0개 (구현 계획 수립 완료 — 01_plan.md 작성됨)
+**아키텍처 변경 (계획 대비)**:
+- 원래: GET /feedback → 매 페이지 로드마다 pgvector 검색 + LLM 재호출
+- 변경: POST /resumes 분석 시점에 RAG 계산 후 trendComparison 컬럼에 캐싱, GET은 DB 읽기만
+- UI에서 TrendComparisonCard 제거 (RAG는 피드백 품질 향상용, 사용자에게 별도 노출 불필요)
+- ON CONFLICT: source_url 단독 → (source_url, job_role) 복합 키 (동일 공고가 여러 직군에 출현 가능)
+- 잡코리아 BCtgrCode: 1~11 → 실제 HTML 기준 1-10, 12, 13 (총 12개)

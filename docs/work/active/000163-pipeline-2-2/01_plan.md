@@ -795,4 +795,76 @@ resumes, users, sessions, ...          job_posting_embeddings   ← Airflow (#16
 
 - 팀원 모두 동일한 `RAG_DATABASE_URL` 공유 → 누가 Airflow 실행하든 모두 같은 데이터 사용
 - `ENABLE_RAG=false`이면 `ragPrisma` 코드 경로 전체 skip → 개인 Supabase만으로 정상 동작
+
+---
+
+## 실제 구현 내역 (2026-03-23)
+
+### 계획 대비 변경 사항
+
+#### 1. trendComparison 아키텍처 변경 (핵심)
+
+**원래 계획 (Step 4):**
+- GET `/api/resumes/[id]/feedback` 호출 시마다 pgvector 검색 + 엔진 LLM 재호출
+
+**실제 구현:**
+- POST `/api/resumes` 분석 시점에 RAG 계산 → `trendComparison` DB 컬럼에 캐싱
+- GET `/api/resumes/[id]/feedback` → DB 읽기만, LLM 재호출 없음
+- **이유:** 피드백 페이지 매 로드마다 LLM 호출하는 것은 과도한 비용·latency. `trendComparison Json?` 컬럼 하나 추가로 해결.
+
+**추가된 파일/변경:**
+- `prisma/schema.prisma` — `trendComparison Json?` 컬럼 추가
+- `prisma/migrations/20260323000000_add_trend_comparison/migration.sql` 신규
+- `src/lib/resume-repository.ts` — `trendComparison` 필드 추가
+
+#### 2. ON CONFLICT 키 변경
+
+**원래:** `UNIQUE (source_url)` — 동일 URL은 한 번만 저장
+**변경:** `UNIQUE (source_url, job_role)` — 동일 공고가 여러 직군 카테고리에 출현 가능
+- `airflow/sql/005_unique_source_url_job_role.sql` 마이그레이션 추가
+
+#### 3. 잡코리아 BCtgrCode 수정
+
+**원래:** 1~11 (11개)
+**실제 HTML:** 1-10, 12, 13 (12개, 11번 없음)
+- `job_crawl_dag.py` MAJOR_CATEGORIES 딕셔너리 수정
+
+#### 4. UI에서 TrendComparisonCard 제거
+
+**원래 계획:** `trendingSkills` 배지 + `similarPostings` 참고 공고 UI 표시
+**실제:** 컴포넌트 제거 — RAG는 피드백 품질 향상용 내부 로직, 별도 UI 불필요
+- `src/app/(app)/resumes/[id]/page.tsx` — TrendComparisonCard import/state/render 제거
+
+#### 5. POST 병렬 처리 구조
+
+```typescript
+// 업로드 + 질문 생성 + 임베딩을 병렬 실행
+const [storageKey, engineData, embResult] = await Promise.all([
+  uploadResumePdf(...),
+  withEventLogging('resume_questions', ...),  // /api/resume/questions
+  enableRag ? embedText(resumeText) : Promise.resolve(null),
+])
+// 이후 pgvector 검색 → 단 1회 LLM 호출 (job_context 포함)
+```
+
+### 최종 파일 목록
+
+| 파일 | 상태 | 내용 |
+|------|------|------|
+| `airflow/sql/003_enable_pgvector.sql` | 신규 | pgvector extension + job_posting_embeddings 테이블 |
+| `airflow/sql/004_accepted_resumes.sql` | 신규 | accepted_resume_embeddings 테이블 (#198 pre-alignment) |
+| `airflow/sql/005_unique_source_url_job_role.sql` | 신규 | ON CONFLICT 키 변경 마이그레이션 |
+| `airflow/dags/job_crawl_dag.py` | 신규 | 잡코리아 크롤링 + 임베딩 + pgvector upsert DAG |
+| `airflow/tests/test_job_crawl_dag.py` | 신규 | pytest 단위 테스트 |
+| `src/lib/rag/vector-search.ts` | 신규 | pgvector cosine similarity 검색, extractTrendSkills |
+| `src/lib/rag/embedding-client.ts` | 신규 | 엔진 /api/embed 호출 클라이언트 |
+| `src/lib/rag/__tests__/vector-search.test.ts` | 신규 | vitest 단위 테스트 |
+| `src/lib/rag-prisma.ts` | 신규 | RAG DB Prisma 클라이언트 |
+| `src/app/api/resumes/route.ts` | 수정 | RAG 파이프라인 통합, trendComparison 저장 |
+| `src/app/api/resumes/[id]/feedback/route.ts` | 수정 | LLM 재호출 제거, DB 읽기만 |
+| `src/app/api/resumes/[id]/feedback/__tests__/route.test.ts` | 수정 | TrendComparison 형태로 테스트 수정 |
+| `src/lib/resume-repository.ts` | 수정 | trendComparison 필드 추가 |
+| `prisma/schema.prisma` | 수정 | trendComparison Json? 컬럼 |
+| `prisma/migrations/20260323000000_add_trend_comparison/` | 신규 | Prisma 마이그레이션 |
+| `src/app/(app)/resumes/[id]/page.tsx` | 수정 | TrendComparisonCard 제거 |
 - `ragPrisma` 클라이언트가 `RAG_DATABASE_URL` 미설정 시 `undefined` datasource로 초기화 — ENABLE_RAG guard로 실제 쿼리는 실행되지 않음
