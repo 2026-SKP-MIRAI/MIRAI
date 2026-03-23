@@ -120,24 +120,7 @@ describe('InterviewChat', () => {
     expect(screen.queryByText('꼬리질문')).not.toBeInTheDocument()
   })
 
-  it('totalQuestions > 0이면 진행률 텍스트가 표시된다', () => {
-    const messages: Message[] = [
-      {
-        id: 'q1',
-        type: 'question',
-        data: { persona: 'hr', personaLabel: 'HR 면접관', question: '질문1', type: 'main' },
-      },
-      { id: 'a1', type: 'answer', text: '답변1' },
-    ]
-
-    render(
-      <InterviewChat messages={messages} sessionComplete={false} totalQuestions={10} />
-    )
-
-    expect(screen.getByText('1 / 10 답변 완료')).toBeInTheDocument()
-  })
-
-  it('totalQuestions가 없으면 진행률 텍스트가 표시되지 않는다', () => {
+  it('진행률 텍스트는 InterviewChat 내부에 표시되지 않는다 (interview/page.tsx로 이동)', () => {
     render(
       <InterviewChat messages={[]} sessionComplete={false} />
     )

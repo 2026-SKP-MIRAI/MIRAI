@@ -3,6 +3,27 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-primary: #1a1a2e;
+  --color-primary-hover: #16213e;
+  --color-accent: #4361ee;
+  --color-accent-hover: #3a56d4;
+  --color-surface: #ffffff;
+  --color-background-page: #f8f9fa;
+  --color-border: #e5e7eb;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --radius-card: 1rem;
+  --radius-button: 0.5rem;
+  --radius-input: 0.5rem;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.1);
+  --persona-hr: #3b82f6;
+  --persona-tech: #22c55e;
+  --persona-exec: #a855f7;
 }
 
 @theme inline {
@@ -10,17 +31,45 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-surface: var(--color-surface);
+  --color-background-page: var(--color-background-page);
+  --color-border: var(--color-border);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --radius-input: var(--radius-input);
+  --persona-hr: var(--persona-hr);
+  --persona-tech: var(--persona-tech);
+  --persona-exec: var(--persona-exec);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-primary: #e2e8f0;
+    --color-primary-hover: #cbd5e1;
+    --color-accent: #7c9ef5;
+    --color-surface: #1e1e2e;
+    --color-background-page: #0f0f1a;
+    --color-border: #374151;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-text-muted: #6b7280;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
 }
