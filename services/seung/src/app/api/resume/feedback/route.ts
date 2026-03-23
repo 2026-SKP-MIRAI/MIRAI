@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest) {
   try {
     await prisma.resume.update({
       where: { id: resumeId },
-      data: { diagnosisResult: data as Prisma.InputJsonValue },
+      data: { diagnosisResult: data as object },
     })
   } catch (err) {
     console.error('[resume/feedback] DB update failed', { err })
