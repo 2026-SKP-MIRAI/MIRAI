@@ -1,5 +1,9 @@
 from pathlib import Path
+
+from app.analyzers import analyze
+from app.analyzers.keywords import VAGUE_RATIO_THRESHOLD, STAR_CLARIFY_THRESHOLD
 from app.schemas import (
+    FollowupType,
     InterviewStartResponse, InterviewAnswerResponse, FollowupResponse,
     QuestionWithPersona, QueueItem, UsageMetadata,
 )
@@ -15,6 +19,29 @@ PERSONA_PROMPTS = {
 
 MAX_TURNS = 10
 MAX_FOLLOWUPS = 2  # 동일 페르소나 꼬리질문 최대 횟수
+
+
+def _classify_followup_type(answer: str) -> FollowupType:
+    """규칙 기반 followup 유형 분류 (결정론적).
+
+    TextSignals를 기반으로 followupType을 결정한다. LLM 미사용.
+    - CLARIFY: STAR 불완전 또는 주도성 미감지 → 구체화 요청
+    - CHALLENGE: 모호 표현 과다 또는 논리적 분석 미감지 → 근거 요청
+    - EXPLORE: 충분한 답변 → 심화 탐색
+    """
+    signals = analyze(answer)
+
+    if not signals.has_content:
+        return "CLARIFY"
+    if signals.star_score < STAR_CLARIFY_THRESHOLD:
+        return "CLARIFY"
+    if signals.agency_verb_count == 0:
+        return "CLARIFY"
+    if signals.vague_ratio > VAGUE_RATIO_THRESHOLD:
+        return "CHALLENGE"
+    if signals.cause_analysis_count == 0 and signals.alternative_count == 0:
+        return "CHALLENGE"
+    return "EXPLORE"
 
 
 def _usage_to_metadata(usage: UsageInfo | None, model: str) -> UsageMetadata | None:
@@ -180,10 +207,14 @@ def generate_followup(
     *,
     model: str | None = None,
 ) -> tuple[FollowupResponse, UsageMetadata | None]:
+    # 1. 규칙 기반 유형 분류 (결정론적)
+    followup_type = _classify_followup_type(answer)
+
+    # 2. LLM: 후속 질문 텍스트 생성 (followupType은 규칙 기반 결과로 덮어쓰기)
     data, raw_usage, llm_model = _check_followup(question, answer, persona, resumeText, model=model)
 
     return FollowupResponse(
-        followupType=data.get("followupType", ""),
+        followupType=followup_type,
         followupQuestion=data.get("followupQuestion", ""),
         reasoning=data.get("reasoning", ""),
     ), _usage_to_metadata(raw_usage, llm_model)

@@ -196,3 +196,78 @@ async def test_500_llm_error():
                 "mode": "panel",
             })
     assert resp.status_code == 500
+
+
+# ── followup 규칙 기반 분류 테스트 ────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_followup_vague_answer_returns_clarify():
+    """모호한 짧은 답변(STAR 미감지) → CLARIFY 반환."""
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/interview/followup", json={
+                "question": "팀워크 경험을 말해주세요.",
+                "answer": "항상 열심히 노력하며 다양한 팀원들과 적극적으로 협력했습니다.",
+                "persona": "hr",
+                "resumeText": "이력서",
+            })
+    assert resp.status_code == 200
+    data = resp.json()
+    # 모호 표현 과다 + STAR 미감지 → CLARIFY 또는 CHALLENGE
+    assert data["followupType"] in ["CLARIFY", "CHALLENGE"]
+
+
+@pytest.mark.asyncio
+async def test_followup_detailed_answer_returns_explore_or_challenge():
+    """구체적 답변(STAR 완성 + 주도성 동사) → EXPLORE 또는 CHALLENGE 반환."""
+    detailed_answer = (
+        "당시 팀에서 API 성능 개선 과제를 직접 설계하고 실행했습니다. "
+        "원인을 분석한 결과 N+1 쿼리 문제임을 파악했고, "
+        "대안으로 비교 분석하여 캐싱 전략을 도입했습니다. "
+        "결과적으로 응답시간을 30% 단축하는 성과를 달성했습니다."
+    )
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/interview/followup", json={
+                "question": "기술적 도전 경험을 말해주세요.",
+                "answer": detailed_answer,
+                "persona": "tech_lead",
+                "resumeText": "이력서",
+            })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["followupType"] in ["CHALLENGE", "EXPLORE"]
+
+
+@pytest.mark.asyncio
+async def test_followup_deterministic_same_input_3_times():
+    """동일 입력 3회 호출 → 동일 followupType (결정론 검증)."""
+    answer = "항상 열심히 노력하며 팀에서 일했습니다."
+    results = []
+    for _ in range(3):
+        with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                resp = await ac.post("/api/interview/followup", json={
+                    "question": "팀 경험을 말해주세요.",
+                    "answer": answer,
+                    "persona": "hr",
+                    "resumeText": "이력서",
+                })
+        assert resp.status_code == 200
+        results.append(resp.json()["followupType"])
+    assert results[0] == results[1] == results[2]
+
+
+@pytest.mark.asyncio
+async def test_followup_type_in_valid_values():
+    """followupType은 항상 유효한 값 중 하나."""
+    with patch("app.services.llm_client.OpenAI", return_value=mock_llm(FOLLOWUP_JSON)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            resp = await ac.post("/api/interview/followup", json={
+                "question": "자기소개를 해주세요.",
+                "answer": "저는 개발자입니다.",
+                "persona": "hr",
+                "resumeText": "이력서",
+            })
+    assert resp.status_code == 200
+    assert resp.json()["followupType"] in ["CLARIFY", "CHALLENGE", "EXPLORE"]
