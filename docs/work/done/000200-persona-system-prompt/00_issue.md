@@ -33,6 +33,10 @@ RAG 방식은 페르소나별 질문 패턴 데이터(각 수백~수천 개)가 
 - [x] 답변 신호 추출 후 해당 페르소나 관심 영역 기반 질문 유도
 - [x] pytest 커버리지 80% 이상
 
+> **구현 범위 메모**: 이 이슈의 "페르소나 System Prompt 강화"는 **꼬리질문(followup) 프롬프트** 한정이다.
+> - 대상: `interview_followup_v2.md` (단일) → `interview_followup_{hr|tech_lead|executive}_v3.md` (페르소나별 3개 분리)
+> - 비대상: 초기 질문 생성 프롬프트 (`interview_hr_v2.md`, `interview_tech_lead_v2.md`, `interview_executive_v2.md`) — 이 파일들의 강화는 별도 이슈 범위
+
 ## 구현 플랜
 
 **1단계: 페르소나별 System Prompt 파일 분리**
