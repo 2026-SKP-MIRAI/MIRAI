@@ -6,11 +6,11 @@
 
 ## 완료 기준
 
-- [ ] 페르소나별 System Prompt 분리 강화 — HR·기술팀장·경영진 각각 독립 프롬프트 파일
-- [ ] 동일 답변에 HR·기술팀장·경영진이 서로 다른 다음 질문 생성 (검증 테스트 포함)
-- [ ] answer_quality < 60 → CHALLENGE, vague_ratio > 0.04 → CLARIFY, else → EXPLORE 자동 전환
-- [ ] 답변 신호 추출 후 해당 페르소나 관심 영역 기반 질문 유도
-- [ ] pytest 커버리지 80% 이상
+- [x] 페르소나별 System Prompt 분리 강화 — HR·기술팀장·경영진 각각 독립 프롬프트 파일
+- [x] 동일 답변에 HR·기술팀장·경영진이 서로 다른 다음 질문 생성 (검증 테스트 포함)
+- [x] answer_quality < 60 → CHALLENGE, vague_ratio > 0.04 → CLARIFY, else → EXPLORE 자동 전환
+- [x] 답변 신호 추출 후 해당 페르소나 관심 영역 기반 질문 유도
+- [x] pytest 커버리지 80% 이상
 
 > **임계값 조정 근거**: 이슈 AC의 `vague_ratio > 0.4`는 text_analyzer 실측 범위(0~0.05, corpus max=0.0483)에서 절대 트리거 불가.
 > 기존 `VAGUE_RATIO_THRESHOLD=0.03` 기반으로 corpus p90 수준인 `0.04`로 재조정.
