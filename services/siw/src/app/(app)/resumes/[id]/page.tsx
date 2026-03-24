@@ -242,9 +242,9 @@ export default function ResumeDetailPage() {
                 <div className="space-y-2.5">
                   {feedback.suggestions.map((sg, i) => (
                     <div key={i} className="bg-amber-50 rounded-xl px-4 py-3.5 border border-amber-100">
-                      <p className="text-[11px] font-bold text-amber-700 mb-1">{sg.section}</p>
-                      <p className="text-xs text-gray-600 mb-1.5"><span className="font-semibold text-gray-700">문제: </span>{sg.issue}</p>
-                      <p className="text-xs text-gray-700 leading-relaxed"><span className="font-semibold">제안: </span>{sg.suggestion}</p>
+                      <p className="text-sm font-bold text-amber-700 mb-1">{sg.section}</p>
+                      <p className="text-sm text-gray-600 mb-1.5"><span className="font-semibold text-gray-700">문제: </span>{sg.issue}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed"><span className="font-semibold">제안: </span>{sg.suggestion}</p>
                     </div>
                   ))}
                 </div>

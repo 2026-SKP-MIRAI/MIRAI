@@ -47,4 +47,11 @@ export const resumeRepository = {
       orderBy: { createdAt: "desc" },
     });
   },
+
+  async deleteById(id: string, userId: string): Promise<boolean> {
+    const result = await prisma.resume.deleteMany({
+      where: { id, userId },
+    });
+    return result.count > 0;
+  },
 };
