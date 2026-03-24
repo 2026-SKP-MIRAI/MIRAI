@@ -157,6 +157,8 @@ LLM: 아래 유사 직무 합격 자소서를 참고하여 평가해주세요.
 - `engine/.ai.md` — `/api/resume/feedback` 계약에 `resume_context` 파라미터 추가
 - `services/siw/.env.example` — `ENABLE_RESUME_RAG=false` 항목 추가
 - 실제 데이터 적재: `build_resume_index.py`로 999개 Supabase upsert 완료 (RAG_DATABASE_URL 환경변수 필요)
+- **[코드 리뷰 수정]** `embedding-client.ts` — CRITICAL 버그 수정: `ENABLE_RAG` guard만 체크하여 `ENABLE_RESUME_RAG=true` 단독 사용 시 임베딩이 null 반환하는 문제 → `ENABLE_RAG !== "true" && ENABLE_RESUME_RAG !== "true"` 조건으로 수정
+- **[코드 리뷰 수정]** `route.ts` — HIGH: 합격 자소서 검색 결과에 similarity 필터 누락 → 채용공고와 동일하게 `MIN_SIMILARITY` (0.6) threshold 적용
 
 **변경 파일**:
 - `engine/app/schemas.py`
