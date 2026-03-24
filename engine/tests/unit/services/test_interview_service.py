@@ -79,6 +79,8 @@ TECH_QUESTION_JSON = '{"question": "기술 스택을 설명해 주세요.", "per
 EXEC_QUESTION_JSON = '{"question": "5년 후 목표는?", "personaLabel": "경영진"}'
 FOLLOWUP_JSON = '{"shouldFollowUp": true, "followupType": "CLARIFY", "followupQuestion": "더 구체적으로 말씀해 주세요.", "reasoning": "답변이 모호합니다."}'
 NO_FOLLOWUP_JSON = '{"shouldFollowUp": false, "followupType": "CLARIFY", "followupQuestion": "...", "reasoning": "충분합니다."}'
+NO_FOLLOWUP_MINIMAL_JSON = '{"shouldFollowUp": false}'
+FOLLOWUP_NO_QUESTION_JSON = '{"shouldFollowUp": true}'
 
 
 def test_start_returns_first_hr_question():
@@ -161,6 +163,32 @@ def test_process_answer_skips_followup_at_max_followups():
     assert result.nextQuestion.type == "main"
     assert result.nextQuestion.persona == "tech_lead"
     assert result.sessionComplete is False
+
+
+def test_process_answer_no_500_when_followup_keys_missing():
+    """shouldFollowUp:false 시 나머지 키 누락해도 500 에러 없이 다음 질문 반환."""
+    from app.schemas import QueueItem, HistoryItem
+    queue = [QueueItem(persona="tech_lead", type="main")]
+    history = [HistoryItem(persona="hr", personaLabel="HR 담당자", question="질문", answer="답변")]
+    with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm_side_effect([NO_FOLLOWUP_MINIMAL_JSON, TECH_QUESTION_JSON])):
+        from app.services.interview_service import process_answer
+        result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "답변")
+    assert result.nextQuestion is not None
+    assert result.nextQuestion.persona == "tech_lead"
+    assert result.sessionComplete is False
+
+
+def test_process_answer_followup_question_fallback_when_key_missing():
+    """shouldFollowUp:true 이지만 followupQuestion 키 누락 시 빈 문자열로 fallback."""
+    from app.schemas import QueueItem, HistoryItem
+    queue = [QueueItem(persona="tech_lead", type="main")]
+    history = [HistoryItem(persona="hr", personaLabel="HR 담당자", question="질문", answer="답변")]
+    with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(FOLLOWUP_NO_QUESTION_JSON)):
+        from app.services.interview_service import process_answer
+        result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "모호한 답변")
+    assert result.nextQuestion is not None
+    assert result.nextQuestion.type == "follow_up"
+    assert result.nextQuestion.question == ""
 
 
 def test_process_answer_session_complete_at_max_turns():
