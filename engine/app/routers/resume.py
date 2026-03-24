@@ -89,8 +89,18 @@ async def create_questions(body: QuestionsRequest):
 
 @router.post("/feedback", response_model=ResumeFeedbackResponse)
 async def create_feedback(body: ResumeFeedbackRequest):
-    logger.info("[resume/feedback] 요청 수신: resumeText 길이=%d, targetRole=%s",
-                len(body.resumeText), body.targetRole)
-    data, usage = generate_resume_feedback(body.resumeText, body.targetRole, job_context=body.job_context)
+    logger.info(
+        "[resume/feedback] 요청 수신: resumeText 길이=%d, targetRole=%s, job_context=%s건, resume_context=%s건",
+        len(body.resumeText),
+        body.targetRole,
+        len(body.job_context) if body.job_context else 0,
+        len(body.resume_context) if body.resume_context else 0,
+    )
+    data, usage = generate_resume_feedback(
+        body.resumeText,
+        body.targetRole,
+        job_context=body.job_context,
+        resume_context=body.resume_context,
+    )
     data.usage = usage
     return data

@@ -2,7 +2,7 @@
  * embedding-client.ts
  * RAG 파이프라인을 위한 텍스트 임베딩 클라이언트
  *
- * ENABLE_RAG=true 환경 변수가 설정된 경우에만 실제 호출을 수행한다.
+ * ENABLE_RAG=true 또는 ENABLE_RESUME_RAG=true 환경 변수가 설정된 경우에만 실제 호출을 수행한다.
  * 트렌드 스킬 조회는 vector-search.ts의 getTrendSkillsForRole()로 구현됨 (#163 ADR).
  * fetchTrendSkills()는 embedText()가 null을 반환할 때의 폴백 스텁으로만 유지.
  */
@@ -19,11 +19,11 @@ export type EmbeddingResult = {
 
 /**
  * 텍스트를 임베딩 벡터로 변환한다.
- * ENABLE_RAG가 비활성화된 경우 null을 반환한다.
+ * ENABLE_RAG 또는 ENABLE_RESUME_RAG 중 하나라도 true일 때만 실제 호출을 수행한다.
  * 엔진 POST /api/embed — { texts: string[] } → { embeddings: number[][], model, usage }
  */
 export async function embedText(text: string): Promise<EmbeddingResult | null> {
-  if (process.env.ENABLE_RAG !== "true") return null
+  if (process.env.ENABLE_RAG !== "true" && process.env.ENABLE_RESUME_RAG !== "true") return null
 
   const resp = await fetch(`${ENGINE_BASE_URL}/api/embed`, {
     method: "POST",
