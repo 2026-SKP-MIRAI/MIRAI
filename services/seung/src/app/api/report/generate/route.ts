@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { StoredHistoryEntry, AxisScores, AxisFeedback } from '@/lib/types'
 import { createClient } from '@/lib/supabase/server'
-import { rateLimit } from '@/lib/rate-limit'
 
 export const maxDuration = 100
 
@@ -13,11 +12,6 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
-  }
-
-  const rlResult = rateLimit(`${user.id}:report/generate`, 5, 60_000)
-  if (rlResult !== true) {
-    return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429, headers: { 'Retry-After': String(rlResult) } })
   }
 
   let body: { sessionId?: string }
@@ -99,10 +93,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error('[report/generate] engine fetch failed', { sessionId, err })
-    // TODO: extract to shared fetchEngine wrapper
-    if ((err as { name?: string }).name === 'TimeoutError') {
-      return NextResponse.json({ error: '응답이 지연되고 있습니다. 다시 시도해주세요.' }, { status: 504 })
-    }
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 

@@ -30,7 +30,7 @@ mirai/
 └── services/               ← Next.js 풀스택 (TypeScript), 1인 1서비스
     ├── siw/
     ├── kwan/
-    ├── lww/
+    ├── fint/
     └── seung/
 ```
 

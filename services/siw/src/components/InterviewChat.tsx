@@ -27,13 +27,9 @@ interface Props {
   isRetried?: boolean;
   practiceAnswer?: string;
   isNextLoading?: boolean;
-  streamingText?: string;
-  streamingPersona?: { persona: string; personaLabel: string } | null;
-  pendingAnswer?: string;
-  isFetchingFeedback?: boolean;
 }
 
-export default function InterviewChat({ currentQuestion, history, sessionComplete, interviewMode, practiceFeedback, onRetryAnswer, onNextQuestion, isRetried, practiceAnswer, isNextLoading, streamingText, streamingPersona, pendingAnswer, isFetchingFeedback }: Props) {
+export default function InterviewChat({ currentQuestion, history, sessionComplete, interviewMode, practiceFeedback, onRetryAnswer, onNextQuestion, isRetried, practiceAnswer, isNextLoading }: Props) {
   return (
     <div className="space-y-6">
       {history.map((item, i) => {
@@ -48,7 +44,7 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
                 data-testid="persona-label"
                 className={`${style.nameColor} mb-2 text-sm`}
               >
-                {item.personaLabel || PERSONA_LABELS[item.persona] || item.persona}
+                {PERSONA_LABELS[item.persona] ?? item.persona}
               </p>
               <p className="text-sm text-[#1F2937] leading-relaxed">{item.question}</p>
             </div>
@@ -62,7 +58,6 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
         );
       })}
 
-      {/* 현재 질문 — 항상 표시 (스트리밍 중에도) */}
       {!sessionComplete && currentQuestion && (() => {
         const style = PERSONA_STYLE[currentQuestion.persona] ?? PERSONA_STYLE.hr;
         return (
@@ -74,58 +69,9 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
               data-testid="persona-label"
               className={`${style.nameColor} mb-2 text-sm`}
             >
-              {currentQuestion.personaLabel || PERSONA_LABELS[currentQuestion.persona] || currentQuestion.persona}
+              {PERSONA_LABELS[currentQuestion.persona] ?? currentQuestion.persona}
             </p>
             <p className="text-sm text-[#1F2937] leading-relaxed">{currentQuestion.question}</p>
-          </div>
-        );
-      })()}
-
-      {/* 사용자 답변 (제출 후 스트리밍 중 optimistic 표시) */}
-      {!sessionComplete && pendingAnswer && (
-        <div
-          data-testid="pending-answer"
-          className="ml-8 bg-white rounded-2xl p-4 border border-black/8"
-        >
-          <p className="text-sm text-[#4B5563] leading-relaxed">{pendingAnswer}</p>
-        </div>
-      )}
-
-      {/* 연습 모드 — 첫 제출 피드백 생성 중 스피너 (피드백 카드 없을 때) */}
-      {!sessionComplete && interviewMode === "practice" && isFetchingFeedback && !practiceFeedback && (
-        <div className="rounded-2xl p-4 border bg-white border-purple-200">
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin" />
-            <p className="text-sm text-[#9CA3AF]">피드백 생성 중...</p>
-          </div>
-        </div>
-      )}
-
-      {/* 첫 토큰 대기 중 스피너 */}
-      {!sessionComplete && pendingAnswer && !streamingText && !isFetchingFeedback && (
-        <div className="rounded-2xl p-4 border bg-white border-purple-200">
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin" />
-            <p className="text-sm text-[#9CA3AF]">질문 생성 중...</p>
-          </div>
-        </div>
-      )}
-
-      {/* 다음 질문 스트리밍 */}
-      {!sessionComplete && streamingText && (() => {
-        const persona = streamingPersona?.persona ?? "hr";
-        const style = PERSONA_STYLE[persona] ?? PERSONA_STYLE.hr;
-        const label = streamingPersona?.personaLabel ?? (PERSONA_LABELS[persona] ?? persona);
-        return (
-          <div
-            data-testid="streaming-text"
-            className={`rounded-2xl p-4 border ${style.bg} ${style.border}`}
-          >
-            <p className={`${style.nameColor} mb-2 text-sm`}>{label}</p>
-            <p className="text-sm text-[#1F2937] leading-relaxed">
-              {streamingText}
-              <span className="inline-block w-0.5 h-3.5 bg-purple-500 ml-0.5 animate-pulse" />
-            </p>
           </div>
         );
       })()}
@@ -137,7 +83,7 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
       )}
 
       {/* 연습 모드 — 제출한 답변 버블 */}
-      {!sessionComplete && interviewMode === "practice" && practiceFeedback && practiceAnswer && (
+      {interviewMode === "practice" && practiceFeedback && practiceAnswer && (
         <div className="ml-8 bg-white rounded-2xl p-4 border border-black/[0.08]">
           <p className="text-xs text-gray-400 mb-1 font-semibold">내 답변</p>
           <p className="text-sm text-[#4B5563] leading-relaxed whitespace-pre-wrap">{practiceAnswer}</p>
@@ -145,7 +91,7 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
       )}
 
       {/* 연습 모드 피드백 카드 */}
-      {!sessionComplete && interviewMode === "practice" && practiceFeedback && (
+      {interviewMode === "practice" && practiceFeedback && (
         <div className="glass-card rounded-2xl p-5 space-y-4 border border-violet-200">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-violet-700">AI 피드백</p>
@@ -242,16 +188,6 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
                 : "다음 질문으로"
               }
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 연습 모드 — 재답변 피드백 생성 중 스피너 (피드백 카드 아래) */}
-      {!sessionComplete && interviewMode === "practice" && isFetchingFeedback && practiceFeedback && (
-        <div className="rounded-2xl p-4 border bg-white border-purple-200">
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin" />
-            <p className="text-sm text-[#9CA3AF]">피드백 생성 중...</p>
           </div>
         </div>
       )}

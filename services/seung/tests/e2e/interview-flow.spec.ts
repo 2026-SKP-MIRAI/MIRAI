@@ -109,7 +109,7 @@ test.describe('면접 플로우', () => {
 
     // Select 실전 mode and confirm
     await page.getByRole('button', { name: '실전 모드' }).click()
-    await page.getByRole('button', { name: '면접 시작하기 →' }).click()
+    await page.getByRole('button', { name: '확인' }).click()
 
     // Should navigate to interview page with first question
     await expect(page.getByText('자기소개를 해주세요.')).toBeVisible()

@@ -29,31 +29,6 @@ describe("InterviewChat", () => {
     );
     expect(screen.getByTestId("session-complete")).toBeInTheDocument();
   });
-
-  it("streamingText prop 있을 때 streaming-text 버블 렌더링", () => {
-    render(
-      <InterviewChat
-        currentQuestion={null}
-        history={[]}
-        sessionComplete={false}
-        streamingText="스트리밍 중..."
-      />
-    );
-    expect(screen.getByTestId("streaming-text")).toBeInTheDocument();
-    expect(screen.getByTestId("streaming-text")).toHaveTextContent("스트리밍 중...");
-  });
-
-  it("streamingText 없을 때 streaming-text 버블 미표시", () => {
-    render(
-      <InterviewChat
-        currentQuestion={null}
-        history={[]}
-        sessionComplete={false}
-        streamingText=""
-      />
-    );
-    expect(screen.queryByTestId("streaming-text")).not.toBeInTheDocument();
-  });
 });
 
 const mockPracticeFeedback = {

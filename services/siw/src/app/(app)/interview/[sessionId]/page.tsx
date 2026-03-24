@@ -1,11 +1,9 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import InterviewChat from "@/components/InterviewChat";
 import type { QuestionWithPersona, HistoryItem, InterviewMode, PracticeFeedback } from "@/lib/types";
-import { parseSSEStream } from "@/lib/sse-utils";
 
 export default function InterviewSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -25,16 +23,7 @@ export default function InterviewSessionPage() {
   const [lastScore, setLastScore] = useState<number | null>(null);
   const [practiceAnswer, setPracticeAnswer] = useState("");
   const [fetchingFeedback, setFetchingFeedback] = useState(false);
-  const [retryInputVisible, setRetryInputVisible] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
-  const [streamingPersona, setStreamingPersona] = useState<{ persona: string; personaLabel: string } | null>(null);
-  const [pendingAnswer, setPendingAnswer] = useState("");
   const initialized = useRef(false);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, currentQuestion, streamingText]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -49,66 +38,32 @@ export default function InterviewSessionPage() {
     }
   }, [sessionId]);
 
-  async function consumeAnswerStream(body: ReadableStream<Uint8Array>) {
-    setStreamingText("");
-    let donePayload: { nextQuestion: QuestionWithPersona | null; sessionComplete: boolean } | null = null;
-    for await (const event of parseSSEStream(body)) {
-      if (event.type === "token") {
-        flushSync(() => setStreamingText(prev => prev + event.text));
-      } else if (event.type === "meta") {
-        setStreamingPersona({ persona: event.persona, personaLabel: event.personaLabel });
-      } else if (event.type === "done") {
-        donePayload = event as { type: "done"; nextQuestion: QuestionWithPersona | null; updatedQueue: unknown[]; sessionComplete: boolean };
-      } else if (event.type === "error") {
-        setStreamingText("");
-        setStreamingPersona(null);
-        setPendingAnswer("");
-        setError(event.message);
-        throw new Error(event.message);
-      }
-    }
-    setStreamingText("");
-    setStreamingPersona(null);
-    return donePayload;
-  }
-
   async function handleSubmit() {
     if (!answer.trim() || submitting || fetchingFeedback) return;
 
     if (interviewMode === "real") {
       setSubmitting(true);
       setError("");
-      const submittedAnswer = answer;
-      setPendingAnswer(submittedAnswer);
       try {
         const res = await fetch("/api/interview/answer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, currentAnswer: submittedAnswer }),
+          body: JSON.stringify({ sessionId, currentAnswer: answer }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({ message: "오류 발생" }));
-          setError(data.message);
-          setPendingAnswer("");
-          return;
-        }
-        if (!res.body) { setError("스트림 응답이 없습니다."); setPendingAnswer(""); return; }
-
-        const doneEvent = await consumeAnswerStream(res.body);
-
+        const data = await res.json();
+        if (!res.ok) { setError(data.message); return; }
         if (currentQuestion) {
           setHistory(prev => [...prev, {
             persona: currentQuestion.persona,
             personaLabel: currentQuestion.personaLabel,
             question: currentQuestion.question,
-            answer: submittedAnswer,
+            answer,
             type: currentQuestion.type ?? "main",
           }]);
         }
         setAnswer("");
-        setPendingAnswer("");
-        setCurrentQuestion(doneEvent?.nextQuestion ?? null);
-        setSessionComplete(doneEvent?.sessionComplete ?? false);
+        setCurrentQuestion(data.nextQuestion);
+        setSessionComplete(data.sessionComplete);
       } finally {
         setSubmitting(false);
       }
@@ -118,7 +73,6 @@ export default function InterviewSessionPage() {
       setError("");
       const currentAnswerText = answer;
       const prevAnswer = isRetried ? lastAnswer : undefined;
-      setPendingAnswer(currentAnswerText);
       try {
         const body: Record<string, unknown> = {
           question: currentQuestion?.question ?? "",
@@ -133,22 +87,17 @@ export default function InterviewSessionPage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) { setError(data.message); setPendingAnswer(""); return; }
+        if (!res.ok) { setError(data.message); return; }
 
         if (!isRetried) {
           setLastAnswer(currentAnswerText);
           setLastScore(data.score);
-        } else {
-          setLastAnswer(currentAnswerText);  // 재답변 시에도 lastAnswer 업데이트 (다음질문으로 전송할 답변)
-          setRetryInputVisible(false);
         }
         setAnswer("");
-        setPendingAnswer("");
         setPracticeAnswer(currentAnswerText);
         setPracticeFeedback(data);
       } catch {
         setError("피드백 생성에 실패했습니다.");
-        setPendingAnswer("");
       } finally {
         setFetchingFeedback(false);
       }
@@ -157,29 +106,20 @@ export default function InterviewSessionPage() {
 
   function handleRetry() {
     setIsRetried(true);
-    setRetryInputVisible(true);
   }
 
   async function handleNextQuestion() {
     if (submitting) return;
     setSubmitting(true);
     setError("");
-    setPracticeFeedback(null);
-    setRetryInputVisible(false);
-    setPendingAnswer(lastAnswer);
     try {
       const res = await fetch("/api/interview/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, currentAnswer: lastAnswer }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ message: "오류 발생" }));
-        setError(data.message);
-        setPendingAnswer("");
-        return;
-      }
-      const doneEvent = res.body ? await consumeAnswerStream(res.body) : null;
+      const data = await res.json();
+      if (!res.ok) { setError(data.message); return; }
       if (currentQuestion) {
         setHistory(prev => [...prev, {
           persona: currentQuestion!.persona,
@@ -189,16 +129,13 @@ export default function InterviewSessionPage() {
           type: currentQuestion!.type ?? "main",
         }]);
       }
-      setPendingAnswer("");
+      setPracticeFeedback(null);
       setIsRetried(false);
       setLastAnswer("");
       setLastScore(null);
       setPracticeAnswer("");
-      setCurrentQuestion(doneEvent?.nextQuestion ?? null);
-      setSessionComplete(doneEvent?.sessionComplete ?? false);
-    } catch {
-      setPendingAnswer("");
-      setError("다음 질문을 불러오지 못했습니다.");
+      setCurrentQuestion(data.nextQuestion);
+      setSessionComplete(data.sessionComplete);
     } finally {
       setSubmitting(false);
     }
@@ -249,15 +186,10 @@ export default function InterviewSessionPage() {
             isRetried={isRetried}
             practiceAnswer={practiceAnswer}
             isNextLoading={submitting}
-            streamingText={streamingText}
-            streamingPersona={streamingPersona}
-            pendingAnswer={pendingAnswer}
-            isFetchingFeedback={fetchingFeedback}
           />
-          <div ref={chatBottomRef} />
         </div>
 
-        {!sessionComplete && (!practiceFeedback || retryInputVisible) && (
+        {!sessionComplete && (!practiceFeedback || isRetried) && (
           <div className="glass-card rounded-2xl p-4 sticky bottom-4">
             <textarea
               data-testid="answer-input"

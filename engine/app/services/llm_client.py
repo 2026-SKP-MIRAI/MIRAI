@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import AsyncGenerator
-from openai import OpenAI, AsyncOpenAI
+from openai import OpenAI
 from app.config import settings
 from app.parsers.exceptions import LLMError
 
@@ -59,47 +58,6 @@ def call_llm(
             total_tokens=raw_usage.total_tokens,
         ) if raw_usage else None
         return LLMResult(content=content, usage=usage, model=resolved_model)
-    except LLMError:
-        raise
-    except Exception as e:
-        raise LLMError(error_message) from e
-
-
-_async_client: AsyncOpenAI | None = None
-
-
-def _get_async_client() -> AsyncOpenAI:
-    global _async_client
-    if _async_client is None:
-        _async_client = AsyncOpenAI(
-            base_url=OPENROUTER_BASE_URL,
-            api_key=settings.openrouter_api_key,
-        )
-    return _async_client
-
-
-async def call_llm_stream(
-    prompt: str,
-    *,
-    model: str | None = None,
-    timeout: float = 30.0,
-    max_tokens: int = 2048,
-    error_message: str = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-) -> AsyncGenerator[str, None]:
-    client = _get_async_client()
-    resolved_model = model or settings.openrouter_model
-    try:
-        stream = await client.chat.completions.create(
-            model=resolved_model,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=timeout,
-            stream=True,
-            stream_options={"include_usage": True},
-        )
-        async for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
     except LLMError:
         raise
     except Exception as e:

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { FileText, Plus, Trash2 } from "lucide-react"
+import { FileText, Plus } from "lucide-react"
 import { motion } from "framer-motion"
 import UploadForm from "@/components/UploadForm"
 import type { QuestionsResponse } from "@/lib/types"
@@ -33,7 +33,6 @@ export default function ResumesPage() {
   const [resumes, setResumes] = useState<ResumeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/resumes")
@@ -41,20 +40,6 @@ export default function ResumesPage() {
       .then(data => { setResumes(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
-
-  async function handleDelete(resumeId: string) {
-    if (!window.confirm("이 이력서를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.")) return
-    setDeletingId(resumeId)
-    try {
-      const res = await fetch(`/api/resumes/${resumeId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("삭제 실패")
-      setResumes(prev => prev.filter(r => r.id !== resumeId))
-    } catch {
-      alert("삭제에 실패했습니다. 다시 시도해 주세요.")
-    } finally {
-      setDeletingId(null)
-    }
-  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
@@ -102,7 +87,7 @@ export default function ResumesPage() {
                     {resume.fileName}
                   </div>
 
-                  <div className="flex gap-2 mt-3 items-center">
+                  <div className="flex gap-2 mt-3">
                     <Link
                       href={`/resumes/${resume.id}`}
                       className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"
@@ -116,14 +101,6 @@ export default function ResumesPage() {
                     >
                       이 이력서로 면접
                     </Link>
-                    <button
-                      onClick={() => handleDelete(resume.id)}
-                      disabled={deletingId === resume.id}
-                      className="ml-auto flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {deletingId === resume.id ? "삭제 중..." : "삭제"}
-                    </button>
                   </div>
                 </div>
               </div>

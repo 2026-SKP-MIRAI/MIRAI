@@ -198,18 +198,6 @@ describe('POST /api/report/generate', () => {
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('엔진 TimeoutError 시 504 반환', async () => {
-    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
-    mockPrisma.report.findFirst.mockResolvedValueOnce(null)
-    const timeoutError = new DOMException('timeout', 'TimeoutError')
-    mockFetch.mockRejectedValueOnce(timeoutError)
-
-    const response = await POST(makeRequest({ sessionId: 'session-1' }))
-    expect(response.status).toBe(504)
-    const body = await response.json()
-    expect(body.error).toContain('지연')
-  })
-
   it('report.create P2002 → findUnique fallback → 기존 reportId (200)', async () => {
     mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
     mockPrisma.report.findFirst.mockResolvedValueOnce(null)

@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
     questionsQueue: unknown
     sessionComplete: boolean
     interviewMode: string
-    resume: { fileName: string | null } | null
   } | null
   try {
     session = await prisma.interviewSession.findUnique({
@@ -41,7 +40,6 @@ export async function GET(request: NextRequest) {
         questionsQueue: true,
         sessionComplete: true,
         interviewMode: true,
-        resume: { select: { fileName: true } },
       },
     })
   } catch (err) {
@@ -70,6 +68,5 @@ export async function GET(request: NextRequest) {
     sessionComplete: session.sessionComplete,
     interviewMode: session.interviewMode,
     totalQuestions,
-    fileName: session.resume?.fileName ?? null,
   })
 }

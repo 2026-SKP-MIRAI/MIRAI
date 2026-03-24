@@ -8,7 +8,7 @@ class UsageMetadata(BaseModel):
     total_tokens: int
     model: str
 
-FeedbackType = Literal["strength", "improvement", "not_evaluated"]
+FeedbackType = Literal["strength", "improvement"]
 
 Category = Literal["직무 역량", "경험의 구체성", "성과 근거", "기술 역량"]
 
@@ -110,21 +110,21 @@ class FollowupResponse(BaseModel):
 
 
 class AxisScores(BaseModel):
-    communication:   int | None = Field(None, ge=0, le=100)
-    problemSolving:  int | None = Field(None, ge=0, le=100)
-    logicalThinking: int | None = Field(None, ge=0, le=100)
-    jobExpertise:    int | None = Field(None, ge=0, le=100)
-    cultureFit:      int | None = Field(None, ge=0, le=100)
-    leadership:      int | None = Field(None, ge=0, le=100)
-    creativity:      int | None = Field(None, ge=0, le=100)
-    sincerity:       int | None = Field(None, ge=0, le=100)
+    communication:   int = Field(..., ge=0, le=100)
+    problemSolving:  int = Field(..., ge=0, le=100)
+    logicalThinking: int = Field(..., ge=0, le=100)
+    jobExpertise:    int = Field(..., ge=0, le=100)
+    cultureFit:      int = Field(..., ge=0, le=100)
+    leadership:      int = Field(..., ge=0, le=100)
+    creativity:      int = Field(..., ge=0, le=100)
+    sincerity:       int = Field(..., ge=0, le=100)
 
 
 class AxisFeedback(BaseModel):
     axis:      str
     axisLabel: str
-    score:     int | None = Field(None, ge=0, le=100)
-    type:      FeedbackType  # "strength" | "improvement" | "not_evaluated"
+    score:     int = Field(..., ge=0, le=100)
+    type:      FeedbackType
     feedback:  str
 
 
@@ -138,7 +138,6 @@ class ReportResponse(BaseModel):
     totalScore:    int = Field(..., ge=0, le=100)
     summary:       str
     axisFeedbacks: list[AxisFeedback] = Field(..., min_length=8, max_length=8)
-    signals:       dict | None = None  # 집계된 TextSignals (전체 답변 기준, has_content=True인 경우만)
     growthCurve:   None = None
     usage:         UsageMetadata | None = None
 
@@ -190,8 +189,6 @@ class SuggestionItem(BaseModel):
 class ResumeFeedbackRequest(BaseModel):
     resumeText: str = Field(..., min_length=1, max_length=50_000)
     targetRole: str | None = Field(None, max_length=100, description="지원 직무. 미입력 시 '미지정 직무'로 처리")
-    job_context: list[str] | None = Field(None, description="채용공고 컨텍스트 (RAG). None이면 미사용.")
-    resume_context: list[str] | None = Field(None, description="유사 합격 자소서 예시 (RAG). None이면 미사용.")
 
 
 class ResumeFeedbackResponse(BaseModel):

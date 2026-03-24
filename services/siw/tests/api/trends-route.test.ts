@@ -12,12 +12,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }))
 
 vi.mock("@/lib/rag/embedding-client", () => ({
-  embedText: vi.fn().mockResolvedValue(null),
   fetchTrendSkills: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock("@/lib/rag/vector-search", () => ({
-  getTrendSkillsForRole: vi.fn().mockResolvedValue([]),
 }))
 
 const authenticatedUser = { id: "user-123", email: "test@example.com" }
@@ -25,7 +20,6 @@ const authenticatedUser = { id: "user-123", email: "test@example.com" }
 beforeEach(() => {
   vi.clearAllMocks()
   vi.unstubAllEnvs()
-  vi.resetModules()
 })
 
 describe("GET /api/resumes/trends", () => {

@@ -120,7 +120,24 @@ describe('InterviewChat', () => {
     expect(screen.queryByText('꼬리질문')).not.toBeInTheDocument()
   })
 
-  it('진행률 텍스트는 InterviewChat 내부에 표시되지 않는다 (interview/page.tsx로 이동)', () => {
+  it('totalQuestions > 0이면 진행률 텍스트가 표시된다', () => {
+    const messages: Message[] = [
+      {
+        id: 'q1',
+        type: 'question',
+        data: { persona: 'hr', personaLabel: 'HR 면접관', question: '질문1', type: 'main' },
+      },
+      { id: 'a1', type: 'answer', text: '답변1' },
+    ]
+
+    render(
+      <InterviewChat messages={messages} sessionComplete={false} totalQuestions={10} />
+    )
+
+    expect(screen.getByText('1 / 10 답변 완료')).toBeInTheDocument()
+  })
+
+  it('totalQuestions가 없으면 진행률 텍스트가 표시되지 않는다', () => {
     render(
       <InterviewChat messages={[]} sessionComplete={false} />
     )
@@ -164,60 +181,6 @@ describe('InterviewChat', () => {
     )
 
     expect(screen.queryByRole('button', { name: '리포트 생성하기' })).not.toBeInTheDocument()
-  })
-
-  it('answerCount < 5이고 sessionComplete=false이면 리포트 안내 문구가 표시된다', () => {
-    const messages: Message[] = Array.from({ length: 3 }, (_, i) => ({
-      id: `a${i}`,
-      type: 'answer' as const,
-      text: `답변${i}`,
-    }))
-
-    render(
-      <InterviewChat
-        messages={messages}
-        sessionComplete={false}
-        onReport={vi.fn()}
-      />
-    )
-
-    expect(screen.getByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).toBeInTheDocument()
-  })
-
-  it('answerCount >= 5이면 리포트 안내 문구가 표시되지 않는다', () => {
-    const messages: Message[] = Array.from({ length: 5 }, (_, i) => ({
-      id: `a${i}`,
-      type: 'answer' as const,
-      text: `답변${i}`,
-    }))
-
-    render(
-      <InterviewChat
-        messages={messages}
-        sessionComplete={false}
-        onReport={vi.fn()}
-      />
-    )
-
-    expect(screen.queryByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).not.toBeInTheDocument()
-  })
-
-  it('sessionComplete=true이면 리포트 안내 문구가 표시되지 않는다', () => {
-    const messages: Message[] = Array.from({ length: 2 }, (_, i) => ({
-      id: `a${i}`,
-      type: 'answer' as const,
-      text: `답변${i}`,
-    }))
-
-    render(
-      <InterviewChat
-        messages={messages}
-        sessionComplete={true}
-        onReport={vi.fn()}
-      />
-    )
-
-    expect(screen.queryByText('리포트는 5개 이상 답변 후 생성할 수 있습니다')).not.toBeInTheDocument()
   })
 })
 

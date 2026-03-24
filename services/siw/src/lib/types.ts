@@ -119,4 +119,3 @@ export type ResumeFeedback = {
   weaknesses: string[]
   suggestions: SuggestionItem[]
 }
-

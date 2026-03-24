@@ -34,11 +34,11 @@ test('이슈 #57: 자소서 업로드 → 패널 면접 → 꼬리질문 전체 
   await expect(startCard).toBeVisible({ timeout: LLM_TIMEOUT })
   await startCard.click()
   await page.getByRole('button', { name: '실전 모드' }).click()
-  await page.getByRole('button', { name: '면접 시작하기 →' }).click()
+  await page.getByRole('button', { name: '확인' }).click()
 
   // 5. /interview 페이지 이동 + 첫 질문 버블 대기 (엔진 호출)
   await expect(page).toHaveURL(/\/interview\?sessionId=/, { timeout: LLM_TIMEOUT })
-  await expect(page.getByText('패널 면접')).toBeVisible()
+  await expect(page.getByText('MirAI — 패널 면접')).toBeVisible()
 
   // 첫 질문 버블 (페르소나 라벨 + 질문 텍스트)
   const firstPersonaLabel = page.locator('.rounded-xl').first()

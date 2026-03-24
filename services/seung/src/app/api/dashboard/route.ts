@@ -2,21 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 
-type SessionWithReport = {
-  id: string
-  sessionComplete: boolean
-  updatedAt: Date
-  report: { id: string; createdAt: Date } | null
-}
-
-type ResumeWithSessions = {
-  id: string
-  createdAt: Date
-  fileName: string | null
-  diagnosisResult: unknown
-  sessions: SessionWithReport[]
-}
-
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -24,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
   }
 
-  let resumes: ResumeWithSessions[]
+  let resumes
   try {
     resumes = await prisma.resume.findMany({
       where: { userId: user.id },
