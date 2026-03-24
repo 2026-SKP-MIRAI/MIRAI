@@ -1,3 +1,5 @@
+import asyncio
+import json
 from pathlib import Path
 
 from app.analyzers import analyze
@@ -8,7 +10,7 @@ from app.schemas import (
     InterviewStartResponse, InterviewAnswerResponse, FollowupResponse,
     QuestionWithPersona, QueueItem, UsageMetadata,
 )
-from app.services.llm_client import call_llm as _call_llm, parse_object as _parse_object, UsageInfo
+from app.services.llm_client import call_llm as _call_llm, parse_object as _parse_object, call_llm_stream, UsageInfo
 from app.services.embedding_service import get_embeddings
 from app.analyzers.followup_validator import validate_followup_overlap
 
@@ -196,6 +198,120 @@ def process_answer(
         updatedQueue=list(questionsQueue[1:]),
         sessionComplete=False,
     ), _usage_to_metadata(result.usage, result.model)
+
+
+def _sse_token(text: str) -> str:
+    return f"data: {json.dumps({'type': 'token', 'text': text}, ensure_ascii=False)}\n\n"
+
+
+def _sse_meta(persona: str, persona_label: str) -> str:
+    return f"data: {json.dumps({'type': 'meta', 'persona': persona, 'personaLabel': persona_label}, ensure_ascii=False)}\n\n"
+
+
+def _sse_error(message: str) -> str:
+    return f"data: {json.dumps({'type': 'error', 'message': message}, ensure_ascii=False)}\n\n"
+
+
+def _sse_done(response: "InterviewAnswerResponse") -> str:
+    payload = {
+        "type": "done",
+        "nextQuestion": response.nextQuestion.model_dump() if response.nextQuestion else None,
+        "updatedQueue": [q.model_dump() for q in response.updatedQueue],
+        "sessionComplete": response.sessionComplete,
+    }
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+async def _stream_words(text: str):
+    """단어 단위로 SSE token 이벤트를 yield (word-by-word 스트리밍)."""
+    for i, word in enumerate(text.split()):
+        yield _sse_token(word if i == 0 else " " + word)
+        await asyncio.sleep(0.07)
+
+
+async def process_answer_stream(
+    resumeText: str,
+    history: list,
+    questionsQueue: list,
+    currentQuestion: str,
+    currentPersona: str,
+    currentAnswer: str,
+    *,
+    model: str | None = None,
+):
+    """SSE 스트리밍 버전. token* + done 이벤트를 yield."""
+    try:
+        # Path A: 턴 제한 또는 큐 비어있음 → 즉시 done
+        if len(history) + 1 >= MAX_TURNS or not questionsQueue:
+            yield _sse_done(InterviewAnswerResponse(
+                nextQuestion=None, updatedQueue=[], sessionComplete=True
+            ))
+            return
+
+        # Path B/C: 꼬리질문 판단 (동기 LLM #1 → asyncio.to_thread)
+        trailing = _count_trailing_persona(history, currentPersona)
+        if trailing < MAX_FOLLOWUPS:
+            followup_data, _, _ = await asyncio.to_thread(
+                _check_followup, currentQuestion, currentAnswer, currentPersona, resumeText, model=model
+            )
+        else:
+            followup_data = {"shouldFollowUp": False}
+
+        followup_question = followup_data.get("followupQuestion", "").strip()
+        if followup_data["shouldFollowUp"] and followup_question:
+            # Path B: 꼬리질문 — 페르소나 메타 먼저 전송 후 단어 단위 token 스트리밍
+            yield _sse_meta(currentPersona, PERSONA_LABELS[currentPersona])
+            async for chunk in _stream_words(followup_question):
+                yield chunk
+            yield _sse_done(InterviewAnswerResponse(
+                nextQuestion=QuestionWithPersona(
+                    persona=currentPersona,
+                    personaLabel=PERSONA_LABELS[currentPersona],
+                    question=followup_question,
+                    type="follow_up",
+                ),
+                updatedQueue=list(questionsQueue),
+                sessionComplete=False,
+            ))
+            return
+
+        # Path C: 다음 질문 생성 — LLM #2 silent 수집 후 텍스트만 스트리밍
+        next_item = questionsQueue[0]
+        persona = next_item.persona
+        prompt_file = PROMPT_DIR / PERSONA_PROMPTS[persona]
+        prompt_template = prompt_file.read_text(encoding="utf-8")
+        personas_context = PERSONA_LABELS[persona]
+        prompt = prompt_template.replace("{resume_text}", resumeText[:16000]).replace("{personas_context}", personas_context)
+
+        # LLM 출력(JSON) silent 수집
+        chunks: list[str] = []
+        async for token in call_llm_stream(prompt, model=model, timeout=50.0):
+            chunks.append(token)
+        collected_text = "".join(chunks)
+
+        if not collected_text.strip():
+            raise Exception("면접 질문 생성에 실패했습니다. 다시 시도해 주세요.")
+
+        # JSON 파싱 후 사용자 노출 텍스트만 단어 단위로 스트리밍
+        data = _parse_object(collected_text, required_keys=["question"])
+        question_text = data["question"]
+        next_persona_label = data.get("personaLabel", PERSONA_LABELS[persona])
+        yield _sse_meta(persona, next_persona_label)
+        async for chunk in _stream_words(question_text):
+            yield chunk
+        yield _sse_done(InterviewAnswerResponse(
+            nextQuestion=QuestionWithPersona(
+                persona=persona,
+                personaLabel=data.get("personaLabel", PERSONA_LABELS[persona]),
+                question=data["question"],
+                type=next_item.type,
+            ),
+            updatedQueue=list(questionsQueue[1:]),
+            sessionComplete=False,
+        ))
+
+    except Exception as e:
+        yield _sse_error(str(e) if str(e) else "면접 진행 중 오류가 발생했습니다.")
 
 
 def generate_followup(

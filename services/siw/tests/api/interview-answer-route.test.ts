@@ -1,19 +1,47 @@
 import { describe, it, expect, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 
+function makeSSEBody(events: object[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const lines = events.map(e => `data: ${JSON.stringify(e)}\n\n`).join("");
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(lines));
+      controller.close();
+    },
+  });
+}
+
+const doneEvent = {
+  type: "done",
+  nextQuestion: { persona: "tech_lead", personaLabel: "기술 리드", question: "기술 질문", type: "main" },
+  updatedQueue: [],
+  sessionComplete: false,
+};
+
 vi.mock("@/lib/interview/interview-service", () => ({
   interviewService: {
-    answer: vi.fn().mockResolvedValue({
-      nextQuestion: { persona: "tech_lead", personaLabel: "기술 리드", question: "기술 질문" },
-      updatedQueue: [],
-      sessionComplete: false,
-    }),
+    answerStream: vi.fn().mockResolvedValue(
+      new Response(makeSSEBody([doneEvent]), {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      })
+    ),
   },
 }));
 
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
-    findById: vi.fn().mockResolvedValue({ userId: "user-123" }),
+    findById: vi.fn().mockResolvedValue({
+      userId: "user-123",
+      history: [],
+      currentPersona: "hr",
+      currentPersonaLabel: "HR 담당자",
+      currentQuestion: "자기소개 해주세요",
+      currentQuestionType: "main",
+    }),
+    saveEngineResult: vi.fn().mockResolvedValue(undefined),
+    updateAfterAnswer: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -30,7 +58,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 describe("POST /api/interview/answer", () => {
-  it("200: nextQuestion 반환", async () => {
+  it("200: text/event-stream 응답 + done 이벤트에 sessionComplete 포함", async () => {
     const { POST } = await import("@/app/api/interview/answer/route");
     const req = new Request("http://localhost/api/interview/answer", {
       method: "POST",
@@ -39,8 +67,7 @@ describe("POST /api/interview/answer", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.sessionComplete).toBe(false);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
   });
 
   it("400: sessionId 없을 때", async () => {
@@ -56,7 +83,7 @@ describe("POST /api/interview/answer", () => {
 
   it("500: service throws 시", async () => {
     const { interviewService } = await import("@/lib/interview/interview-service");
-    (interviewService.answer as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("error"));
+    (interviewService.answerStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("error"));
     const { POST } = await import("@/app/api/interview/answer/route");
     const req = new Request("http://localhost/api/interview/answer", {
       method: "POST",
@@ -73,7 +100,7 @@ describe("POST /api/interview/answer", () => {
       "No InterviewSession found",
       { code: "P2025", clientVersion: "5.0.0" }
     );
-    (interviewService.answer as ReturnType<typeof vi.fn>).mockRejectedValueOnce(p2025Error);
+    (interviewService.answerStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(p2025Error);
     const { POST } = await import("@/app/api/interview/answer/route");
     const req = new Request("http://localhost/api/interview/answer", {
       method: "POST",
@@ -86,7 +113,7 @@ describe("POST /api/interview/answer", () => {
 
   it("404: session_not_found 에러", async () => {
     const { interviewService } = await import("@/lib/interview/interview-service");
-    (interviewService.answer as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+    (interviewService.answerStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("session_not_found")
     );
     const { POST } = await import("@/app/api/interview/answer/route");
@@ -101,7 +128,7 @@ describe("POST /api/interview/answer", () => {
 
   it("400: session_complete (이미 완료된 세션)", async () => {
     const { interviewService } = await import("@/lib/interview/interview-service");
-    (interviewService.answer as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+    (interviewService.answerStream as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("session_complete")
     );
     const { POST } = await import("@/app/api/interview/answer/route");
