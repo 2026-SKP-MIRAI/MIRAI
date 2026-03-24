@@ -29,10 +29,6 @@ next-env.d.ts
 
 # Python build artifacts
 *.egg-info/
-build/
-dist/
-__pycache__/
-*.pyc
 
 # Test artifacts
 test-results/
@@ -49,3 +45,4 @@ playwright-report/
 
 # 개인정보 (커밋 금지)
 mentor_mentee_summary.md
+docs/specs/**/designs/*.png
