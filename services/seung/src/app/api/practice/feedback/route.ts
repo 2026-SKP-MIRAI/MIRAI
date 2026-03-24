@@ -5,8 +5,9 @@ export const maxDuration = 45
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-  if (!rateLimit(`ip:${ip}:practice/feedback`, 20, 60_000)) {
-    return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 })
+  const rlResult = rateLimit(`ip:${ip}:practice/feedback`, 20, 60_000)
+  if (rlResult !== true) {
+    return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429, headers: { 'Retry-After': String(rlResult) } })
   }
 
   let body: { question?: string; answer?: string; previousAnswer?: string }

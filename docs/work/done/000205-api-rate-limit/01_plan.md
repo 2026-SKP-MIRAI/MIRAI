@@ -23,8 +23,8 @@ in-memory Map 기반 범용 rate limiter. 추후 Upstash Redis 교체를 위해 
 // key: "{userId}:{endpoint}" 또는 "ip:{ip}:{endpoint}"
 // limit: 창 내 최대 요청 수
 // windowMs: 창 크기 (ms)
-// 반환: true(허용) / false(초과)
-export function rateLimit(key: string, limit: number, windowMs: number): boolean
+// 반환: true(허용) / number(초과 — 남은 초, Retry-After 헤더용)
+export function rateLimit(key: string, limit: number, windowMs: number): true | number
 ```
 
 **Rate limit 값 (이슈 기준)**
@@ -46,11 +46,11 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
 각 route 파일에서 `supabase.auth.getUser()` 직후 (기존 auth 체크 바로 아래) 삽입:
 
 ```ts
-const allowed = rateLimit(`${user.id}:resume/questions`, 10, 60_000)
-if (!allowed) {
+const rlResult = rateLimit(`${user.id}:resume/questions`, 10, 60_000)
+if (rlResult !== true) {
   return NextResponse.json(
     { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-    { status: 429 }
+    { status: 429, headers: { 'Retry-After': String(rlResult) } }
   )
 }
 ```
@@ -68,11 +68,11 @@ if (!allowed) {
 
 ```ts
 const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-const allowed = rateLimit(`ip:${ip}:practice/feedback`, 20, 60_000)
-if (!allowed) {
+const rlResult = rateLimit(`ip:${ip}:practice/feedback`, 20, 60_000)
+if (rlResult !== true) {
   return NextResponse.json(
     { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-    { status: 429 }
+    { status: 429, headers: { 'Retry-After': String(rlResult) } }
   )
 }
 ```
@@ -97,9 +97,10 @@ if (!allowed) {
 
 `services/seung/tests/lib/rate-limit.test.ts` 신규 생성:
 - 허용 케이스: 한도 이하 요청 → `true` 반환
-- 차단 케이스: 한도 초과 요청 → `false` 반환
+- 차단 케이스: 한도 초과 요청 → `number`(남은 초) 반환 (`not.toBe(true)` + `typeof number` 검증)
 - 창 리셋 케이스: 창 만료 후 → 카운트 초기화
 - 키 독립성: 다른 키는 서로 영향 없음
+- limit=1: 두 번째 요청부터 차단
 
 ### Step 7. `.ai.md` 최신화
 

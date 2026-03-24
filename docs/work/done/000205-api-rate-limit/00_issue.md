@@ -85,7 +85,7 @@ export const ERROR_MESSAGES: Record<number, string> = {
 
 | 파일 | 변경 내용 |
 |------|---------|
-| `src/lib/rate-limit.ts` | 신규 — in-memory rate limiter |
+| `src/lib/rate-limit.ts` | 신규 — in-memory rate limiter, 반환 타입 `true \| number` (남은 초) |
 | `src/app/api/resume/questions/route.ts` | userId 기반 rate limit 적용 |
 | `src/app/api/interview/start/route.ts` | userId 기반 rate limit 적용 |
 | `src/app/api/interview/answer/route.ts` | userId 기반 rate limit 적용 |
@@ -123,13 +123,14 @@ LLM API를 호출하는 6개 엔드포인트에 in-memory Map 기반 rate limiti
 | `api/practice/feedback/route.ts` | `x-forwarded-for` IP 기준 `ip:{ip}:practice/feedback` 키로 20회/분 제한 (미인증 엔드포인트) |
 | `src/lib/types.ts` | `ERROR_MESSAGES`에 429 추가 |
 | `api/dashboard/route.ts` | `Prisma.ResumeGetPayload` 미지원 TypeScript 에러 수정 (기존 버그) — 명시적 인터페이스로 교체 |
-| `tests/lib/rate-limit.test.ts` (신규) | 허용/차단/창 리셋/키 독립성/limit=1 단위 테스트 5개 |
+| `tests/lib/rate-limit.test.ts` (신규) | 허용/차단/창 리셋/키 독립성/limit=1 단위 테스트 5개 (`not.toBe(true)` + `typeof number` 검증) |
 | `tests/api/practice-feedback.test.ts` | `makeRequest`에 `headers` 모킹 추가 |
 | `tests/setup.ts` | `beforeEach`에서 `_clearStoreForTesting()` 호출 — 테스트 간 Map 상태 격리 |
 
 ### 기술적 결정
 
 - **in-memory 선택 이유**: 내부 테스트 단계이므로 Redis 설정 없이 빠르게 구현. 함수 시그니처를 고정해 Redis 교체 시 구현만 교체.
+- **`rateLimit()` 반환 타입 `true | number`**: 하드코딩된 60초 대신 실제 남은 초를 반환하여 `Retry-After` 헤더에 정확한 값 전달 (RFC 6585 준수).
 - **`interview/answer` 30회/분**: 면접 세션 중 연속 답변 흐름을 막지 않도록 다른 엔드포인트보다 여유 있게 설정.
 - **`report/generate` 5회/분**: LLM 호출 비용이 가장 크므로 가장 엄격하게 제한.
 - **테스트 격리**: 모듈 싱글턴 Map이 vitest 동일 프로세스 내 공유되어 테스트 간 카운터 누적 → `_clearStoreForTesting()`으로 해결.

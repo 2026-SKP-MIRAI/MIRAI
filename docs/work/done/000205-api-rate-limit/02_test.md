@@ -18,7 +18,7 @@ Duration    ~4s
 
 | 파일 | 테스트 수 | 결과 | 비고 |
 |------|-----------|------|------|
-| `tests/lib/rate-limit.test.ts` | 5 | ✅ 전체 통과 | 신규 — 허용/차단/창 리셋/키 독립성/limit=1 |
+| `tests/lib/rate-limit.test.ts` | 5 | ✅ 전체 통과 | 신규 — 허용/차단/창 리셋/키 독립성/limit=1, `not.toBe(true)` + `typeof number` 검증 |
 | `tests/api/questions.test.ts` | 21 | ✅ 전체 통과 | 변경 없음 |
 | `tests/api/interview-start.test.ts` | 8 | ✅ 전체 통과 | 변경 없음 |
 | `tests/api/interview-answer.test.ts` | 13 | ✅ 전체 통과 | 변경 없음 |
@@ -61,19 +61,19 @@ npx tsc --noEmit → 에러 0건
 
 | 파일 | 내용 | 결과 |
 |------|------|------|
-| `src/lib/rate-limit.ts` | in-memory Map 기반 범용 rate limiter. `rateLimit(key, limit, windowMs)` + `_clearStoreForTesting()` | ✅ |
+| `src/lib/rate-limit.ts` | in-memory Map 기반 범용 rate limiter. `rateLimit(key, limit, windowMs): true \| number` + `_clearStoreForTesting()` | ✅ |
 | `tests/lib/rate-limit.test.ts` | rateLimit 단위 테스트 5개 (허용/차단/창 리셋/키 독립성/limit=1) | ✅ |
 
 ### 수정 파일
 
 | 파일 | 변경 | 결과 |
 |------|------|------|
-| `src/app/api/resume/questions/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) 삽입 | ✅ |
-| `src/app/api/interview/start/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) 삽입 | ✅ |
-| `src/app/api/interview/answer/route.ts` | auth 체크 직후 userId 기반 rate limit (30/min) 삽입 | ✅ |
-| `src/app/api/report/generate/route.ts` | auth 체크 직후 userId 기반 rate limit (5/min) 삽입 | ✅ |
-| `src/app/api/resume/feedback/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) 삽입 | ✅ |
-| `src/app/api/practice/feedback/route.ts` | x-forwarded-for IP 기반 rate limit (20/min) 삽입 | ✅ |
+| `src/app/api/resume/questions/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) + `Retry-After` 헤더 삽입 | ✅ |
+| `src/app/api/interview/start/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) + `Retry-After` 헤더 삽입 | ✅ |
+| `src/app/api/interview/answer/route.ts` | auth 체크 직후 userId 기반 rate limit (30/min) + `Retry-After` 헤더 삽입 | ✅ |
+| `src/app/api/report/generate/route.ts` | auth 체크 직후 userId 기반 rate limit (5/min) + `Retry-After` 헤더 삽입 | ✅ |
+| `src/app/api/resume/feedback/route.ts` | auth 체크 직후 userId 기반 rate limit (10/min) + `Retry-After` 헤더 삽입 | ✅ |
+| `src/app/api/practice/feedback/route.ts` | x-forwarded-for IP 기반 rate limit (20/min) + `Retry-After` 헤더 삽입 | ✅ |
 | `src/lib/types.ts` | `ERROR_MESSAGES`에 429 추가 | ✅ |
 | `src/app/api/dashboard/route.ts` | `Prisma.ResumeGetPayload` → 명시적 인터페이스 교체 (#208 성격의 기존 빌드 에러, 동일 브랜치에서 함께 수정) | ✅ |
 | `tests/api/practice-feedback.test.ts` | `makeRequest`에 headers 모킹 추가 (IP: '127.0.0.1') | ✅ |
