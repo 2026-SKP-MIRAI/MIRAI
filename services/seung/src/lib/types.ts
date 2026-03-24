@@ -153,3 +153,15 @@ export type DashboardResumeItem = {
 export type DashboardResponse = {
   resumes: DashboardResumeItem[]
 }
+
+export type UserProgressItem = {
+  round: number
+  sessionId: string
+  totalScore: number
+  scores: AxisScores
+  createdAt: string
+}
+
+export type UserProgressResponse = {
+  items: UserProgressItem[]
+}
