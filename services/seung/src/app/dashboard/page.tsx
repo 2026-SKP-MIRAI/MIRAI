@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { DashboardResumeItem, DashboardResponse } from '@/lib/types'
+import type { DashboardResumeItem, DashboardResponse, UserProgressItem, UserProgressResponse } from '@/lib/types'
 import Spinner from '@/components/Spinner'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function LoadingScreen() {
   return (
@@ -133,6 +134,7 @@ export default function DashboardPage() {
   const [resumes, setResumes] = useState<DashboardResumeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [progressItems, setProgressItems] = useState<UserProgressItem[]>([])
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -143,6 +145,18 @@ export default function DashboardPage() {
       .then((data) => setResumes(data.resumes))
       .catch(() => setError('데이터를 불러오는 중 오류가 발생했습니다.'))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/user/progress')
+      .then((r) => {
+        if (!r.ok) return
+        return r.json() as Promise<UserProgressResponse>
+      })
+      .then((data) => {
+        if (data) setProgressItems(data.items)
+      })
+      .catch(() => {/* progress는 부가 기능 — 오류 무시 */})
   }, [])
 
   const handleStart = () => router.push('/resume')
@@ -169,6 +183,40 @@ export default function DashboardPage() {
           </div>
         )}
         {!error && resumes.length === 0 && <EmptyState onStart={handleStart} />}
+        {!error && progressItems.length >= 2 && (
+          <div className="mb-8">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">성장 추이</p>
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={progressItems} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="round"
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    tickFormatter={(v) => `${v}회`}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`${value}점`, '종합 점수']}
+                    labelFormatter={(label) => `${label}회차`}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalScore"
+                    stroke="#4361ee"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#4361ee', strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         {!error && resumes.length > 0 && (
           <>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">내 자소서</p>
