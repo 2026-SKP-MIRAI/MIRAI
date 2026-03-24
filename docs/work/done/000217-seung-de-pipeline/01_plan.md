@@ -10,7 +10,7 @@
 - [ ] `GET /api/user/progress` — 로그인 유저의 리포트 이력 반환 (round, sessionId, totalScore, scores, createdAt)
 - [ ] Dashboard 자소서 목록 위 성장 추이 섹션 추가 — 회차별 totalScore LineChart (recharts), 리포트 2개 미만이면 섹션 숨김
 - [ ] `services/seung/airflow/dags/seung_analytics_dag.py` 신규 — extract_sessions → compute_metrics → load_to_s3 → alert_on_low_completion
-- [ ] 집계 메트릭: 면접 완료율(sessionComplete=true / 전체), 리포트 생성률(Report 있는 / sessionComplete=true), 평균 totalScore, real/practice 모드 분포, 평균 이탈 시점(history 길이 평균)
+- [ ] 집계 메트릭: 면접 완료율(sessionComplete=true / 전체), 리포트 생성률(Report 있는 / 전체 세션, `report/generate`가 sessionComplete 미체크이므로 전체 기준 사용), 평균 totalScore, real/practice 모드 분포, 평균 이탈 시점(history 길이 평균)
 - [ ] 집계 결과가 S3 Processed Zone에 JSON으로 적재됨
 - [ ] `GET /api/analytics/daily?date=YYYY-MM-DD` — 운영용, X-Internal-Key 헤더 가드, S3 Processed Zone 집계 결과 반환
 - [ ] `SEUNG_S3_ANALYTICS_BUCKET` 미설정 시 DAG graceful skip, `/api/analytics/daily` 503 반환

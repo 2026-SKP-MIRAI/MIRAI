@@ -179,8 +179,7 @@ def load_to_s3(ds: str, **kwargs):
     try:
         bucket = Variable.get("SEUNG_S3_ANALYTICS_BUCKET")
     except KeyError:
-        logger.warning("SEUNG_S3_ANALYTICS_BUCKET not set, skipping load_to_s3")
-        return
+        raise AirflowSkipException("SEUNG_S3_ANALYTICS_BUCKET Variable이 설정되지 않았습니다.")
 
     s3_key = f"seung/processed/{ds}/metrics.json"
     # IAM Instance Role로 자격증명 자동 주입 — explicit credential 불필요

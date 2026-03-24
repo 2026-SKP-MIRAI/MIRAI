@@ -9,9 +9,9 @@
 ### Vitest 단위 테스트 (TypeScript)
 
 ```
-Test Files  12 passed (12)
-Tests       114 passed (114)
-Duration    ~3s
+Test Files  18 passed (18)
+Tests       163 passed (163)
+Duration    ~16s
 ```
 
 **파일별 결과:**
@@ -19,6 +19,7 @@ Duration    ~3s
 | 파일 | 테스트 수 | 결과 | 비고 |
 |------|-----------|------|------|
 | `tests/api/user-progress.test.ts` | 4 | ✅ 전체 통과 | 신규 — 빈 배열·round 정렬·401·500 |
+| `tests/api/analytics-daily.test.ts` | 7 | ✅ 전체 통과 | 신규 — 200·401·503(키 미설정)·503(버킷 미설정)·400·404 |
 | `tests/api/dashboard.test.ts` | 5 | ✅ 전체 통과 | 변경 없음 |
 | `tests/api/questions.test.ts` | 21 | ✅ 전체 통과 | 변경 없음 |
 | `tests/api/interview-start.test.ts` | 8 | ✅ 전체 통과 | 변경 없음 |

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Corrupted metrics data' }, { status: 502 })
     }
   } catch (err: unknown) {
-    if (err instanceof NoSuchKey) {
+    if (err instanceof NoSuchKey || (err as { name?: string }).name === 'NoSuchKey') {
       return NextResponse.json({ error: 'Metrics not found for the given date' }, { status: 404 })
     }
     console.error('[analytics/daily] S3 error', err)

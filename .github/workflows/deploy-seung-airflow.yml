@@ -23,12 +23,12 @@ jobs:
               exit 1
             fi
 
-            # 최신 코드 pull
+            # 최신 코드 동기화 — reset --hard로 서버 git 상태에 무관하게 강제 동기화
             cd ~/MIRAI
-            git pull origin main
+            git fetch origin main
+            git reset --hard FETCH_HEAD
 
-            # airflow 재시작
+            # airflow 재시작 (down 없이 up --build로 무중단 교체)
             cd services/seung/airflow
-            docker compose down
             docker compose up -d --build
             echo "seung Airflow 배포 완료"
