@@ -13,7 +13,7 @@ type ResumeWithSessions = {
   id: string
   createdAt: Date
   fileName: string | null
-  diagnosisResult: object | null
+  diagnosisResult: unknown
   sessions: SessionWithReport[]
 }
 
