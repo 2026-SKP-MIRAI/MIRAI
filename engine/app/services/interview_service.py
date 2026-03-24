@@ -8,6 +8,8 @@ from app.schemas import (
     QuestionWithPersona, QueueItem, UsageMetadata,
 )
 from app.services.llm_client import call_llm as _call_llm, parse_object as _parse_object, UsageInfo
+from app.services.embedding_service import get_embeddings
+from app.analyzers.followup_validator import validate_followup_overlap
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 PERSONA_LABELS = {"hr": "HR 담당자", "tech_lead": "기술팀장", "executive": "경영진"}
@@ -154,6 +156,9 @@ def process_answer(
     # 2. 꼬리질문 필요 여부 판단 (LLM 1회) — 동일 페르소나 MAX_FOLLOWUPS 초과 시 스킵
     trailing = _count_trailing_persona(history, currentPersona)
     if trailing < MAX_FOLLOWUPS:
+        # NOTE: process_answer 경로는 overlap 검증 미적용.
+        # 이유: shouldFollowUp 판단(LLM)의 followupQuestion을 그대로 사용하며,
+        # /api/interview/followup 전용 generate_followup과 달리 별도 품질 검증 불필요.
         followup_data, followup_raw_usage, followup_model = _check_followup(
             currentQuestion, currentAnswer, currentPersona, resumeText, model=model
         )
@@ -210,11 +215,34 @@ def generate_followup(
     # 1. 규칙 기반 유형 분류 (결정론적)
     followup_type = _classify_followup_type(answer)
 
-    # 2. LLM: 후속 질문 텍스트 생성 (followupType은 규칙 기반 결과로 덮어쓰기)
+    # 2. LLM: 후속 질문 텍스트 생성
     data, raw_usage, llm_model = _check_followup(question, answer, persona, resumeText, model=model)
 
-    return FollowupResponse(
+    initial_response = FollowupResponse(
         followupType=followup_type,
         followupQuestion=data.get("followupQuestion", ""),
         reasoning=data.get("reasoning", ""),
-    ), _usage_to_metadata(raw_usage, llm_model)
+    )
+    initial_usage = _usage_to_metadata(raw_usage, llm_model)
+
+    # 3. weak_part 추출: reasoning.strip() → fallback answer 전체
+    reasoning = data.get("reasoning", "")
+    weak_part = reasoning.strip() or answer
+
+    # 4. 재생성 클로저 정의
+    def _regenerate() -> tuple[FollowupResponse, UsageMetadata | None]:
+        d, u, m = _check_followup(question, answer, persona, resumeText, model=model)
+        return FollowupResponse(
+            followupType=followup_type,
+            followupQuestion=d.get("followupQuestion", ""),
+            reasoning=d.get("reasoning", ""),
+        ), _usage_to_metadata(u, m)
+
+    # 5. overlap 검증 루프 (OVERLAP_THRESHOLD 미달 시 최대 MAX_REGENERATION_ATTEMPTS회 재생성)
+    return validate_followup_overlap(
+        followup_question=initial_response.followupQuestion,
+        weak_part=weak_part,
+        generate_fn=_regenerate,
+        get_embeddings_fn=get_embeddings,
+        initial_response=(initial_response, initial_usage),
+    )
