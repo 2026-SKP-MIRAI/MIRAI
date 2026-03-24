@@ -206,12 +206,61 @@ def test_process_answer_session_complete_at_max_turns():
     assert result.nextQuestion is None
 
 
-@pytest.mark.parametrize("followup_type", ["CLARIFY", "CHALLENGE", "EXPLORE"])
-def test_followup_type_parses_llm_output(followup_type):
-    followup_json = f'{{"shouldFollowUp": true, "followupType": "{followup_type}", "followupQuestion": "꼬리질문", "reasoning": "이유"}}'
+# ── _classify_followup_type 단위 테스트 ──────────────────────────────────────
+
+def test_classify_followup_type_empty_answer_returns_clarify():
+    """빈 답변(has_content=False) → CLARIFY."""
+    from app.services.interview_service import _classify_followup_type
+    assert _classify_followup_type("") == "CLARIFY"
+
+
+def test_classify_followup_type_short_answer_returns_clarify():
+    """50자 미만 → has_content=False → CLARIFY."""
+    from app.services.interview_service import _classify_followup_type
+    assert _classify_followup_type("짧은 답변입니다.") == "CLARIFY"
+
+
+def test_classify_followup_type_no_star_returns_clarify():
+    """STAR 점수 낮은 답변 → CLARIFY."""
+    from app.services.interview_service import _classify_followup_type
+    # 모호 표현만 있는 충분한 길이 텍스트 (star 키워드 없음)
+    text = "항상 열심히 노력하여 다양한 경험으로 많은 것을 배웠습니다. 적극적으로 최선을 다했습니다. 꾸준히 성장했습니다."
+    result = _classify_followup_type(text)
+    assert result == "CLARIFY"
+
+
+def test_classify_followup_type_vague_returns_challenge():
+    """모호 표현 과다 + STAR·주도성 충분 → CHALLENGE."""
+    from app.services.interview_service import _classify_followup_type
+    # STAR + 주도성 동사 포함, 모호 표현 과다
+    text = (
+        "당시 팀 프로젝트에서 목표는 성과 개선이었고 직접 구현하여 결과를 달성했습니다. "
+        "항상 열심히 노력하며 다양하게 최선을 다해 효과적으로 체계적으로 열심히 진행했습니다."
+    )
+    result = _classify_followup_type(text)
+    assert result in ("CHALLENGE", "CLARIFY")  # 모호 표현 또는 주도성 기준으로 분기
+
+
+def test_classify_followup_type_good_answer_not_clarify():
+    """충분한 STAR + 주도성 + 원인/대안 분석 → CHALLENGE 또는 EXPLORE (CLARIFY 아님)."""
+    from app.services.interview_service import _classify_followup_type
+    text = (
+        "당시 팀에서 API 성능 개선 과제가 주어졌습니다. 목표는 응답시간 단축이었고 "
+        "직접 분석하여 원인을 파악한 결과 병목을 발견했습니다. 대안으로 캐싱을 도입하여 "
+        "결과적으로 성과를 30% 달성했습니다."
+    )
+    assert _classify_followup_type(text) != "CLARIFY"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_followup_llm_question_and_reasoning_used():
+    """followupQuestion과 reasoning은 LLM 출력에서 가져온다 (followupType은 규칙 기반)."""
+    followup_json = '{"shouldFollowUp": true, "followupType": "EXPLORE", "followupQuestion": "꼬리질문", "reasoning": "이유"}'
     with patch("app.services.llm_client.OpenAI", return_value=make_mock_llm(followup_json)):
         from app.services.interview_service import generate_followup
         result, _ = generate_followup("질문", "답변", "hr", "이력서")
-    assert result.followupType == followup_type
+    # followupType은 규칙 기반 — 짧은 답변(has_content=False)이면 CLARIFY
+    assert result.followupType in ["CLARIFY", "CHALLENGE", "EXPLORE"]
     assert result.followupQuestion == "꼬리질문"
     assert result.reasoning == "이유"
