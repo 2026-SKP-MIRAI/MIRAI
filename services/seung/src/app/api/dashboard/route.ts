@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 
-type ResumeWithSessions = Prisma.ResumeGetPayload<{
-  include: { sessions: { include: { report: true } } }
-}>
+type SessionWithReport = {
+  id: string
+  sessionComplete: boolean
+  updatedAt: Date
+  report: { id: string; createdAt: Date } | null
+}
+
+type ResumeWithSessions = {
+  id: string
+  createdAt: Date
+  fileName: string | null
+  diagnosisResult: unknown
+  sessions: SessionWithReport[]
+}
 
 export async function GET() {
   const supabase = await createClient()

@@ -6,8 +6,9 @@ global.fetch = mockFetch
 
 import { POST } from '@/app/api/practice/feedback/route'
 
-function makeRequest(body: Record<string, unknown>): NextRequest {
+function makeRequest(body: Record<string, unknown>, ip = '127.0.0.1'): NextRequest {
   return {
+    headers: { get: (key: string) => (key === 'x-forwarded-for' ? ip : null) },
     json: vi.fn().mockResolvedValue(body),
   } as unknown as NextRequest
 }
