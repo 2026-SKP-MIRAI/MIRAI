@@ -111,7 +111,7 @@ pytest
 ### 서비스 (lww 예시)
 
 ```bash
-cd services/lww
+cd services/fint
 npm install
 
 # 환경변수 설정
@@ -149,7 +149,7 @@ npm test
 
 | 역할 | 이름 | 서비스 |
 |------|------|--------|
-| 멘토 | 이왕원 | `services/lww` |
+| 멘토 | 이왕원 | `services/fint` |
 | 멘티 | 김관우 | `services/kwan` |
 | 멘티 | 이승현 | `services/seung` |
 | 멘티 | 성시우 | `services/siw` |

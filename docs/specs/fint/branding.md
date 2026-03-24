@@ -30,7 +30,7 @@
 
 | 역할 | HEX | 설명 |
 |------|-----|------|
-| Primary | `#7C3AED` (Violet-600) | CTA 버튼, 강조 |
+| Primary | `#0D9488` (Teal-600) | CTA 버튼, 강조 |
 | Secondary | `#E9D5FF` (Violet-100) | 배경, 보조 |
 
 **선정 근거**
@@ -88,7 +88,7 @@
 /* Option A: 바이올렛 포커스 */
 :root {
   /* Brand */
-  --primary: #7C3AED;           /* Violet-600 - CTA 버튼, 강조 */
+  --primary: #0D9488;           /* Teal-600 - CTA 버튼, 강조 */
   --primary-foreground: #FFFFFF;
   --secondary: #E9D5FF;          /* Violet-100 - 배경, 보조 */
   --secondary-foreground: #4C1D95; /* Violet-900 */
@@ -102,7 +102,7 @@
   /* Border & Input */
   --border: #E5E7EB;             /* Gray-200 */
   --input: #E5E7EB;
-  --ring: #7C3AED;               /* Violet-600 - focus ring */
+  --ring: #0D9488;               /* Teal-600 - focus ring */
 
   /* Card */
   --card: #FFFFFF;

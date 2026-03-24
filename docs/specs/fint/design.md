@@ -1,6 +1,6 @@
 # Fint 초기 디자인 시안
 
-> 모바일 기준 375px. 브랜드 컬러 #7C3AED(보라)는 사용자가 최종 선택 전 임시 적용 값.
+> 모바일 기준 375px. 브랜드 컬러 #0D9488(Teal) 확정.
 > 이 문서는 개발 레퍼런스용 디자인 명세서다. Figma 확정 전 텍스트 기반 가이드.
 
 ---
@@ -24,13 +24,17 @@
 
 | 토큰 | 값 (임시) | 용도 |
 |---|---|---|
-| `color-primary` | `#7C3AED` | 주요 버튼, 유저 채팅 버블, 활성 탭, 강조 요소 |
-| `color-primary-light` | `#EDE9FE` | 보라 배경 (카드, 배지, 칩) |
-| `color-primary-dark` | `#5B21B6` | 버튼 호버/프레스 상태 |
+| `color-primary` | `#0D9488` | 주요 버튼, 유저 채팅 버블, 활성 탭, 강조 요소 |
+| `color-primary-light` | `#CCFBF1` | Teal 배경 (카드, 배지, 칩) |
+| `color-primary-dark` | `#0F766E` | 버튼 호버/프레스 상태 |
 | `color-coin` | `#F59E0B` | 크레딧 아이콘, 크레딧 배지, 크레딧 관련 CTA |
 | `color-coin-light` | `#FEF3C7` | 크레딧 배경 영역 |
+> ⚠️ **접근성 주의 (WCAG AA)**: `color-coin (#F59E0B)`은 흰 배경(#FFFFFF) 위에서 대비율 약 2.8:1로 WCAG AA(4.5:1) **미충족**. 사용 규칙:
+> - ✅ 허용: 아이콘 색상, `color-coin-light(#FEF3C7)` 배경 위 색상, 배지 배경색
+> - ❌ 금지: 흰 배경(#FFFFFF) 위 본문 텍스트 색상으로 직접 사용
+> - 텍스트가 필요한 경우: `color-coin-light` 배경 위에 `color-coin` 텍스트 (대비율 ~3.5:1, 대형 텍스트 AA 충족)
 | `color-success` | `#22C55E` | 합격·완료·체크 아이콘 |
-| `color-warning` | `#F59E0B` | 경고, 잠금 해제 비용 |
+| `color-warning` | `#EF4444` | 크레딧 부족 경고, 오류 알림 (Error Red) |
 | `color-error` | `#EF4444` | 오류, 크레딧 부족 알림 |
 | `color-bg` | `#FFFFFF` | 페이지 기본 배경 |
 | `color-surface` | `#F9FAFB` | 카드, 입력창, AI 채팅 버블 배경 |
@@ -39,6 +43,31 @@
 | `color-text-secondary` | `#6B7280` | 부가 정보, 타임스탬프, 라벨 |
 | `color-text-disabled` | `#D1D5DB` | 비활성 텍스트 |
 | `color-overlay` | `rgba(0,0,0,0.4)` | 모달 딤 처리 |
+
+> ⚠️ **마이그레이션**: `color-warning`이 Amber(#F59E0B)에서 Error Red(#EF4444)로 변경됨. 기존 화면에서 `color-warning`을 Amber 의미로 사용하던 경우(화면 11 크레딧 부족, 화면 8 골격) 검토 필요.
+
+### 배지 시스템 (color-badge-*)
+
+| 토큰 | 값 | 사용처 |
+|------|----|--------|
+| `color-badge-bronze` | `#CD7F32` | Bronze 배지 아이콘 |
+| `color-badge-silver` | `#A8A9AD` | Silver 배지 아이콘 |
+| `color-badge-gold` | `#F59E0B` | Gold 배지 아이콘 |
+| `color-badge-special` | `#7C3AED` | Special 배지 아이콘 (사용 제약 아래) |
+
+> ⚠️ `color-badge-gold`는 `color-coin(#F59E0B)`과 동일한 값이지만 의미론적 컨텍스트가 다름 (성취 vs 경제). 별도 토큰으로 유지하여 향후 독립 변경 가능성을 열어둔다.
+
+> ⚠️ `color-badge-special(#7C3AED)`는 **반드시 흰 배경(#FFFFFF) 위에만 사용**. `color-primary-light(#CCFBF1)` 등 유색 배경 위에서는 WCAG AA 미달(3.2:1). 배지 그리드는 항상 카드(흰 배경) 위에 렌더링해야 한다.
+
+### 크레딧 획득 UI 티어
+
+| 획득량 | UI 표현 | 애니메이션 | 모션 감소 대응 |
+|--------|---------|-----------|--------------|
+| 1~5 크레딧 | Toast (탭 바 위 16px, 1.5초) | fade-in/out | 동일 |
+| 6~19 크레딧 | Toast + 코인 포물선 애니메이션 | 코인 arc 경로 | 정적 "+N 크레딧" 텍스트 배지 |
+| 20+ 크레딧 | 전체화면 모달 | bounce + 파티클 | 정적 모달 (파티클 없음) |
+
+> `prefers-reduced-motion` 미디어 쿼리 적용 시 포물선 및 파티클 애니메이션 비활성.
 
 ### 다크모드 (v2 예정)
 
@@ -107,7 +136,7 @@ v1은 라이트 모드 단일 지원. 다크모드는 v2에서 CSS custom proper
 
 ```
 ┌─────────────────────┐
-│     버튼 레이블      │  ← Primary(#7C3AED) 배경, 흰 텍스트
+│     버튼 레이블      │  ← Primary(#0D9488 Teal) 배경, 흰 텍스트
 └─────────────────────┘
 ```
 
@@ -189,7 +218,7 @@ v1은 라이트 모드 단일 지원. 다크모드는 v2에서 CSS custom proper
 
 | 속성 | 값 |
 |---|---|
-| 배경 | `color-primary` (#7C3AED) |
+| 배경 | `color-primary` (#0D9488) |
 | 텍스트 | `#FFFFFF`, `type-body-lg` |
 | 모서리 | `border-radius: 18px`, `border-bottom-right-radius: 4px` |
 | 최대 너비 | 240px |
@@ -673,5 +702,5 @@ v1은 375px 모바일 단일 타겟. 향후 확장 시 참고.
 
 ---
 
-*작성일: 2026-03-16 | 버전: v0.1 | 작성: lww 기획팀*
-*컬러 최종 확정 시 섹션 2 팔레트 및 전체 Primary 참조 값 일괄 업데이트 필요*
+*작성일: 2026-03-16 | 버전: v0.1 | 작성: Fint 팀*
+*컬러 확정: Teal #0D9488 (옵션 B). 섹션 2 팔레트 업데이트 완료 (2026-03-23)*

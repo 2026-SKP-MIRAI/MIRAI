@@ -1,11 +1,11 @@
-# mirai-lww
+# mirai-fint
 
 자소서 기반 모의면접 서비스 (Next.js 15)
 
 ## 로컬 개발
 
 ```bash
-cd services/lww
+cd services/fint
 npm install
 npm run dev          # http://localhost:3000
 ```
@@ -13,7 +13,7 @@ npm run dev          # http://localhost:3000
 ## Docker 빌드
 
 ```bash
-cd services/lww
+cd services/fint
 docker build -t mirai-lww .
 ```
 

@@ -2,63 +2,86 @@
 
 ## 사용자 관점 목표
 더 세련되고 완성도 높은 UI/UX로 면접 경험의 몰입감과 신뢰감을 높인다.
+스토리보드에 누락된 전체 화면(Phase 1~2, 26개 항목)을 모두 상세화한다.
 
 ## 배경
-현재 lww 서비스 디자인이 MVP 수준에서 벗어나지 못해 시각적 완성도가 낮다. 나노바나나프로(Gemini 3 Pro Image via OpenRouter API)로 각 화면의 디자인 시안을 먼저 생성하고, 스토리보드로 정리한 뒤 그것을 기반으로 프론트엔드를 재구현한다.
+현재 `docs/specs/fint/storyboard.md`에는 MVP/Phase 1 핵심 화면만 상세화되어 있고,
+proposal.md에 명시된 다음 항목들이 누락·미완성 상태다.
+
+### 완전 누락 (16개)
+1. 면접 설정 화면 (난이도·시간·언어 설정)
+2. AI 면접관 선택 UI (HR 김지수 외 다른 페르소나들)
+3. 크레딧 획득 UI (후기 작성 리워드, 스트릭 보너스, 첫 면접 보너스 등)
+4. 레벨업/배지 시스템 화면
+5. 인기 Q&A 패턴 뷰어 (고득점 패턴 열람)
+6. 면접 후기 작성 CTA / 후기 폼
+7. 프로필 탭 (전체 스탯, 레벨, 배지, 히스토리)
+8. 알림 센터 / 푸시 알림 UX
+9. 온보딩 완료 후 Aha Moment 화면 (첫 면접 직전)
+10. 스트릭 달성 축하 모달 / 마일스톤 보상
+11. 크레딧 부족 시 게이트/업셀 UI
+12. 홈 피드 탭 구조 (AI 콘텐츠 + 유저 후기 혼합)
+13. 페르소나 마켓 목록 화면
+14. 커뮤니티 탭 (면접 후기 피드)
+15. 면접 예약/스케줄링 기능 (향후)
+16. 소셜 로그인 화면 변형 (Google·Kakao 통합)
+
+### 골격만 있음 (4개)
+17. 크레딧 충전 화면 (결제 플로우 미상세)
+18. 커뮤니티/피드 탭
+19. 프로필 탭
+20. 알림
+
+### 부분 명세 (6개)
+21. AI 면접관 선택 (선택 UI는 있으나 페르소나 소개 카드 미상세)
+22. 쪽지함 (받은 쪽지·보낸 쪽지 탭 구분 미상세)
+23. 페르소나 상세 (구매 플로우 이후 UX 미상세)
+24. 홈피드 상세 필터 (직군·난이도별 필터 UX)
+25. MBTI 카드 공유 플로우 (앱 복귀 후 UX)
+26. 스트릭 회복 모달 상세
 
 ## 완료 기준
-- [x] 주요 화면(온보딩·직군선택·채팅면접·결과 리포트) 나노바나나프로 디자인 시안 생성
-- [x] 시안 기반 스토리보드 문서 갱신 (`docs/specs/lww/storyboard.md`)
-- [x] 시안대로 프론트엔드 컴포넌트 재구현 (Teal #0D9488 브랜드 유지)
-- [x] Playwright E2E 3회 연속 PASS
-
-## 구현 플랜
-1. 화면별 시안 프롬프트 작성 → 나노바나나프로로 이미지 생성
-2. 생성된 시안 검토 → `docs/specs/lww/storyboard.md` 갱신
-3. 시안 기반으로 components/ 재구현 (레이아웃·컬러·타이포·간격)
-4. E2E 검증
-
-## 참고
-- 나노바나나프로: `openclaw-openclaw-nano-banana-pro` 스킬 (OpenRouter API 사용)
-- lww 브랜드: Teal #0D9488, Pretendard 폰트
-- 현재 스토리보드: `docs/specs/lww/storyboard.md`
-- 현재 컴포넌트: `services/lww/src/components/`
-
-## 개발 체크리스트
-- [x] 테스트 코드 포함
-- [x] `services/lww/.ai.md` 최신화
-- [x] 불변식 위반 없음
+- [x] Phase 1 핵심 누락 화면 상세 스토리보드 작성 (면접 설정, AI 면접관 선택, 크레딧 획득 UI, 레벨업/배지, Q&A 패턴 뷰어, 후기 작성 CTA, 프로필 탭)
+- [x] Phase 2 핵심 누락 화면 상세 스토리보드 작성 (홈피드 탭 구조, 페르소나 마켓, 커뮤니티 탭, 크레딧 충전 결제 플로우)
+- [x] Aha Moment → 스트릭 달성 → 업셀 게이트 흐름 연결 상세화
+- [x] 부분 명세 6개 완성 (AI 면접관 선택, 쪽지함, 페르소나 상세, 홈피드 필터, MBTI 카드 복귀 UX, 스트릭 회복 모달)
+- [x] 각 화면에 나노바나나프로 디자인 시안 이미지 생성 (주요 화면 기준)
+- [x] `docs/specs/fint/storyboard.md` 업데이트
 
 ## 작업 내역
 
-### 2026-03-22
+### docs/specs/fint/storyboard.md
+- 화면 1-11 기존 스토리보드: 서비스명 Fint로 통일 (lww→Fint), ASCII 목업 로고 수정, IA 5탭 구조 표 추가
+- 화면 12-31 신규 작성 (총 2,100줄 추가):
+  - Phase 1 (화면 12-21): 면접설정·AI면접관선택·크레딧획득 UI·레벨업/배지·Q&A패턴뷰어·후기작성CTA·프로필탭·Aha Moment·크레딧부족게이트·소셜로그인
+  - Phase 2 (화면 22-31): 홈피드탭구조·페르소나마켓·커뮤니티탭·크레딧충전·알림센터·현직자온보딩보강·응원폭탄·직무MBTI카드·취준→현직자전환·연봉통계
+- 각 화면: 시나리오/목적/핵심요소/ASCII목업/진입·이탈params/상태변형/시안이미지 전항목 작성
+- 화면 플로우 요약에 Phase 1/2 핵심 플로우 추가
 
-**현황**: 4/4 완료
+### docs/specs/fint/design.md
+- Primary 컬러 #7C3AED(보라 임시) → #0D9488(Teal) 확정 업데이트
+- WCAG AA 경고 추가: color-coin(#F59E0B) 흰 배경 위 텍스트 직접 사용 금지
+- color-warning 변경: Amber → Error Red #EF4444
+- 배지 시스템(color-badge-*) 4종 토큰 정의 추가
+- 크레딧 획득 UI 티어(1~5/6~19/20+) + prefers-reduced-motion 정책 추가
 
-**완료된 항목**:
-- [x] 주요 화면 나노바나나프로 시안 생성
-- [x] storyboard.md 갱신
-- [x] 프론트엔드 컴포넌트 재구현
-- [x] Playwright E2E 3회 연속 PASS
+### docs/specs/fint/payment_spec.md (신규)
+- PG 연동 플로우 (토스페이먼츠), 웹훅 엔드포인트, HMAC 검증
+- 크레딧 패키지 정의, 에러 코드, 환불 정책
 
-#### 변경 파일별 상세
+### docs/specs/fint/designs/ (이미지 평탄화)
+- phase1/ + phase2/ 서브디렉토리 → designs/ 루트로 이동 (24개 이미지)
+- Phase 1 신규 9개: v2_05~v2_13 (면접설정~프로필탭)
+- Phase 2 신규 4개: p2-08~p2-10, p2-12 (홈피드·커뮤니티·크레딧충전·MBTI)
 
-**`docs/specs/lww/storyboard.md`**
-보라 계열 `#7C3AED` → Teal `#0D9488` 브랜드 컬러 전체 반영. 서비스명 Fint → lww 정정. 나노바나나프로(Gemini 3.1 Flash Image Preview)로 생성한 4개 화면 시안 이미지 링크 추가: 온보딩, 직군선택, 채팅면접, 결과리포트. Phase 1 완료 화면(로그인, 면접히스토리, 자소서 업로드)도 스토리보드에 추가. 채팅 UI 세부 확정 사항 반영: 시스템 배너, 진행률 displayIndex 로직, 낮은 점수 amber 색상.
+### services/fint/.ai.md
+- lww→Fint 브랜딩 전면 교체 (경로·쿠키명·Docker 이미지명)
+- 이슈 #187 작업 내역 섹션 추가: 스토리보드 31화면·디자인토큰·크레딧CONFIG 10종 상수 기록
+- 디자인 시안 경로 평탄화 반영
 
-**`services/lww/src/hooks/useInterview.ts`**
-SSR resilience 개선: Next.js App Router에서 `useState` lazy initializer가 서버에서 실행될 때 sessionStorage 미접근으로 `idle` 상태로 초기화되는 문제 수정. `loadInitialState(sessionId)` 헬퍼 함수 추출 — `interview_state`와 `interview_init` 두 키를 순서대로 확인하는 로직을 단일화. 마운트 후 `useEffect`에서 `idle` 상태면 `loadInitialState`를 재호출해 sessionStorage에서 복구.
-
-**`services/lww/playwright.config.ts`**
-포트 3001 → 3002 변경. root 소유 PID 3386(next-server v16, 2026-03-04부터 실행)이 port 3001 점유하고 `_next/static/chunks/` 전체를 400 반환 — React 번들 미로드로 hydration 불가, 모든 인터랙션 실패. `reuseExistingServer: false`로 항상 독립된 fresh dev 서버 구동.
-
-**`services/lww/tests/e2e/interview-flow.spec.ts`**
-Test 1: onboarding_done 기반 리다이렉트 → `/onboarding` 직접 접근 방식으로 변경(더 안정적). Test 2: `waitForFunction`으로 React hydration 완료(`__reactFiber`/`__reactProps` property) 대기 후 칩 클릭. `toPass()` 패턴으로 style 변경 비동기 검증. Test 3: `interview_init` → `interview_state` 직접 주입으로 변경(useInterview SSR 복구 경로와 일치).
-
-**`tests/e2e/debug.spec.ts`** (삭제)
-진단 중 생성한 임시 파일. 포트 문제 원인 파악 후 불필요하여 삭제.
-
-#### 핵심 기술 결정
-- **포트 충돌 해결**: `reuseExistingServer: false` + 전용 포트 3002 — Playwright 실행 환경을 외부 dev 서버로부터 완전히 격리
-- **SSR resilience 패턴**: `useState` 초기화(서버 측) + `useEffect` 재복구(클라이언트 측) 이중 복구 — Next.js App Router의 SSR/CSR 전환 특성에 대응
-- **헬퍼 추출**: `loadInitialState(sessionId)` — 중복 파싱 로직 제거, 단일 변경점 확보
+## 참고 문서
+- 스토리보드: `docs/specs/fint/storyboard.md`
+- IA 플로우: `docs/specs/fint/ia_flow.md`
+- 프로포절: `docs/whitepaper/lww/proposal.md`
+- 디자인: `docs/specs/fint/design.md`
+- 기존 시안: `docs/specs/fint/designs/phase1/`, `docs/specs/fint/designs/phase2/`
