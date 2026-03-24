@@ -65,7 +65,7 @@ def _check_followup(
         .replace("{resume_text}", resumeText[:16000])
     )
     result = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
-    return _parse_object(result.content, required_keys=["shouldFollowUp", "followupType", "followupQuestion", "reasoning"]), result.usage, result.model
+    return _parse_object(result.content, required_keys=["shouldFollowUp"]), result.usage, result.model
 
 
 def start_interview(
@@ -139,7 +139,7 @@ def process_answer(
             nextQuestion=QuestionWithPersona(
                 persona=currentPersona,
                 personaLabel=PERSONA_LABELS[currentPersona],
-                question=followup_data["followupQuestion"],
+                question=followup_data.get("followupQuestion", ""),
                 type="follow_up",
             ),
             updatedQueue=list(questionsQueue),
@@ -183,7 +183,7 @@ def generate_followup(
     data, raw_usage, llm_model = _check_followup(question, answer, persona, resumeText, model=model)
 
     return FollowupResponse(
-        followupType=data["followupType"],
-        followupQuestion=data["followupQuestion"],
-        reasoning=data["reasoning"],
+        followupType=data.get("followupType", ""),
+        followupQuestion=data.get("followupQuestion", ""),
+        reasoning=data.get("reasoning", ""),
     ), _usage_to_metadata(raw_usage, llm_model)
