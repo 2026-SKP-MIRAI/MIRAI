@@ -7,8 +7,15 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "dags"))
 
 # airflow 패키지 mock (로컬 Python 3.14 — Airflow는 3.12까지만 공식 지원)
-_dag = MagicMock()
-_dag.DAG = MagicMock(return_value=MagicMock())
+# DAG mock: 생성 시 kwargs를 실제 속성으로 저장하여 schedule_interval 등 검증 가능
+class _FakeDAG:
+    def __init__(self, *args, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        self.dag_id = kwargs.get("dag_id", "")
+
+_dag_module = MagicMock()
+_dag_module.DAG = _FakeDAG
 
 _variable = MagicMock()
 
@@ -16,7 +23,7 @@ _python_op = MagicMock()
 _python_op.PythonOperator = MagicMock(return_value=MagicMock())
 
 sys.modules.update({
-    "airflow": _dag,
+    "airflow": _dag_module,
     "airflow.models": _variable,
     "airflow.models.variable": _variable,
     "airflow.operators": MagicMock(),
