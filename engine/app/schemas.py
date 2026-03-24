@@ -191,6 +191,7 @@ class ResumeFeedbackRequest(BaseModel):
     resumeText: str = Field(..., min_length=1, max_length=50_000)
     targetRole: str | None = Field(None, max_length=100, description="지원 직무. 미입력 시 '미지정 직무'로 처리")
     job_context: list[str] | None = Field(None, description="채용공고 컨텍스트 (RAG). None이면 미사용.")
+    resume_context: list[str] | None = Field(None, description="유사 합격 자소서 예시 (RAG). None이면 미사용.")
 
 
 class ResumeFeedbackResponse(BaseModel):
