@@ -30,7 +30,7 @@ S3 Raw Zone
 S3 Processed Zone
   {SEUNG_S3_ANALYTICS_BUCKET}/seung/processed/YYYY-MM-DD/metrics.json
   ↓
-/api/analytics/daily   # 운영용 (인증 없음, 내부 전용)
+/api/analytics/daily   # 운영용 (X-Internal-Key 헤더 인증, 내부 전용)
 /api/user/progress     # 개인용 (Auth 필수)
   ↓
 Dashboard: 자소서 목록 위 성장 추이 섹션 — 회차별 totalScore LineChart (recharts)
@@ -69,12 +69,9 @@ airflow users create --role Admin --username admin ...
 
 Airflow Variables 설정:
 ```
-SEUNG_DB_URL          # seung Postgres 연결 문자열
 SEUNG_S3_ANALYTICS_BUCKET   # Raw/Processed Zone 버킷명
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_REGION
 ```
+※ AWS 자격증명(ACCESS_KEY, SECRET_KEY, REGION)은 EC2 IAM Instance Role로 자동 주입 — Variables에 등록하지 않는다.
 
 ### Step 1 — `GET /api/user/progress`
 
@@ -166,11 +163,11 @@ AWS_REGION
 
 ## 개발 체크리스트
 
-- [ ] 테스트 코드 포함
-- [ ] `services/seung/.ai.md` 최신화
-- [ ] `airflow/.ai.md` 생성 (신규 디렉토리)
-- [ ] 불변식 위반 없음 (LLM 호출 없음, DB는 seung 소유)
-- [ ] `SEUNG_S3_ANALYTICS_BUCKET` 미설정 시 기존 동작 영향 없음
+- [x] 테스트 코드 포함
+- [x] `services/seung/.ai.md` 최신화
+- [x] `airflow/.ai.md` 생성 (신규 디렉토리)
+- [x] 불변식 위반 없음 (LLM 호출 없음, DB는 seung 소유)
+- [x] `SEUNG_S3_ANALYTICS_BUCKET` 미설정 시 기존 동작 영향 없음
 
 ---
 
@@ -200,6 +197,7 @@ AWS_REGION
 
 **`airflow/docker-compose.yml`**
 - Airflow standalone (webserver + scheduler), `AIRFLOW_CONN_SEUNG_DB_READONLY` 환경변수 주입
+- AWS 자격증명 Variables(`AWS_ACCESS_KEY_ID` 등) 제거 — EC2 IAM Instance Role로 대체
 
 **`airflow/tests/test_seung_analytics_dag.py`**
 - pytest 4개: completion_rate(0.4), mode_distribution(real/practice), 빈데이터 ZeroDivision 없음, SEUNG_S3_ANALYTICS_BUCKET 미설정 시 skip

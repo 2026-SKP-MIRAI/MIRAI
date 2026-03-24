@@ -68,7 +68,7 @@ npx tsc --noEmit → 에러 0건
 | 파일 | 내용 | 결과 |
 |------|------|------|
 | `src/app/api/user/progress/route.ts` | GET /api/user/progress — Auth 필수, Report.userId 직접 쿼리, round = index+1 | ✅ |
-| `src/app/api/analytics/daily/route.ts` | GET /api/analytics/daily — timingSafeEqual API key 검증, date 형식 검증, S3 읽기 | ✅ |
+| `src/app/api/analytics/daily/route.ts` | GET /api/analytics/daily — timingSafeEqual X-Internal-Key 검증, ANALYTICS_API_KEY 미설정 시 503, date 정규식 검증, NoSuchKey instanceof 처리, transformToString() 사용 | ✅ |
 | `tests/api/user-progress.test.ts` | /api/user/progress 단위 테스트 4개 | ✅ |
 | `airflow/docker-compose.yml` | Airflow standalone (webserver + scheduler), SEUNG_DB_READONLY_CONN 연결 | ✅ |
 | `airflow/Dockerfile` | siw 패턴 동일 | ✅ |
@@ -112,3 +112,7 @@ npx tsc --noEmit → 에러 0건
 | MEDIUM | `getYesterday()`가 UTC 기준 → DAG KST 스케줄과 불일치 | KST+9 오프셋 적용 |
 | MEDIUM | SQL `DATE(createdAt)` UTC 기준 → KST 00:00 배치 스케줄과 날짜 불일치 | `AT TIME ZONE 'Asia/Seoul'` 적용 |
 | MEDIUM | `report_rate` 분모가 `sessionComplete=true` 세션 — `report/generate`가 미완료 세션에도 리포트 생성 가능하므로 >1.0 될 수 있음 | 분모를 전체 세션으로 변경 |
+| CRITICAL | AWS 자격증명을 Airflow Variables에 저장 → Airflow UI 평문 노출 | EC2 IAM Instance Role 적용, `boto3.client("s3")` explicit credential 제거 |
+| HIGH | `load_to_s3`에서 `metrics=None` → `json.dumps(None)` → S3에 `"null"` 적재 | `AirflowSkipException` 전파 추가 |
+| HIGH | `alert_on_low_completion`에서 `metrics=None` → `AttributeError` DAG fail | `if not metrics: return` 추가 |
+| HIGH | `ANALYTICS_API_KEY` 미설정 시 `expected=''` → 명시적 처리 없음 | 미설정 시 503 반환 추가 |

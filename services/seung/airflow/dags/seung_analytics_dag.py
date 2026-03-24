@@ -79,12 +79,8 @@ def extract_sessions(ds: str, **kwargs):
     date_path = ds.replace("-", "/")
     s3_key = f"seung/{date_path}/sessions_raw.jsonl"
 
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=Variable.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=Variable.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=Variable.get("AWS_REGION", default_var="ap-northeast-2"),
-    )
+    # IAM Instance Role로 자격증명 자동 주입 — explicit credential 불필요
+    s3 = boto3.client("s3")
     s3.put_object(Bucket=bucket, Key=s3_key, Body=body.encode("utf-8"))
 
     kwargs["ti"].xcom_push(key="raw_s3_key", value=s3_key)
@@ -96,7 +92,7 @@ def compute_metrics(ds: str, **kwargs):
 
     raw_s3_key = kwargs["ti"].xcom_pull(key="raw_s3_key", task_ids="extract_sessions")
 
-    # HIGH: extract_sessions가 skip된 경우 None이 반환됨 → skip 전파
+    # extract_sessions가 skip된 경우 None이 반환됨 → skip 전파
     if not raw_s3_key:
         raise AirflowSkipException("extract_sessions가 skip되었거나 raw_s3_key가 없습니다.")
 
@@ -105,12 +101,8 @@ def compute_metrics(ds: str, **kwargs):
     except KeyError:
         raise AirflowSkipException("SEUNG_S3_ANALYTICS_BUCKET Variable이 설정되지 않았습니다.")
 
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=Variable.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=Variable.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=Variable.get("AWS_REGION", default_var="ap-northeast-2"),
-    )
+    # IAM Instance Role로 자격증명 자동 주입 — explicit credential 불필요
+    s3 = boto3.client("s3")
     body = s3.get_object(Bucket=bucket, Key=raw_s3_key)["Body"].read().decode("utf-8")
     sessions = [json.loads(line) for line in body.strip().split("\n") if line.strip()]
 
@@ -176,7 +168,13 @@ def compute_metrics(ds: str, **kwargs):
 
 
 def load_to_s3(ds: str, **kwargs):
+    from airflow.exceptions import AirflowSkipException
+
     metrics = kwargs["ti"].xcom_pull(key="metrics", task_ids="compute_metrics")
+
+    # compute_metrics가 skip된 경우 None 반환 → skip 전파 (S3에 null 적재 방지)
+    if not metrics:
+        raise AirflowSkipException("compute_metrics가 skip되었거나 metrics가 없습니다.")
 
     try:
         bucket = Variable.get("SEUNG_S3_ANALYTICS_BUCKET")
@@ -185,12 +183,8 @@ def load_to_s3(ds: str, **kwargs):
         return
 
     s3_key = f"seung/processed/{ds}/metrics.json"
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=Variable.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=Variable.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=Variable.get("AWS_REGION", default_var="ap-northeast-2"),
-    )
+    # IAM Instance Role로 자격증명 자동 주입 — explicit credential 불필요
+    s3 = boto3.client("s3")
     s3.put_object(
         Bucket=bucket,
         Key=s3_key,
@@ -201,7 +195,9 @@ def load_to_s3(ds: str, **kwargs):
 
 def alert_on_low_completion(ds: str, **kwargs):
     metrics = kwargs["ti"].xcom_pull(key="metrics", task_ids="compute_metrics")
-    if metrics and metrics.get("completion_rate", 1.0) < 0.3:
+    if not metrics:
+        return
+    if metrics.get("completion_rate", 1.0) < 0.3:
         logger.warning(
             f"[ALERT] Low completion rate on {ds}: "
             f"completion_rate={metrics['completion_rate']:.2%} "

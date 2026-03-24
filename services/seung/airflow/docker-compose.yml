@@ -8,10 +8,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__WEBSERVER__SECRET_KEY: "${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY 환경변수를 설정하세요}"
       # Airflow Variables — AIRFLOW_VAR_* 패턴으로 자동 등록
+      # AWS 자격증명은 EC2 IAM Instance Role로 자동 주입 — 여기에 명시하지 않음
       AIRFLOW_VAR_SEUNG_S3_ANALYTICS_BUCKET: "${SEUNG_S3_ANALYTICS_BUCKET}"
-      AIRFLOW_VAR_AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
-      AIRFLOW_VAR_AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
-      AIRFLOW_VAR_AWS_REGION: "${AWS_REGION}"
       # Airflow Connections — AIRFLOW_CONN_* 패턴으로 자동 등록
       AIRFLOW_CONN_SEUNG_DB_READONLY: "${SEUNG_DB_READONLY_CONN}"
     volumes:

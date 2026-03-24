@@ -15,9 +15,13 @@ function getYesterday(): string {
 }
 
 export async function GET(request: NextRequest) {
+  const expected = process.env.ANALYTICS_API_KEY ?? ''
+  if (!expected) {
+    return NextResponse.json({ error: 'API key not configured' }, { status: 503 })
+  }
+
   // timingSafeEqual로 타이밍 어택 사이드채널 방지
   const internalKey = request.headers.get('x-internal-key') ?? ''
-  const expected = process.env.ANALYTICS_API_KEY ?? ''
   const isValid =
     internalKey.length > 0 &&
     internalKey.length === expected.length &&
