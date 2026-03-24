@@ -37,19 +37,19 @@ RAG 방식은 페르소나별 질문 패턴 데이터(각 수백~수천 개)가 
 
 **1단계: 페르소나별 System Prompt 파일 분리**
 ```
-engine/app/prompts/persona_hr_v1.md
-  - 역할: 조직 적합성·협업 태도·인성 검증
-  - 관심 신호: teamwork_mentions, conflict_resolution
+engine/app/prompts/interview_followup_hr_v3.md
+  - 역할: 조직 적합성·협업 태도·인성 검증 (꼬리질문 전용)
+  - 관심 신호: teamwork_mentions, STAR 완성도, 귀인 이론
   - 담당 8축: communication, cultureFit, sincerity
 
-engine/app/prompts/persona_tech_v1.md
-  - 역할: 직무 역량·문제 해결·기술 깊이 검증
-  - 관심 신호: technical_depth, esco_match_score
+engine/app/prompts/interview_followup_tech_lead_v3.md
+  - 역할: 직무 역량·문제 해결·기술 깊이 검증 (꼬리질문 전용)
+  - 관심 신호: technical_depth, 인과분석, 대안 언급
   - 담당 8축: jobExpertise, problemSolving, logicalThinking
 
-engine/app/prompts/persona_exec_v1.md
-  - 역할: 성장 가능성·비전·비즈니스 임팩트 검증
-  - 관심 신호: business_impact, revenue_keywords
+engine/app/prompts/interview_followup_executive_v3.md
+  - 역할: 성장 가능성·비전·비즈니스 임팩트 검증 (꼬리질문 전용)
+  - 관심 신호: business_impact, 성과 정량화, 확장사고
   - 담당 8축: leadership, creativity, problemSolving
 ```
 
@@ -88,13 +88,16 @@ def calc_pressure(answer_quality: float, vague_ratio: float) -> str:
 
 | 파일 | 변경 내용 |
 |------|---------|
-| `engine/app/prompts/persona_hr_v1.md` | 신규 생성 |
-| `engine/app/prompts/persona_tech_v1.md` | 신규 생성 |
-| `engine/app/prompts/persona_exec_v1.md` | 신규 생성 |
-| `engine/app/analyzers/answer_signals.py` | 신규 생성 |
-| `engine/app/analyzers/pressure_controller.py` | 신규 생성 |
-| `engine/app/services/interview_service.py` | 신호 기반 페르소나 분기 추가 |
-| `engine/app/prompts/.ai.md` | 페르소나 프롬프트 파일 기재 |
+| `engine/app/prompts/interview_followup_hr_v3.md` | 신규 생성 — HR 전용 꼬리질문 프롬프트 |
+| `engine/app/prompts/interview_followup_tech_lead_v3.md` | 신규 생성 — 기술팀장 전용 꼬리질문 프롬프트 |
+| `engine/app/prompts/interview_followup_executive_v3.md` | 신규 생성 — 경영진 전용 꼬리질문 프롬프트 |
+| `engine/app/analyzers/answer_signals.py` | 신규 생성 — format_persona_signals() |
+| `engine/app/analyzers/pressure_controller.py` | 신규 생성 — calc_answer_quality() + classify_pressure() |
+| `engine/app/analyzers/__init__.py` | 수정 — 신규 함수 export 추가 |
+| `engine/app/services/interview_service.py` | 수정 — 페르소나별 프롬프트 분기 + persona_signals/pressure_type 주입 |
+| `engine/app/prompts/.ai.md` | 수정 — v3 프롬프트 파일 버전이력 추가 |
+| `engine/app/analyzers/.ai.md` | 신규 생성 — 모듈 문서 |
+| `engine/.ai.md` | 수정 — 신규 모듈 구조 반영 |
 
 ## 개선 효과 측정 지표
 
