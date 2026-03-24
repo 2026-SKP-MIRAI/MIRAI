@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from app.analyzers import analyze
-from app.analyzers.keywords import VAGUE_RATIO_THRESHOLD, STAR_CLARIFY_THRESHOLD
+from app.analyzers.pressure_controller import classify_pressure
+from app.analyzers.answer_signals import format_persona_signals
 from app.schemas import (
     FollowupType,
     InterviewStartResponse, InterviewAnswerResponse, FollowupResponse,
@@ -18,32 +19,19 @@ PERSONA_PROMPTS = {
     "tech_lead": "interview_tech_lead_v2.md",
     "executive": "interview_executive_v2.md",
 }
+PERSONA_FOLLOWUP_PROMPTS = {
+    "hr": "interview_followup_hr_v3.md",
+    "tech_lead": "interview_followup_tech_lead_v3.md",
+    "executive": "interview_followup_executive_v3.md",
+}
 
 MAX_TURNS = 10
 MAX_FOLLOWUPS = 2  # 동일 페르소나 꼬리질문 최대 횟수
 
 
 def _classify_followup_type(answer: str) -> FollowupType:
-    """규칙 기반 followup 유형 분류 (결정론적).
-
-    TextSignals를 기반으로 followupType을 결정한다. LLM 미사용.
-    - CLARIFY: STAR 불완전 또는 주도성 미감지 → 구체화 요청
-    - CHALLENGE: 모호 표현 과다 또는 논리적 분석 미감지 → 근거 요청
-    - EXPLORE: 충분한 답변 → 심화 탐색
-    """
     signals = analyze(answer)
-
-    if not signals.has_content:
-        return "CLARIFY"
-    if signals.star_score < STAR_CLARIFY_THRESHOLD:
-        return "CLARIFY"
-    if signals.agency_verb_count == 0:
-        return "CLARIFY"
-    if signals.vague_ratio > VAGUE_RATIO_THRESHOLD:
-        return "CHALLENGE"
-    if signals.cause_analysis_count == 0 and signals.alternative_count == 0:
-        return "CHALLENGE"
-    return "EXPLORE"
+    return classify_pressure(signals)
 
 
 def _usage_to_metadata(usage: UsageInfo | None, model: str) -> UsageMetadata | None:
@@ -81,16 +69,22 @@ def _check_followup(
     resumeText: str,
     *,
     model: str | None = None,
+    signals: object | None = None,
 ) -> tuple[dict, UsageInfo | None, str]:
     """followup 필요 여부를 LLM으로 판단. (dict, usage, model) 반환."""
-    prompt_file = PROMPT_DIR / "interview_followup_v2.md"
+    if signals is None:
+        signals = analyze(answer)
+    pressure_type = classify_pressure(signals)
+    persona_signals_text = format_persona_signals(answer, signals, persona)
+    followup_prompt_name = PERSONA_FOLLOWUP_PROMPTS.get(persona, "interview_followup_v2.md")
+    prompt_file = PROMPT_DIR / followup_prompt_name
     prompt_template = prompt_file.read_text(encoding="utf-8")
-    persona_context = PERSONA_LABELS.get(persona, persona)
     prompt = (
         prompt_template
         .replace("{question}", question)
         .replace("{answer}", answer)
-        .replace("{persona_context}", persona_context)
+        .replace("{persona_signals}", persona_signals_text)
+        .replace("{pressure_type}", pressure_type)
         .replace("{resume_text}", resumeText[:16000])
     )
     result = _call_llm(prompt, model=model, error_message="면접 진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
@@ -212,11 +206,12 @@ def generate_followup(
     *,
     model: str | None = None,
 ) -> tuple[FollowupResponse, UsageMetadata | None]:
-    # 1. 규칙 기반 유형 분류 (결정론적)
-    followup_type = _classify_followup_type(answer)
+    # 1. 규칙 기반 유형 분류 (결정론적) — signals를 _check_followup과 공유해 analyze() 중복 호출 방지
+    signals = analyze(answer)
+    followup_type = classify_pressure(signals)
 
     # 2. LLM: 후속 질문 텍스트 생성
-    data, raw_usage, llm_model = _check_followup(question, answer, persona, resumeText, model=model)
+    data, raw_usage, llm_model = _check_followup(question, answer, persona, resumeText, model=model, signals=signals)
 
     initial_response = FollowupResponse(
         followupType=followup_type,
