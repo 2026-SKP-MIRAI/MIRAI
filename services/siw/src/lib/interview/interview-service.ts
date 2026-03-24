@@ -69,6 +69,73 @@ export const interviewService = {
     return { sessionId, firstQuestion: parsed.firstQuestion };
   },
 
+  /**
+   * SSE 스트리밍 answer: 엔진 SSE 스트림 Response를 반환.
+   * engineResultCache 존재 시: 스트리밍 없이 done 이벤트만 담은 가짜 스트림 반환.
+   * 재시도: SSE 연결 실패(HTTP 비정상/네트워크)만 재시도, 스트림 파싱 오류는 재시도 안 함.
+   */
+  async answerStream(sessionId: string, currentAnswer: string): Promise<Response> {
+    const session = await interviewRepository.findById(sessionId);
+    if (session.sessionComplete) throw new Error("session_complete");
+
+    // engineResultCache 존재 시: 캐시 데이터를 done 이벤트로 즉시 반환
+    if (session.engineResultCache) {
+      const engineResult = EngineAnswerResponseSchema.parse(session.engineResultCache);
+      const doneEvent = {
+        type: 'done',
+        nextQuestion: engineResult.nextQuestion,
+        updatedQueue: engineResult.updatedQueue,
+        sessionComplete: engineResult.sessionComplete,
+      };
+      const encoder = new TextEncoder();
+      const body = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(doneEvent)}\n\n`));
+          controller.close();
+        },
+      });
+      return new Response(body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // SSE 연결 실패만 재시도
+    const historyForEngine = session.history.map(({ type: _type, ...rest }) => rest);
+    const fetchOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resumeText: session.resumeText,
+        history: historyForEngine,
+        questionsQueue: session.questionsQueue,
+        currentQuestion: session.currentQuestion,
+        currentPersona: session.currentPersona,
+        currentAnswer,
+      }),
+      signal: AbortSignal.timeout(55000),
+    };
+
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`${ENGINE_BASE_URL}/api/interview/answer?stream=true`, fetchOptions);
+        if (!res.ok || !res.body) {
+          throw new Error(`stream init failed: ${res.status}`);
+        }
+        return res;
+      } catch (err) {
+        lastErr = err;
+        console.error(`[interviewService.answerStream] attempt ${attempt + 1} failed:`, err);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+    throw lastErr ?? new Error("engine_answer_stream_failed");
+  },
+
   async answer(sessionId: string, currentAnswer: string): Promise<InterviewAnswerResponse> {
     const session = await interviewRepository.findById(sessionId);
     if (session.sessionComplete) throw new Error("session_complete");
