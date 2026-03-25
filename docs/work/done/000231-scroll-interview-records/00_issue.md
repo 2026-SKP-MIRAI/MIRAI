@@ -62,16 +62,45 @@
 
 ### 2026-03-25
 
-**현황**: 0/16 완료
+**현황**: 15/16 완료
 
 **완료된 항목**:
-- (없음)
+
+A. 이력서 상세 페이지:
+- `resumes/[id]/page.tsx`: 성장 요약 섹션에 `max-h-[280px] overflow-y-auto` 스크롤 적용
+- `resumes/[id]/page.tsx`: "분석 완료" 활성 뱃지를 border-based 스타일로 변경
+- `resumes/page.tsx`: "활성" 뱃지를 border-based 스타일로 변경
+- `resumes/page.tsx`: 삭제 버튼을 border-based 스타일로 변경
+
+B-1. 대시보드:
+- `dashboard/page.tsx`: `sessions.slice(0, 5)` 제거 → 전체 출력
+- `dashboard/page.tsx`: `max-h-[480px] overflow-y-auto` 스크롤 적용
+- `dashboard/page.tsx`: 면접 이름을 PDF 파일명(`resumeFileName`)으로 표시
+
+B-2. growth 페이지 면접 기록:
+- `growth/page.tsx`: 이력서 이름↔날짜 위치 스왑
+- `growth/page.tsx`: PDF 파일명(`resumeFileName`)으로 표시
+- `growth/page.tsx`: `max-h-[320px] overflow-y-auto` 스크롤 적용
+
+C. 랜딩페이지 8축:
+- `RadarChartInteractive.tsx`: AXES 이름을 엔진 기준으로 변경, weight 제거
+- `(landing)/page.tsx`: EVALUATION_AXES 이름 엔진 기준 변경, weight 제거
+- `(landing)/page.tsx`: 8축 카드에 Lucide 아이콘 + violet/indigo 그라디언트 적용
+- `(landing)/page.tsx`: '면접 시작' 링크를 `/interview/new`로 변경
+
+백엔드:
+- `interview-repository.ts`: `listCompleted`에 resume relation include
+- `types.ts`: `GrowthSession`에 `resumeFileName` 추가, `resumeLabel` 제거
+- `api/growth/sessions/route.ts`: `resumeFileName` 반환
+- `api/resumes/route.ts`: GET에 `inferredTargetRole` 반환
+- `resumes/page.tsx`: 이력서 카드 하단에 직무명(`inferredTargetRole`) 표시
+
+기존 빌드 에러 수정:
+- `api/resumes/route.ts`: `trendComparison` 타입 에러 수정
+- `rag/vector-search.ts`: `fallback` 타입 추론 에러 수정
 
 **미완료 항목**:
-- A: 이력서 상세 페이지 스크롤 + 성장 추이 삭제 + 뱃지/버튼 스타일
-- B-1: 대시보드 면접 기록 5개 제한 제거 + 스크롤 + 이름 변경
-- B-2: 이력서 카드 정보 변경 (별도 이슈 분리 예정)
-- C: 랜딩페이지 8축 이름 엔진 기준 정렬
+- A: "성장 추이" 섹션 삭제 — 사용자 판단으로 삭제 취소, 스크롤로 대체
 
-**변경 파일**: 0개 (구현 계획 작성 완료, 구현 대기)
+**변경 파일**: 11개
 
