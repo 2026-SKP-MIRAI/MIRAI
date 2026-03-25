@@ -6,8 +6,8 @@ followup 질문과 weak_part 간 코사인 유사도 검증 + 재생성 루프.
 import logging
 from app.analyzers.overlap import cosine_similarity
 
-# text-embedding-3-small cross-form(질문↔서술) 쌍은 같은 토픽이어도 0.35~0.55 분포.
-# 0.4는 실무자 합의 "topically related" 임계값이며 무관 텍스트(<0.25)와 마진 확보.
+# 임베딩 모델의 cross-form(질문↔서술) 쌍은 같은 토픽이어도 유사도가 낮게 나옴.
+# 0.4는 실무자 합의 "topically related" 임계값이며 무관 텍스트와 충분한 마진 확보.
 # 근거: S. Anand (2024), OpenAI Community, Steck et al. (WWW 2024)
 OVERLAP_THRESHOLD: float = 0.4
 MAX_REGENERATION_ATTEMPTS: int = 2

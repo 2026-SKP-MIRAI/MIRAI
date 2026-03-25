@@ -18,9 +18,9 @@ def _get_client() -> OpenAI:
 
 
 def get_embeddings(
-    texts: list[str], model: str = "text-embedding-3-small"
+    texts: list[str], model: str = "baai/bge-m3"
 ) -> tuple[list[list[float]], None]:
-    """text-embedding-3-small (OpenRouter)으로 텍스트 임베딩 생성 (1536차원)"""
+    """baai/bge-m3 (OpenRouter)으로 텍스트 임베딩 생성 (1024차원)"""
     if not settings.openrouter_api_key:
         raise ValueError("OPENROUTER_API_KEY 환경변수가 설정되지 않았습니다")
     response = _get_client().embeddings.create(model=model, input=texts)
