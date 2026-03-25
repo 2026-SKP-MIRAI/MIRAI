@@ -166,10 +166,16 @@ def process_answer(
     if followup_data["shouldFollowUp"]:
         reasoning = followup_data.get("reasoning", "")
         weak_part = reasoning.strip() or currentAnswer
+        initial_question = followup_data.get("followupQuestion", "")
+
+        logger.info(
+            "[overlap] 검증 시작 — persona=%s, followupType=%s, question=%s",
+            currentPersona, followup_type, initial_question[:60],
+        )
 
         initial_fr = FollowupResponse(
             followupType=followup_type,
-            followupQuestion=followup_data.get("followupQuestion", ""),
+            followupQuestion=initial_question,
             reasoning=reasoning,
         )
         initial_usage = _usage_to_metadata(followup_raw_usage, followup_model)
@@ -192,9 +198,10 @@ def process_answer(
             initial_response=(initial_fr, initial_usage),
         )
 
+        regenerated = validated_fr.followupQuestion != initial_question
         logger.info(
-            "process_answer overlap 검증 완료: followupQuestion=%s",
-            validated_fr.followupQuestion,
+            "[overlap] 검증 완료 — persona=%s, 재생성=%s, 최종질문=%s",
+            currentPersona, regenerated, validated_fr.followupQuestion[:60],
         )
 
         # 꼬리질문 반환 — 큐는 변경하지 않음
@@ -286,23 +293,66 @@ async def process_answer_stream(
         # Path B/C: 꼬리질문 판단 (동기 LLM #1 → asyncio.to_thread)
         trailing = _count_trailing_persona(history, currentPersona)
         if trailing < MAX_FOLLOWUPS:
+            signals = analyze(currentAnswer)
+            followup_type = classify_pressure(signals)
             followup_data, _, _ = await asyncio.to_thread(
-                _check_followup, currentQuestion, currentAnswer, currentPersona, resumeText, model=model
+                _check_followup, currentQuestion, currentAnswer, currentPersona, resumeText, model=model, signals=signals
             )
         else:
             followup_data = {"shouldFollowUp": False}
 
         followup_question = followup_data.get("followupQuestion", "").strip()
         if followup_data["shouldFollowUp"] and followup_question:
+            # overlap 검증 (asyncio.to_thread으로 동기 함수 실행)
+            reasoning = followup_data.get("reasoning", "")
+            weak_part = reasoning.strip() or currentAnswer
+            initial_question = followup_question
+
+            logger.info(
+                "[overlap] 검증 시작 (stream) — persona=%s, followupType=%s, question=%s",
+                currentPersona, followup_type, initial_question[:60],
+            )
+
+            initial_fr = FollowupResponse(
+                followupType=followup_type,
+                followupQuestion=initial_question,
+                reasoning=reasoning,
+            )
+
+            def _regenerate_followup_stream():
+                d, u, m = _check_followup(
+                    currentQuestion, currentAnswer, currentPersona, resumeText, model=model, signals=signals
+                )
+                return FollowupResponse(
+                    followupType=followup_type,
+                    followupQuestion=d.get("followupQuestion", ""),
+                    reasoning=d.get("reasoning", ""),
+                ), _usage_to_metadata(u, m)
+
+            validated_fr, _ = await asyncio.to_thread(
+                validate_followup_overlap,
+                followup_question=initial_fr.followupQuestion,
+                weak_part=weak_part,
+                generate_fn=_regenerate_followup_stream,
+                get_embeddings_fn=get_embeddings,
+                initial_response=(initial_fr, None),
+            )
+
+            validated_question = validated_fr.followupQuestion
+            logger.info(
+                "[overlap] 검증 완료 (stream) — persona=%s, 재생성=%s, 최종질문=%s",
+                currentPersona, validated_question != initial_question, validated_question[:60],
+            )
+
             # Path B: 꼬리질문 — 페르소나 메타 먼저 전송 후 단어 단위 token 스트리밍
             yield _sse_meta(currentPersona, PERSONA_LABELS[currentPersona])
-            async for chunk in _stream_words(followup_question):
+            async for chunk in _stream_words(validated_question):
                 yield chunk
             yield _sse_done(InterviewAnswerResponse(
                 nextQuestion=QuestionWithPersona(
                     persona=currentPersona,
                     personaLabel=PERSONA_LABELS[currentPersona],
-                    question=followup_question,
+                    question=validated_question,
                     type="follow_up",
                 ),
                 updatedQueue=list(questionsQueue),
