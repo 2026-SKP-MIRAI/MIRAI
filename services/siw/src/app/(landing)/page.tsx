@@ -67,6 +67,30 @@ const PERSONAS = [
   },
 ]
 
+// NOTE: 면접 모드 설명은 interview/new/page.tsx 모드 선택 UI와 동기화 필요
+const INTERVIEW_MODES = [
+  {
+    icon: "⚡",
+    label: "실전",
+    tag: "tag-blue",
+    name: "실전 모드",
+    desc: "면접처럼 진행, 즉각 피드백 없음",
+    features: ["실전처럼 몰입", "즉각 피드백 없음", "전체 면접 완주"],
+    accentColor: "border-t-indigo-400",
+    iconBg: "bg-indigo-100 text-indigo-700",
+  },
+  {
+    icon: "📝",
+    label: "연습",
+    tag: "tag-purple",
+    name: "연습 모드",
+    desc: "즉각 AI 피드백, 재답변 가능",
+    features: ["즉각 AI 피드백", "재답변 가능", "약점 집중 훈련"],
+    accentColor: "border-t-violet-400",
+    iconBg: "bg-violet-100 text-violet-700",
+  },
+] as const;
+
 // NOTE: RadarChartInteractive.tsx의 AXES와 동일한 도메인 데이터
 // TODO: 향후 공유 상수로 추출 예정
 const EVALUATION_AXES = [
@@ -362,6 +386,32 @@ export default function LandingPage() {
                       <li key={j} className="text-xs text-[#6B7280] flex items-center gap-2">
                         <span className="w-1 h-1 rounded-full bg-[#D1D5DB] flex-shrink-0" />
                         {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
+
+          {/* ── 면접 모드 소개 ─────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {INTERVIEW_MODES.map((m, i) => (
+              <FadeInSection key={m.name} delay={i * 80}>
+                <div className={`glass-card glass-card-hover border-t-2 ${m.accentColor} rounded-2xl p-6 cursor-pointer h-full text-center`}>
+                  <div className="flex flex-col items-center mb-3">
+                    <div className={`w-10 h-10 rounded-full ${m.iconBg} flex items-center justify-center text-lg mb-2`}>
+                      {m.icon}
+                    </div>
+                    <span className={`tag ${m.tag}`}>{m.label}</span>
+                  </div>
+                  <h3 className="font-semibold text-[#111827] mb-1">{m.name}</h3>
+                  <p className="text-xs text-[#6B7280] mb-4">{m.desc}</p>
+                  <ul className="space-y-1.5">
+                    {m.features.map((f) => (
+                      <li key={f} className="text-xs text-[#6B7280] flex items-center justify-center gap-2">
+                        <span className="w-1 h-1 rounded-full bg-[#D1D5DB] flex-shrink-0" />
+                        {f}
                       </li>
                     ))}
                   </ul>

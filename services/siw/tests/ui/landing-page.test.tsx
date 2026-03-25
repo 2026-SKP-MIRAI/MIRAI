@@ -63,4 +63,16 @@ describe("LandingPage", () => {
     const link = screen.getByRole("link", { name: "평가시스템" })
     expect(link).toHaveAttribute("href", "#evaluation")
   })
+
+  it("페르소나 섹션 하단에 실전 모드 카드가 렌더링된다", () => {
+    render(<LandingPage />)
+    expect(screen.getByText(/실전 모드/)).toBeInTheDocument()
+    expect(screen.getByText(/즉각 피드백 없음/)).toBeInTheDocument()
+  })
+
+  it("페르소나 섹션 하단에 연습 모드 카드가 렌더링된다", () => {
+    render(<LandingPage />)
+    expect(screen.getByText(/연습 모드/)).toBeInTheDocument()
+    expect(screen.getByText(/즉각 AI 피드백/)).toBeInTheDocument()
+  })
 })
