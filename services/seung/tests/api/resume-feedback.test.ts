@@ -229,6 +229,14 @@ describe('POST /api/resume/feedback', () => {
       expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
     })
 
+    it('ENABLE_RAG=true + 검색 결과 0건 시 resume_context 미전달', async () => {
+      process.env.ENABLE_RAG = 'true'
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
+      mockSearchSimilarAcceptedResumes.mockResolvedValueOnce([])
+      await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
+
     it('ENABLE_RAG=true + 검색 throw 시 graceful degradation, 200 반환', async () => {
       process.env.ENABLE_RAG = 'true'
       mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })

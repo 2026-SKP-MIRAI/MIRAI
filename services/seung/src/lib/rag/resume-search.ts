@@ -14,6 +14,7 @@ export async function searchSimilarAcceptedResumes(
   topK = 5
 ): Promise<AcceptedResumeResult[]> {
   if (!ragPrisma) return []
+  if (embedding.length !== 1024 || !embedding.every(v => typeof v === 'number' && isFinite(v))) return []
 
   const vectorStr = `[${embedding.join(',')}]`
   const whereClause = jobRole ? Prisma.sql`WHERE job_role = ${jobRole}` : Prisma.empty

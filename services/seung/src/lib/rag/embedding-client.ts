@@ -7,8 +7,12 @@ export type EmbeddingResult = {
 
 export async function embedText(text: string): Promise<EmbeddingResult | null> {
   if (process.env.ENABLE_RAG !== 'true') return null
+  if (!text.trim()) return null
 
-  const resp = await fetch(`${process.env.ENGINE_BASE_URL ?? 'http://localhost:8000'}/api/embed`, {
+  const engineUrl = process.env.ENGINE_BASE_URL
+  if (!engineUrl) return null
+
+  const resp = await fetch(`${engineUrl}/api/embed`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ texts: [text] }),

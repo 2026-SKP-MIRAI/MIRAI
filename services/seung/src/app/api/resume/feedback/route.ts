@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       const embedding = await embedText(resume.resumeText)
       if (embedding) {
         const hits = await searchSimilarAcceptedResumes(embedding.vector, trimmedRole, 5)
-        resumeContext = hits.map((r) => r.content)
+        resumeContext = hits.length > 0 ? hits.map((r) => r.content) : undefined
       }
     } catch (err) {
       console.error('[resume/feedback] RAG pipeline failed, degrading', { err })
