@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma, mockCallEngineAnalyze, mockCallEngineQuestions, mockCreateClient } = vi.hoisted(() => ({
+const {
+  mockPrisma,
+  mockCallEngineAnalyze,
+  mockCallEngineQuestions,
+  mockCreateClient,
+} = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       create: vi.fn(),
@@ -264,4 +269,5 @@ describe('POST /api/resume/questions', () => {
     await POST(makeRequest(formData))
     expect(mockCallEngineQuestions).toHaveBeenCalledWith('extracted text', undefined)
   })
+
 })

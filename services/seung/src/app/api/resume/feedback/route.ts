@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callEngineFeedback } from '@/lib/engine-client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
+import { embedText } from '@/lib/rag/embedding-client'
+import { searchSimilarAcceptedResumes } from '@/lib/rag/resume-search'
 
 export const maxDuration = 45
-
-const ENGINE_FETCH_TIMEOUT_MS = 40_000
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -31,12 +32,12 @@ export async function POST(request: NextRequest) {
   if (!resumeId) {
     return NextResponse.json({ error: 'resumeId가 필요합니다.' }, { status: 400 })
   }
-  if (!targetRole || !targetRole.trim()) {
+  const trimmedRole = targetRole?.trim()
+  if (!trimmedRole) {
     return NextResponse.json({ error: 'targetRole이 필요합니다.' }, { status: 400 })
   }
 
-  const engineUrl = process.env.ENGINE_BASE_URL
-  if (!engineUrl) {
+  if (!process.env.ENGINE_BASE_URL) {
     return NextResponse.json({ error: '서버 설정 오류입니다.' }, { status: 500 })
   }
 
@@ -56,17 +57,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
+  let resumeContext: string[] | undefined
+  if (process.env.ENABLE_RAG === 'true' && process.env.RAG_DATABASE_URL) {
+    try {
+      const embedding = await embedText(resume.resumeText)
+      if (embedding) {
+        const hits = await searchSimilarAcceptedResumes(embedding.vector, trimmedRole, 5)
+        resumeContext = hits.length > 0 ? hits.map((r) => r.content) : undefined
+      }
+    } catch (err) {
+      console.error('[resume/feedback] RAG pipeline failed, degrading', { err })
+    }
+  }
+
   let engineResponse: Response
   try {
-    engineResponse = await fetch(`${engineUrl}/api/resume/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeText: resume.resumeText, targetRole: targetRole.trim() }),
-      signal: AbortSignal.timeout(ENGINE_FETCH_TIMEOUT_MS),
-    })
+    engineResponse = resumeContext
+      ? await callEngineFeedback(resume.resumeText, trimmedRole, resumeContext)
+      : await callEngineFeedback(resume.resumeText, trimmedRole)
   } catch (err) {
     console.error('[resume/feedback] engine fetch failed', { err })
-    // TODO: extract to shared fetchEngine wrapper
     if ((err as { name?: string }).name === 'TimeoutError') {
       return NextResponse.json({ error: '응답이 지연되고 있습니다. 다시 시도해주세요.' }, { status: 504 })
     }
