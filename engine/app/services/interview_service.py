@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 from app.analyzers import analyze
@@ -13,6 +14,8 @@ from app.schemas import (
 from app.services.llm_client import call_llm as _call_llm, parse_object as _parse_object, call_llm_stream, UsageInfo
 from app.services.embedding_service import get_embeddings
 from app.analyzers.followup_validator import validate_followup_overlap
+
+logger = logging.getLogger(__name__)
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 PERSONA_LABELS = {"hr": "HR 담당자", "tech_lead": "기술팀장", "executive": "경영진"}
@@ -152,27 +155,59 @@ def process_answer(
     # 2. 꼬리질문 필요 여부 판단 (LLM 1회) — 동일 페르소나 MAX_FOLLOWUPS 초과 시 스킵
     trailing = _count_trailing_persona(history, currentPersona)
     if trailing < MAX_FOLLOWUPS:
-        # NOTE: process_answer 경로는 overlap 검증 미적용.
-        # 이유: shouldFollowUp 판단(LLM)의 followupQuestion을 그대로 사용하며,
-        # /api/interview/followup 전용 generate_followup과 달리 별도 품질 검증 불필요.
+        signals = analyze(currentAnswer)
+        followup_type = classify_pressure(signals)
         followup_data, followup_raw_usage, followup_model = _check_followup(
-            currentQuestion, currentAnswer, currentPersona, resumeText, model=model
+            currentQuestion, currentAnswer, currentPersona, resumeText, model=model, signals=signals
         )
     else:
         followup_data, followup_raw_usage, followup_model = {"shouldFollowUp": False}, None, ""
 
     if followup_data["shouldFollowUp"]:
+        reasoning = followup_data.get("reasoning", "")
+        weak_part = reasoning.strip() or currentAnswer
+
+        initial_fr = FollowupResponse(
+            followupType=followup_type,
+            followupQuestion=followup_data.get("followupQuestion", ""),
+            reasoning=reasoning,
+        )
+        initial_usage = _usage_to_metadata(followup_raw_usage, followup_model)
+
+        def _regenerate_followup():
+            d, u, m = _check_followup(
+                currentQuestion, currentAnswer, currentPersona, resumeText, model=model, signals=signals
+            )
+            return FollowupResponse(
+                followupType=followup_type,
+                followupQuestion=d.get("followupQuestion", ""),
+                reasoning=d.get("reasoning", ""),
+            ), _usage_to_metadata(u, m)
+
+        validated_fr, validated_usage = validate_followup_overlap(
+            followup_question=initial_fr.followupQuestion,
+            weak_part=weak_part,
+            generate_fn=_regenerate_followup,
+            get_embeddings_fn=get_embeddings,
+            initial_response=(initial_fr, initial_usage),
+        )
+
+        logger.info(
+            "process_answer overlap 검증 완료: followupQuestion=%s",
+            validated_fr.followupQuestion,
+        )
+
         # 꼬리질문 반환 — 큐는 변경하지 않음
         return InterviewAnswerResponse(
             nextQuestion=QuestionWithPersona(
                 persona=currentPersona,
                 personaLabel=PERSONA_LABELS[currentPersona],
-                question=followup_data.get("followupQuestion", ""),
+                question=validated_fr.followupQuestion,
                 type="follow_up",
             ),
             updatedQueue=list(questionsQueue),
             sessionComplete=False,
-        ), _usage_to_metadata(followup_raw_usage, followup_model)
+        ), validated_usage
 
     # 3. 꼬리질문 불필요 → 큐에서 다음 질문 생성 (LLM 1회)
     next_item = questionsQueue[0]
