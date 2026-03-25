@@ -54,3 +54,22 @@
 
 **변경 파일**: 2개 (`interview_service.py`, `test_interview_service.py`)
 
+### 2026-03-25 (2차 — 임계값 완화 + 코드 간소화)
+
+**현황**: OVERLAP_THRESHOLD 0.5 → 0.4 완화 + 검증 로직 최적화
+
+**완료된 항목**:
+- `OVERLAP_THRESHOLD` 0.5 → 0.4 완화 — text-embedding-3-small cross-form(질문↔서술) 쌍이 같은 토픽이어도 0.35~0.55에 분포, 0.5는 false rejection 빈번
+- weak_part 임베딩 캐싱 — 루프 밖에서 1회만 임베딩하여 API 비용 절감 (재생성 시 50% 절감)
+- 빈 followupQuestion 가드 추가 — 재생성 결과가 빈 문자열이면 즉시 반환
+- single-pass 코사인 유사도 최적화 — 3N → 1N 루프 (1536차원 벡터)
+- 테스트 업데이트 — mock 패턴 변경 + 빈 질문/question 임베딩 실패 케이스 2개 추가 (66/66 PASS)
+- `engine/.ai.md` 임계값 0.4 반영
+
+**근거 출처**:
+- S. Anand (2024) "Embeddings Similarity Threshold"
+- OpenAI Community "Rule of thumb cosine similarity thresholds"
+- Steck et al. (WWW 2024) "Is Cosine-Similarity of Embeddings Really About Similarity?"
+
+**변경 파일**: 4개 (`followup_validator.py`, `overlap.py`, `test_followup_validator.py`, `engine/.ai.md`)
+

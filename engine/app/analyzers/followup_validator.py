@@ -6,6 +6,9 @@ followup 질문과 weak_part 간 코사인 유사도 검증 + 재생성 루프.
 import logging
 from app.analyzers.overlap import cosine_similarity
 
+# text-embedding-3-small cross-form(질문↔서술) 쌍은 같은 토픽이어도 0.35~0.55 분포.
+# 0.4는 실무자 합의 "topically related" 임계값이며 무관 텍스트(<0.25)와 마진 확보.
+# 근거: S. Anand (2024), OpenAI Community, Steck et al. (WWW 2024)
 OVERLAP_THRESHOLD: float = 0.4
 MAX_REGENERATION_ATTEMPTS: int = 2
 logger = logging.getLogger(__name__)
@@ -34,14 +37,22 @@ def validate_followup_overlap(
     current_response = initial_response
     current_question = followup_question
 
+    # weak_part는 루프 중 변하지 않으므로 한 번만 임베딩
+    try:
+        weak_emb, _ = get_embeddings_fn([weak_part])
+    except Exception as e:
+        logger.warning("weak_part embedding 실패, 검증 스킵: %s", e)
+        return current_response
+    weak_vec = weak_emb[0]
+
     for attempt in range(MAX_REGENERATION_ATTEMPTS):
         try:
-            embeddings, _ = get_embeddings_fn([current_question, weak_part])
+            q_emb, _ = get_embeddings_fn([current_question])
         except Exception as e:
             logger.warning("embedding 실패, 검증 스킵: %s", e)
             return current_response
 
-        score = cosine_similarity(embeddings[0], embeddings[1])
+        score = cosine_similarity(q_emb[0], weak_vec)
 
         if score >= OVERLAP_THRESHOLD:
             logger.info(
@@ -60,6 +71,10 @@ def validate_followup_overlap(
         )
         current_response = generate_fn()
         current_question = current_response[0].followupQuestion
+
+        if not current_question:
+            logger.warning("재생성된 followupQuestion이 비어 있음, 현재 결과 반환")
+            return current_response
 
     logger.info("최대 재생성 횟수 도달, 마지막 결과 반환")
     return current_response

@@ -18,9 +18,13 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     Returns:
         코사인 유사도 [-1.0, 1.0]. zero vector 입력 시 0.0 반환.
     """
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(y * y for y in b))
-    if norm_a == 0.0 or norm_b == 0.0:
+    dot = 0.0
+    norm_a_sq = 0.0
+    norm_b_sq = 0.0
+    for x, y in zip(a, b):
+        dot += x * y
+        norm_a_sq += x * x
+        norm_b_sq += y * y
+    if norm_a_sq == 0.0 or norm_b_sq == 0.0:
         return 0.0
-    return dot / (norm_a * norm_b)
+    return dot / (math.sqrt(norm_a_sq) * math.sqrt(norm_b_sq))
