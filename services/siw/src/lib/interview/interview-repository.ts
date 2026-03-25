@@ -138,6 +138,7 @@ export const interviewRepository = {
     reportScores: unknown;
     reportTotalScore: number;
     reportJson: unknown;
+    resume: { fileName: string; inferredTargetRole: string | null } | null;
   }>> {
     const sessions = await prisma.interviewSession.findMany({
       where: {
@@ -154,6 +155,7 @@ export const interviewRepository = {
         reportScores: true,
         reportTotalScore: true,
         reportJson: true,
+        resume: { select: { fileName: true, inferredTargetRole: true } },
       },
     });
     return sessions.map(s => ({

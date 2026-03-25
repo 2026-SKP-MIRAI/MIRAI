@@ -3,14 +3,14 @@
 import React, { useState, useCallback } from "react";
 
 const AXES = [
-  { name: "기술 정확도", weight: "20%", desc: "개념이 사실에 기반하는가",               current: 78, prev: 65 },
-  { name: "설명 명확도", weight: "15%", desc: "이해하기 쉽게 설명했는가",               current: 82, prev: 70 },
-  { name: "문제 해결",   weight: "15%", desc: "문제를 구조적으로 접근했는가",           current: 75, prev: 65 },
-  { name: "의사소통",   weight: "15%", desc: "의도가 명확하게 전달됐는가",              current: 88, prev: 75 },
-  { name: "논리 흐름",  weight: "10%", desc: "답변의 흐름이 일관적인가",                current: 76, prev: 68 },
-  { name: "구체성",     weight: "10%", desc: "사례와 수치로 뒷받침했는가",              current: 72, prev: 62 },
-  { name: "자신감",     weight: "10%", desc: "확신 있게 답변했는가",                    current: 85, prev: 72 },
-  { name: "적응력",     weight:  "5%", desc: "예상치 못한 질문에 유연하게 대응했는가",  current: 80, prev: 70 },
+  { name: "의사소통",     desc: "의도가 명확하게 전달됐는가",           current: 88, prev: 75 },
+  { name: "문제해결",     desc: "문제를 구조적으로 접근했는가",         current: 75, prev: 65 },
+  { name: "논리적 사고",  desc: "답변의 흐름이 일관적인가",             current: 76, prev: 68 },
+  { name: "직무 전문성",  desc: "직무 관련 지식이 정확한가",            current: 78, prev: 65 },
+  { name: "조직 적합성",  desc: "조직 문화와 가치에 부합하는가",        current: 72, prev: 62 },
+  { name: "리더십",       desc: "주도적으로 이끌어간 경험이 있는가",    current: 82, prev: 70 },
+  { name: "창의성",       desc: "새로운 시각으로 접근했는가",           current: 85, prev: 72 },
+  { name: "성실성",       desc: "꾸준히 노력한 과정이 드러나는가",      current: 80, prev: 70 },
 ] as const;
 
 type AxisIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -55,7 +55,6 @@ function AxisRow({ axis, isActive, isInactive, onEnter, onLeave }: AxisRowProps)
       <div className="axis-row__header">
         <div className="axis-row__meta">
           <span className="axis-row__name">{axis.name}</span>
-          <span className="axis-row__weight">{axis.weight}</span>
         </div>
         <div className="axis-row__scores">
           <span className="axis-row__prev-score">{axis.prev}점</span>

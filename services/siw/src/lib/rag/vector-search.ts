@@ -78,7 +78,7 @@ export function extractTrendSkills(
   if (Object.keys(freq).length === 0) {
     // fallback: role 기반 정적 스킬 목록
     const fallbackRole = postings[0]?.jobRole
-    const fallback = (fallbackRole && TECH_SKILLS[fallbackRole]) ?? []
+    const fallback: string[] = (fallbackRole ? TECH_SKILLS[fallbackRole] : undefined) ?? []
     return fallback.slice(0, 10).map((skill, i) => ({
       skill,
       weight: Math.max(0.1, 1 - i * 0.1),

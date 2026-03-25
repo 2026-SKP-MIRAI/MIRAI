@@ -13,6 +13,7 @@ type ResumeItem = {
   uploadedAt: string
   questionCount: number
   categories: string[]
+  inferredTargetRole: string | null
 }
 
 function formatDate(iso: string) {
@@ -93,13 +94,13 @@ export default function ResumesPage() {
                       <p className="font-bold text-gray-900">{resume.fileName}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{formatDate(resume.uploadedAt)}</p>
                     </div>
-                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800 shrink-0">
+                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-emerald-500 text-emerald-600 bg-transparent shrink-0">
                       활성
                     </span>
                   </div>
 
                   <div className="mt-3 bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-500 border border-black/[0.05] truncate">
-                    {resume.fileName}
+                    {resume.inferredTargetRole || resume.fileName}
                   </div>
 
                   <div className="flex gap-2 mt-3 items-center">
@@ -119,7 +120,7 @@ export default function ResumesPage() {
                     <button
                       onClick={() => handleDelete(resume.id)}
                       disabled={deletingId === resume.id}
-                      className="ml-auto flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+                      className="ml-auto flex items-center gap-1.5 border border-red-400 text-red-500 hover:bg-red-50 bg-transparent rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       {deletingId === resume.id ? "삭제 중..." : "삭제"}

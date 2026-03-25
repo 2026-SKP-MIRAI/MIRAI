@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       resumeText,
       questions: engineData.questions ?? [],
       feedbackJson: feedbackJson ?? null,
-      trendComparison: trendComparison ?? null,
+      trendComparison: trendComparison ? JSON.parse(JSON.stringify(trendComparison)) : undefined,
       inferredTargetRole: normalizedRole,
     })
 
@@ -181,6 +181,7 @@ export async function GET() {
       uploadedAt: r.createdAt.toISOString(),
       questionCount: Array.isArray(r.questions) ? (r.questions as unknown[]).length : 0,
       categories: [] as string[],
+      inferredTargetRole: r.inferredTargetRole ?? null,
     }))
     return NextResponse.json(result)
   } catch (err) {

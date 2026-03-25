@@ -1,0 +1,106 @@
+# feat: [siw] 면접 기록 섹션 스크롤 추가
+
+## 사용자 관점 목표
+면접 기록이 많아질수록 섹션이 끝없이 길어지는 문제를 해결하여 레이아웃이 균형 있게 유지된다. 또한 활성 뱃지와 삭제 버튼의 스타일을 배경 채움에서 테두리 방식으로 변경하여 UI 일관성을 높인다.
+
+## 배경
+`resumes/[id]/page.tsx`의 성장 요약 섹션(`/* 성장 요약 */`, line 292~)은 `sessions.map()`으로 항목을 렌더링하는데 높이 제한이 없어 기록이 쌓일수록 섹션이 무한정 길어진다. 바로 옆 8축 역량 평가 섹션과 높이가 맞지 않아 레이아웃이 무너진다.
+
+추가로 활성 상태 뱃지와 삭제 버튼이 배경 색 채움 방식으로 되어 있어 outline 스타일로 변경한다.
+
+## 완료 기준
+
+### A. 이력서 상세 페이지 (`resumes/[id]/page.tsx`)
+- [ ] 면접 기록 리스트 컨테이너에 `max-h` + `overflow-y-auto` 적용하여 일정 높이 초과 시 내부 스크롤
+- [ ] `max-h` 값은 8축 역량 평가 섹션의 콘텐츠 영역 높이와 시각적으로 동일하게 설정
+- [ ] 스크롤바 스타일 적용 (`scrollbar-thin`, 브랜드 컬러 또는 gray 계열)
+- [ ] 활성 뱃지: `bg-emerald-100 text-emerald-800` → `border border-emerald-500 text-emerald-600 bg-transparent`
+- [ ] 삭제 버튼: `bg-red-50 hover:bg-red-100 text-red-600` → `border border-red-400 text-red-500 hover:bg-red-50 bg-transparent`
+- [ ] "성장 추이" 섹션 (`-7점 향상` 뱃지 포함) 삭제
+
+### B. 대시보드 페이지 (`dashboard/page.tsx`)
+
+#### B-1. 최근 면접 기록 섹션
+- [ ] 5개 제한 제거 → 전체 면접 기록 출력
+- [ ] 영역 초과 시 내부 스크롤로 볼 수 있도록 `max-h` + `overflow-y-auto` 적용
+- [ ] 면접 이름 표시 변경: `"N번째 면접"` → 면접에 사용된 자소서 이름으로 출력
+
+#### B-2. 이력서 카드 정보 표시 수정
+- [ ] 이력서 카드 하단 (`자소서_004_개발자.pdf` 영역): 파일명 대신 이력서 분석 후 추출된 **직무명** 출력
+- [ ] 이력서 카드 날짜 영역 (`3월 25일`): 날짜 대신 **이력서 이름** 출력
+- [ ] 이력서 카드 설명 영역 (`엑스솔콥코리아 / 모빌리티 & 금융 SI / 2025 …`): 회사·직무 텍스트 대신 **면접 본 날짜** 출력
+
+### C. 랜딩페이지 8축 이름 엔진 기준 정렬
+- [ ] 랜딩페이지 8축 이름을 엔진 기준(`communication`, `leadership`, `problemSolving`, `logicalThinking`, `jobExpertise`, `cultureFit`, `creativity`, `sincerity`)의 한글명으로 변경
+- [ ] 각 축의 퍼센트 가중치 표시 제거 (엔진은 공식 기반 0-100점이므로 단순 퍼센트 비중 표기가 부정확)
+- [ ] `RadarChartInteractive.tsx`의 AXES 데이터 수정
+- [ ] `page.tsx`의 EVALUATION_AXES 데이터 수정
+
+## 배경 (C: 랜딩페이지 8축)
+랜딩페이지(`RadarChartInteractive.tsx`, `page.tsx`)의 8축 평가 항목이 실제 엔진(`report_service.py`)의 평가 축과 이름·가중치 모두 불일치한다.
+
+**현재 랜딩페이지:**
+기술 정확도(20%), 설명 명확도(15%), 문제 해결(15%), 의사소통(15%), 논리 흐름(10%), 구체성(10%), 자신감(10%), 적응력(5%)
+
+**실제 엔진 8축:**
+의사소통, 리더십, 문제해결, 논리적 사고, 직무 전문성, 조직 적합성, 창의성, 성실성
+
+## 구현 플랜
+1. `resumes/[id]/page.tsx` — 성장 요약 스크롤 + 성장 추이 삭제 + 뱃지/버튼 스타일 수정
+2. `dashboard/page.tsx` — 면접 기록 전체 출력 + 스크롤 + 이름 표시 변경 + 이력서 카드 정보 매핑 수정
+3. `RadarChartInteractive.tsx` + 랜딩 `page.tsx` — 8축 이름·가중치 수정
+4. 각 변경사항에 대한 테스트 작성
+
+## 개발 체크리스트
+- [ ] 테스트 코드 포함
+- [ ] 해당 디렉토리 .ai.md 최신화
+- [ ] 불변식 위반 없음
+
+---
+
+## 작업 내역
+
+### 2026-03-25
+
+**현황**: 15/16 완료
+
+**완료된 항목**:
+
+A. 이력서 상세 페이지:
+- `resumes/[id]/page.tsx`: 성장 요약 섹션에 `max-h-[280px] overflow-y-auto` 스크롤 적용
+- `resumes/[id]/page.tsx`: "분석 완료" 활성 뱃지를 border-based 스타일로 변경
+- `resumes/page.tsx`: "활성" 뱃지를 border-based 스타일로 변경
+- `resumes/page.tsx`: 삭제 버튼을 border-based 스타일로 변경
+
+B-1. 대시보드:
+- `dashboard/page.tsx`: `sessions.slice(0, 5)` 제거 → 전체 출력
+- `dashboard/page.tsx`: `max-h-[480px] overflow-y-auto` 스크롤 적용
+- `dashboard/page.tsx`: 면접 이름을 PDF 파일명(`resumeFileName`)으로 표시
+
+B-2. growth 페이지 면접 기록:
+- `growth/page.tsx`: 이력서 이름↔날짜 위치 스왑
+- `growth/page.tsx`: PDF 파일명(`resumeFileName`)으로 표시
+- `growth/page.tsx`: `max-h-[320px] overflow-y-auto` 스크롤 적용
+
+C. 랜딩페이지 8축:
+- `RadarChartInteractive.tsx`: AXES 이름을 엔진 기준으로 변경, weight 제거
+- `(landing)/page.tsx`: EVALUATION_AXES 이름 엔진 기준 변경, weight 제거
+- `(landing)/page.tsx`: 8축 카드에 Lucide 아이콘 + violet/indigo 그라디언트 적용
+- `(landing)/page.tsx`: '면접 시작' 링크를 `/interview/new`로 변경
+
+백엔드:
+- `interview-repository.ts`: `listCompleted`에 resume relation include
+- `types.ts`: `GrowthSession`에 `resumeFileName` 추가, `resumeLabel` 제거
+- `api/growth/sessions/route.ts`: `resumeFileName` 반환
+- `api/resumes/route.ts`: GET에 `inferredTargetRole` 반환
+- `resumes/page.tsx`: 이력서 카드 하단에 직무명(`inferredTargetRole`) 표시
+
+기존 빌드 에러 수정:
+- `api/resumes/route.ts`: `trendComparison` 타입 에러 수정
+- `rag/vector-search.ts`: `fallback` 타입 추론 에러 수정
+
+**미완료 항목**:
+- A: "성장 추이" 섹션 삭제 — 사용자 판단으로 삭제 취소, 스크롤로 대체
+
+**변경 파일**: 11개
+

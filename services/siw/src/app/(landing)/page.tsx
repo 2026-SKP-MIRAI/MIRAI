@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { FileText, Users, Zap } from "lucide-react"
+import { FileText, Users, Zap, MessageCircle, PuzzleIcon, Brain, Target, Handshake, Rocket, Lightbulb, TrendingUp } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LayeredCardWrapper from "@/components/landing/LayeredCardWrapper"
@@ -70,14 +70,14 @@ const PERSONAS = [
 // NOTE: RadarChartInteractive.tsx의 AXES와 동일한 도메인 데이터
 // TODO: 향후 공유 상수로 추출 예정
 const EVALUATION_AXES = [
-  { name: "기술 정확도", weight: 20, desc: "개념이 사실에 기반하는가" },
-  { name: "설명 명확도", weight: 15, desc: "이해하기 쉽게 설명했는가" },
-  { name: "문제 해결",   weight: 15, desc: "체계적 접근 방식을 보였는가" },
-  { name: "의사소통",   weight: 15, desc: "논리적이고 간결한가" },
-  { name: "논리 흐름",  weight: 10, desc: "답변 간 일관성이 있는가" },
-  { name: "구체성",     weight: 10, desc: "수치와 사례를 포함했는가" },
-  { name: "자신감",     weight:  8, desc: "확신을 가지고 답변했는가" },
-  { name: "적응력",     weight:  7, desc: "후속 질문에 유연하게 대응했는가" },
+  { name: "의사소통",     Icon: MessageCircle, iconColor: "text-violet-500",  iconBg: "from-violet-50 to-purple-50",  desc: "의도가 명확하게 전달됐는가" },
+  { name: "문제해결",     Icon: PuzzleIcon,    iconColor: "text-indigo-500",  iconBg: "from-indigo-50 to-violet-50",  desc: "문제를 구조적으로 접근했는가" },
+  { name: "논리적 사고",  Icon: Brain,         iconColor: "text-purple-500",  iconBg: "from-purple-50 to-indigo-50",  desc: "답변의 흐름이 일관적인가" },
+  { name: "직무 전문성",  Icon: Target,        iconColor: "text-indigo-600",  iconBg: "from-indigo-50 to-blue-50",    desc: "직무 관련 지식이 정확한가" },
+  { name: "조직 적합성",  Icon: Handshake,     iconColor: "text-violet-600",  iconBg: "from-violet-50 to-indigo-50",  desc: "조직 문화와 가치에 부합하는가" },
+  { name: "리더십",       Icon: Rocket,        iconColor: "text-purple-600",  iconBg: "from-purple-50 to-violet-50",  desc: "주도적으로 이끌어간 경험이 있는가" },
+  { name: "창의성",       Icon: Lightbulb,     iconColor: "text-indigo-500",  iconBg: "from-blue-50 to-indigo-50",    desc: "새로운 시각으로 접근했는가" },
+  { name: "성실성",       Icon: TrendingUp,    iconColor: "text-violet-500",  iconBg: "from-purple-50 to-violet-50",  desc: "꾸준히 노력한 과정이 드러나는가" },
 ]
 
 // ─── FadeInSection ────────────────────────────────────────────────────────
@@ -396,9 +396,9 @@ export default function LandingPage() {
             {EVALUATION_AXES.map((axis, i) => (
               <FadeInSection key={i} delay={i * 60}>
                 <div className="bg-white rounded-2xl p-5 border border-black/6 hover:-translate-y-1 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-50 transition-all duration-200 h-full">
-                  <span className="inline-block text-xs font-bold text-[#6D28D9] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full mb-3">
-                    {axis.weight}%
-                  </span>
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${axis.iconBg} flex items-center justify-center mb-4`}>
+                    <axis.Icon className={`w-6 h-6 ${axis.iconColor}`} />
+                  </div>
                   <p className="text-sm font-bold text-[#1F2937] mb-1">{axis.name}</p>
                   <p className="text-xs text-[#9CA3AF]">{axis.desc}</p>
                 </div>
@@ -442,7 +442,7 @@ export default function LandingPage() {
             <p className="text-xs text-[#9CA3AF] mt-0.5">AI 모의면접 코치</p>
           </div>
           <div className="flex gap-6 text-sm text-[#6B7280]">
-            <Link href="/dashboard" className="hover:text-[#4F46E5] transition-colors duration-150">
+            <Link href="/interview/new" className="hover:text-[#4F46E5] transition-colors duration-150">
               면접 시작
             </Link>
             <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">
