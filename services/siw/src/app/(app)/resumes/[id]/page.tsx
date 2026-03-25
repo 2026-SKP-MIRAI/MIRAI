@@ -130,7 +130,7 @@ export default function ResumeDetailPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{resume.fileName}</h1>
-            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800">분석 완료</span>
+            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold border border-emerald-500 text-emerald-600 bg-transparent">분석 완료</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">{formatDate(resume.uploadedAt)} 저장</p>
         </div>
@@ -300,7 +300,7 @@ export default function ResumeDetailPage() {
               <p className="text-sm text-gray-400">이 이력서로 면접을 완료하면 성장 기록이 표시됩니다.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="max-h-[280px] overflow-y-auto space-y-2">
               {sessions.map((s, i) => (
                 <Link
                   key={s.id}

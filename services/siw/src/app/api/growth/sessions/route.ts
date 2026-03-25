@@ -23,6 +23,7 @@ export async function GET() {
         reportTotalScore: s.reportTotalScore,
         scores: s.reportScores as AxisScores,
         resumeLabel: s.resumeText.slice(0, 30) + (s.resumeText.length > 30 ? "…" : ""),
+        resumeFileName: s.resume?.fileName ?? "이력서",
         axisFeedbacks: rj?.axisFeedbacks ?? undefined,
       };
     });

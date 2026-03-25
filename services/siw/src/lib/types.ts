@@ -68,6 +68,7 @@ export type GrowthSession = {
   reportTotalScore: number;
   scores: AxisScores;
   resumeLabel: string;
+  resumeFileName: string;
   axisFeedbacks?: AxisFeedback[];
 };
 

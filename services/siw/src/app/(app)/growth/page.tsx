@@ -286,6 +286,7 @@ export default function GrowthPage() {
           {/* 세션 목록 */}
           <motion.div variants={itemVariants} className="bg-white/90 border border-black/[0.08] rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all">
             <h3 className="text-sm font-bold text-gray-900 mb-3">면접 기록</h3>
+            <div className="max-h-[320px] overflow-y-auto">
             {sessions.map(s => (
               <button
                 key={s.id}
@@ -297,12 +298,13 @@ export default function GrowthPage() {
                 }`}
               >
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">{formatDate(s.createdAt)}</p>
-                  <p className="text-[11px] text-gray-400 truncate max-w-[120px]">{s.resumeLabel}</p>
+                  <p className="text-xs font-semibold text-gray-900">{s.resumeFileName || "이력서"}</p>
+                  <p className="text-[11px] text-gray-400 truncate max-w-[120px]">{formatDate(s.createdAt)}</p>
                 </div>
                 <span className="text-sm font-bold text-gray-700">{s.reportTotalScore}점</span>
               </button>
             ))}
+            </div>
           </motion.div>
 
           {/* 선택된 세션 8축 */}
