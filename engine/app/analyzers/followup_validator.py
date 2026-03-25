@@ -6,7 +6,7 @@ followup 질문과 weak_part 간 코사인 유사도 검증 + 재생성 루프.
 import logging
 from app.analyzers.overlap import cosine_similarity
 
-OVERLAP_THRESHOLD: float = 0.5
+OVERLAP_THRESHOLD: float = 0.4
 MAX_REGENERATION_ATTEMPTS: int = 2
 logger = logging.getLogger(__name__)
 
