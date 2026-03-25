@@ -1,3 +1,6 @@
+import json
+import math
+
 import pytest
 from unittest.mock import MagicMock, patch
 from pydantic import ValidationError
@@ -21,6 +24,20 @@ def make_mock_llm_side_effect(contents: list[str]):
         MagicMock(choices=[MagicMock(message=MagicMock(content=c))], usage=usage_mock) for c in contents
     ]
     return fake
+
+
+def make_embeddings_fn(scores: list[float]):
+    """주어진 score 목록을 순서대로 반환하는 mock embedding 함수."""
+    call_count = [0]
+
+    def _fn(texts):
+        idx = min(call_count[0], len(scores) - 1)
+        s = max(-1.0, min(1.0, scores[idx]))
+        call_count[0] += 1
+        b = math.sqrt(max(0.0, 1.0 - s ** 2))
+        return [[1.0, 0.0], [s, b]], None
+
+    return _fn
 
 
 # ── 사이클 1: 스키마 유효성 ─────────────────────────────────────────────────
@@ -275,31 +292,17 @@ class TestGenerateFollowupOverlap:
     """
 
     def _make_check_followup_response(self, question: str = "꼬리질문", reasoning: str = "근거"):
-        import json
         return json.dumps({
             "shouldFollowUp": True,
             "followupQuestion": question,
             "reasoning": reasoning,
         })
 
-    def _make_embeddings_fn(self, scores: list[float]):
-        """주어진 score 목록을 순서대로 반환하는 mock embedding 함수."""
-        import math
-        call_count = [0]
-
-        def _fn(texts):
-            idx = min(call_count[0], len(scores) - 1)
-            s = max(-1.0, min(1.0, scores[idx]))
-            call_count[0] += 1
-            b_component = math.sqrt(max(0.0, 1.0 - s ** 2))
-            return [[1.0, 0.0], [s, b_component]], None
-        return _fn
-
     def test_overlap_sufficient_no_regeneration(self):
         """overlap >= 0.5 → 재생성 없음, _check_followup 1회만 호출"""
         from app.services.interview_service import generate_followup
         llm_mock = make_mock_llm(self._make_check_followup_response("좋은 질문", "약점 근거"))
-        emb_fn = self._make_embeddings_fn([0.8])
+        emb_fn = make_embeddings_fn([0.8])
 
         with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
              patch("app.services.interview_service.get_embeddings", side_effect=emb_fn):
@@ -315,7 +318,7 @@ class TestGenerateFollowupOverlap:
             self._make_check_followup_response("첫번째 질문", "첫번째 근거"),
             self._make_check_followup_response("재생성 질문", "재생성 근거"),
         ])
-        emb_fn = self._make_embeddings_fn([0.2, 0.8])
+        emb_fn = make_embeddings_fn([0.2, 0.8])
 
         with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
              patch("app.services.interview_service.get_embeddings", side_effect=emb_fn):
@@ -372,3 +375,73 @@ class TestGenerateFollowupOverlap:
 
         if captured_texts:
             assert captured_texts[1] == "답변 텍스트"
+
+
+# ── process_answer overlap 검증 통합 테스트 ─────────────────────────────────
+
+class TestProcessAnswerOverlap:
+    """process_answer의 shouldFollowUp=True 경로에서 overlap 검증 루프 테스트."""
+
+    def _make_followup_response(self, question: str = "꼬리질문", reasoning: str = "약점 근거"):
+        return json.dumps({
+            "shouldFollowUp": True,
+            "followupQuestion": question,
+            "reasoning": reasoning,
+        })
+
+    def _make_queue_and_history(self):
+        from app.schemas import QueueItem, HistoryItem
+        queue = [QueueItem(persona="tech_lead", type="main")]
+        history = [HistoryItem(persona="hr", personaLabel="HR 담당자", question="질문", answer="답변")]
+        return queue, history
+
+    def test_overlap_sufficient_no_regeneration(self):
+        """overlap >= 0.5 → 재생성 없음, _check_followup 1회만 호출"""
+        queue, history = self._make_queue_and_history()
+        llm_mock = make_mock_llm(self._make_followup_response("좋은 꼬리질문", "약점 근거"))
+        emb_fn = make_embeddings_fn([0.8])
+
+        with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
+             patch("app.services.interview_service.get_embeddings", side_effect=emb_fn):
+            from app.services.interview_service import process_answer
+            result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "내 답변")
+
+        assert result.nextQuestion is not None
+        assert result.nextQuestion.type == "follow_up"
+        assert result.nextQuestion.question == "좋은 꼬리질문"
+        assert llm_mock.chat.completions.create.call_count == 1
+
+    def test_overlap_low_triggers_regeneration(self):
+        """overlap < 0.5 → 재생성 1회 → _check_followup 2회 호출"""
+        queue, history = self._make_queue_and_history()
+        llm_mock = make_mock_llm_side_effect([
+            self._make_followup_response("첫번째 질문", "첫번째 근거"),
+            self._make_followup_response("재생성 질문", "재생성 근거"),
+        ])
+        emb_fn = make_embeddings_fn([0.2, 0.8])
+
+        with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
+             patch("app.services.interview_service.get_embeddings", side_effect=emb_fn):
+            from app.services.interview_service import process_answer
+            result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "내 답변")
+
+        assert result.nextQuestion is not None
+        assert result.nextQuestion.question == "재생성 질문"
+        assert llm_mock.chat.completions.create.call_count == 2
+
+    def test_embedding_failure_returns_initial_result(self):
+        """embedding 실패 → 초기 꼬리질문 반환, 예외 전파 없음"""
+        queue, history = self._make_queue_and_history()
+        llm_mock = make_mock_llm(self._make_followup_response("초기 질문", "근거"))
+
+        def failing_emb(texts):
+            raise RuntimeError("API 장애")
+
+        with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
+             patch("app.services.interview_service.get_embeddings", side_effect=failing_emb):
+            from app.services.interview_service import process_answer
+            result, _ = process_answer("이력서", history, queue, "현재 질문", "hr", "내 답변")
+
+        assert result.nextQuestion is not None
+        assert result.nextQuestion.question == "초기 질문"
+        assert result.nextQuestion.type == "follow_up"
