@@ -442,7 +442,7 @@ export default function LandingPage() {
             <p className="text-xs text-[#9CA3AF] mt-0.5">AI 모의면접 코치</p>
           </div>
           <div className="flex gap-6 text-sm text-[#6B7280]">
-            <Link href="/dashboard" className="hover:text-[#4F46E5] transition-colors duration-150">
+            <Link href="/interview/new" className="hover:text-[#4F46E5] transition-colors duration-150">
               면접 시작
             </Link>
             <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">
