@@ -1,5 +1,5 @@
 ---
-description: 경로별 CHANGELOG.md를 최신 git 로그 기준으로 업데이트한다. 사용법: /update-changelog [root|engine|lww|kwan|seung|siw] [since:<날짜|태그>]
+description: 경로별 CHANGELOG.md를 최신 git 로그 기준으로 업데이트한다. 사용법: /update-changelog [root|engine|fint|kwan|seung|siw] [since:<날짜|태그>]
 ---
 
 당신은 MirAI 팀의 `/update-changelog` 커맨드를 실행하고 있습니다.
@@ -7,7 +7,7 @@ description: 경로별 CHANGELOG.md를 최신 git 로그 기준으로 업데이�
 ## 인수 파싱
 
 `$ARGUMENTS`에서 다음을 추출한다:
-- **scope** (선택): `root` | `engine` | `lww` | `kwan` | `seung` | `siw`
+- **scope** (선택): `root` | `engine` | `fint` | `kwan` | `seung` | `siw`
   - 생략 시 모든 scope를 순서대로 처리한다
 - **since** (선택): `since:2026-03-01` 또는 `since:v0.1.0` 형식
   - 생략 시 각 CHANGELOG.md의 가장 최근 주차 날짜 이후 커밋을 자동 감지한다
@@ -18,7 +18,7 @@ description: 경로별 CHANGELOG.md를 최신 git 로그 기준으로 업데이�
 |--------|----------------------------------------------------------|-----------------------------------|
 | root   | `. -- ':!engine' ':!services'` (인프라·문서·워크플로우) | `CHANGELOG.md`                    |
 | engine | `engine/`                                                | `engine/CHANGELOG.md`             |
-| lww    | `services/lww/`                                          | `services/lww/CHANGELOG.md`       |
+| fint   | `services/fint/`                                         | `services/fint/CHANGELOG.md`      |
 | kwan   | `services/kwan/`                                         | `services/kwan/CHANGELOG.md`      |
 | seung  | `services/seung/`                                        | `services/seung/CHANGELOG.md`     |
 | siw    | `services/siw/`                                          | `services/siw/CHANGELOG.md`       |
@@ -85,7 +85,7 @@ git log --no-merges \
 처리 완료 후 scope별 결과를 출력한다:
 ```
 ✅ engine/CHANGELOG.md — 5개 커밋 → 3항목 추가 (2026년 3월 2일 주차)
-✅ services/lww/CHANGELOG.md — 2개 커밋 → 1항목 추가 (2026년 3월 2일 주차)
+✅ services/fint/CHANGELOG.md — 2개 커밋 → 1항목 추가 (2026년 3월 2일 주차)
 ⏭️  services/kwan/CHANGELOG.md — 변경 없음 (해당 기간 커밋 없음)
 ```
 
@@ -96,6 +96,6 @@ scope가 단일인 경우 해당 CHANGELOG.md 업데이트된 내용 전체를 �
 ```
 /update-changelog                         # 모든 scope 업데이트
 /update-changelog engine                  # 엔진만 업데이트
-/update-changelog lww since:2026-03-01
+/update-changelog fint since:2026-03-01
 /update-changelog root since:v0.1.0
 ```

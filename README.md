@@ -39,7 +39,7 @@ mirai/
 │   └── tests/            # pytest (TDD)
 │
 ├── services/             # Next.js 풀스택 (TypeScript) — 1인 1서비스
-│   ├── lww/              # 이왕원
+│   ├── fint/             # 이왕원 (Fint)
 │   ├── kwan/             # 김관우
 │   ├── seung/            # 이승현
 │   └── siw/              # 성시우
@@ -108,10 +108,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 pytest
 ```
 
-### 서비스 (lww 예시)
+### 서비스 (fint 예시)
 
 ```bash
-cd services/lww
+cd services/fint
 npm install
 
 # 환경변수 설정
@@ -149,7 +149,7 @@ npm test
 
 | 역할 | 이름 | 서비스 |
 |------|------|--------|
-| 멘토 | 이왕원 | `services/lww` |
+| 멘토 | 이왕원 | `services/fint` |
 | 멘티 | 김관우 | `services/kwan` |
 | 멘티 | 이승현 | `services/seung` |
 | 멘티 | 성시우 | `services/siw` |
