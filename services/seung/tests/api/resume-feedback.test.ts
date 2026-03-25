@@ -208,7 +208,7 @@ describe('POST /api/resume/feedback', () => {
 
     it('ENABLE_RAG=true + 임베딩 성공 시 resume_context 전달', async () => {
       process.env.ENABLE_RAG = 'true'
-      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3', tokenCount: 0 })
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
       mockSearchSimilarAcceptedResumes.mockResolvedValueOnce([
         { id: '1', jobRole: '백엔드 개발자', content: '합격 자소서 A', similarity: 0.9 },
         { id: '2', jobRole: '백엔드 개발자', content: '합격 자소서 B', similarity: 0.85 },
@@ -231,7 +231,7 @@ describe('POST /api/resume/feedback', () => {
 
     it('ENABLE_RAG=true + 검색 throw 시 graceful degradation, 200 반환', async () => {
       process.env.ENABLE_RAG = 'true'
-      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3', tokenCount: 0 })
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
       mockSearchSimilarAcceptedResumes.mockRejectedValueOnce(new Error('DB error'))
       const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
       expect(res.status).toBe(200)
