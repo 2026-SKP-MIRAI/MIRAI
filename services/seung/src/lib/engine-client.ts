@@ -8,11 +8,34 @@ export async function callEngineAnalyze(file: File): Promise<Response> {
   })
 }
 
-export async function callEngineQuestions(resumeText: string, targetRole?: string): Promise<Response> {
+export async function callEngineQuestions(
+  resumeText: string,
+  targetRole?: string,
+): Promise<Response> {
   return fetch(`${process.env.ENGINE_BASE_URL}/api/resume/questions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resumeText, ...(targetRole ? { targetRole } : {}) }),
+    body: JSON.stringify({
+      resumeText,
+      ...(targetRole ? { targetRole } : {}),
+    }),
     signal: AbortSignal.timeout(30_000),
+  })
+}
+
+export async function callEngineFeedback(
+  resumeText: string,
+  targetRole: string,
+  resumeContext?: string[]
+): Promise<Response> {
+  return fetch(`${process.env.ENGINE_BASE_URL}/api/resume/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      resumeText,
+      targetRole,
+      ...(resumeContext ? { resume_context: resumeContext } : {}),
+    }),
+    signal: AbortSignal.timeout(40_000),
   })
 }
