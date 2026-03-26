@@ -33,15 +33,30 @@ export default function ResumesPage() {
   const router = useRouter()
   const [resumes, setResumes] = useState<ResumeItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [showUpload, setShowUpload] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadResumes = () => {
+    setLoading(true)
+    setError("")
     fetch("/api/resumes")
-      .then(r => r.json())
-      .then(data => { setResumes(data); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
+      .then(r => {
+        if (!r.ok) throw new Error("이력서 목록을 불러오지 못했습니다.")
+        return r.json()
+      })
+      .then(data => {
+        if (!Array.isArray(data)) throw new Error("이력서 목록을 불러오지 못했습니다.")
+        setResumes(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setError("이력서 목록을 불러오지 못했습니다.")
+        setLoading(false)
+      })
+  }
+
+  useEffect(() => { loadResumes() }, [])
 
   async function handleDelete(resumeId: string) {
     if (!window.confirm("이 이력서를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.")) return
@@ -71,8 +86,23 @@ export default function ResumesPage() {
         </div>
       )}
 
+      {/* 에러 상태 */}
+      {!loading && error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+          <p className="text-red-600 font-semibold mb-2">{error}</p>
+          <p className="text-sm text-red-400 mb-4">네트워크 상태를 확인하고 다시 시도해주세요.</p>
+          <button
+            onClick={loadResumes}
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all"
+            style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+          >
+            새로고침
+          </button>
+        </div>
+      )}
+
       {/* 업로드 영역 (상단) */}
-      {!loading && resumes.length > 0 && (
+      {!loading && !error && resumes.length > 0 && (
         <div className="mb-6">
           {showUpload ? (
             <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6">
@@ -94,7 +124,7 @@ export default function ResumesPage() {
       )}
 
       {/* 이력서 목록 */}
-      {!loading && resumes.length > 0 && (
+      {!loading && !error && resumes.length > 0 && (
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
           {resumes.map(resume => (
             <motion.div
@@ -156,7 +186,7 @@ export default function ResumesPage() {
       )}
 
       {/* 빈 상태 */}
-      {!loading && resumes.length === 0 && (
+      {!loading && !error && resumes.length === 0 && (
         showUpload ? (
           <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-8">
             <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/resumes/${data.resumeId}`) }} />

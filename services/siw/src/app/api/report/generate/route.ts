@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       throw err;
     }
 
-    // best-effort: 리포트 전체 JSON + 점수 저장 (실패 시 1회 재시도)
+    // 리포트 전체 JSON + 점수 저장 (실패 시 1회 재시도, 최종 실패 시 500 반환)
     const data = engineData as Record<string, unknown>;
     if (data.scores && typeof data.totalScore === "number") {
       const saveWithRetry = async () => {
@@ -82,10 +82,15 @@ export async function POST(request: Request) {
             await interviewRepository.saveReport(sessionId, user.id, data.scores as unknown as import("@/lib/types").AxisScores, data.totalScore as number, data);
           } catch (err2) {
             console.error("[report/generate] saveReport retry failed:", err2);
+            throw err2;
           }
         }
       };
-      await saveWithRetry();
+      try {
+        await saveWithRetry();
+      } catch {
+        return Response.json({ message: "리포트 저장에 실패했습니다. 다시 시도해주세요." }, { status: 500 });
+      }
     }
 
     return Response.json(engineData, { status: engineStatus });

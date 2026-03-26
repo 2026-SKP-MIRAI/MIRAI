@@ -72,7 +72,8 @@ export default function ReportPage() {
 
         {!loading && error && errorCode !== 422 && (
           <div className="glass-card rounded-2xl p-8 text-center">
-            <p className="text-[#1F2937] font-medium mb-4">리포트 생성에 실패했습니다</p>
+            <p className="text-[#1F2937] font-medium mb-2">리포트 생성에 실패했습니다</p>
+            <p className="text-sm text-[#9CA3AF] mb-4">{error}</p>
             <button onClick={fetchReport} className="btn-outline rounded-xl px-6 py-3">
               다시 시도
             </button>

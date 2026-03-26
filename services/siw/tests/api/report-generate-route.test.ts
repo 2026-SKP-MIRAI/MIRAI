@@ -156,6 +156,25 @@ describe("POST /api/report/generate", () => {
     expect(res.status).toBe(500);
   });
 
+  it("500: saveReport 재시도 후에도 실패 시 500 반환", async () => {
+    const { interviewRepository } = await import("@/lib/interview/interview-repository");
+    (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ...mockSession, userId: "user-123" });
+    (interviewRepository.saveReport as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error("DB connection lost"))
+      .mockRejectedValueOnce(new Error("DB connection lost"));
+
+    const { POST } = await import("@/app/api/report/generate/route");
+    const req = new Request("http://localhost/api/report/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "test-session-id" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.message).toBe("리포트 저장에 실패했습니다. 다시 시도해주세요.");
+  });
+
   it("400: sessionComplete === false 세션 (면접 미완료)", async () => {
     const { interviewRepository } = await import("@/lib/interview/interview-repository");
     (interviewRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

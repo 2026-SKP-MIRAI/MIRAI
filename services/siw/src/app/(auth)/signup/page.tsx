@@ -56,12 +56,17 @@ export default function SignupPage() {
     setLoading(true)
     try {
       const supabase = createSupabaseBrowser()
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { full_name: name, terms_agreed_at: new Date().toISOString() } },
       })
       if (authError) { setError("회원가입 중 오류가 발생했습니다. 다시 시도해주세요."); return }
+      // Supabase returns empty identities array for already-registered emails
+      if (data.user?.identities?.length === 0) {
+        setError("이미 가입된 이메일입니다. 로그인해주세요.")
+        return
+      }
       setSuccess(true)
     } finally { setLoading(false) }
   }
@@ -217,7 +222,13 @@ export default function SignupPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
-                <span>⚠</span><span>{error}</span>
+                <span>⚠</span>
+                <span>
+                  {error}
+                  {error.includes("이미 가입된") && (
+                    <> <Link href="/login" className="underline font-semibold text-violet-600 hover:text-violet-700">로그인 페이지로 이동</Link></>
+                  )}
+                </span>
               </div>
             )}
 

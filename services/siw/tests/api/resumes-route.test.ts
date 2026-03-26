@@ -164,7 +164,7 @@ describe("POST /api/resumes", () => {
     expect(res.status).toBe(401);
   });
 
-  it("400: PDF 아닌 파일", async () => {
+  it("400: PDF 아닌 파일 — 'PDF 파일만 업로드 가능합니다.' 메시지 반환", async () => {
     setAuthenticated();
 
     const formData = new FormData();
@@ -179,6 +179,8 @@ describe("POST /api/resumes", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toBe("PDF 파일만 업로드 가능합니다.");
   });
 
   it("POST — /api/resume/feedback URL 호출 검증", async () => {
