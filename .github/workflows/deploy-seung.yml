@@ -2,9 +2,10 @@ name: Deploy seung to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [main, refactor/000263-engine-ci-services-ci]
     paths:
       - 'services/seung/**'
+      - '.github/workflows/deploy-seung.yml'
   workflow_dispatch:  # GitHub Actions 탭에서 수동 트리거 가능
     inputs:
       skip_build:
@@ -13,7 +14,25 @@ on:
         default: false
 
 jobs:
+  test-seung:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'services/seung/package-lock.json'
+      - name: Install dependencies
+        working-directory: services/seung
+        run: npm ci
+      - name: Run tests
+        working-directory: services/seung
+        run: npm run test
+
   build-and-push-seung:
+    needs: [test-seung]
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || inputs.skip_build == false }}
     steps:
@@ -39,8 +58,8 @@ jobs:
           docker push $ECR_REGISTRY/mirai-seung --all-tags
 
   deploy:
-    needs: [build-and-push-seung]
-    if: ${{ always() && (needs.build-and-push-seung.result == 'success' || needs.build-and-push-seung.result == 'skipped') }}
+    needs: [test-seung, build-and-push-seung]
+    if: ${{ always() && needs.test-seung.result == 'success' && (needs.build-and-push-seung.result == 'success' || needs.build-and-push-seung.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1
