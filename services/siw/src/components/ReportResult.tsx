@@ -114,7 +114,7 @@ export default function ReportResult({ report }: Props) {
         >
           {grade.label}
         </div>
-        <p className="font-black leading-none mb-1" style={{ fontSize: "80px", letterSpacing: "-3px" }}>
+        <p className="font-black leading-none mb-1 text-6xl md:text-[80px]" style={{ letterSpacing: "-3px" }}>
           {report.totalScore}
         </p>
         <p className="text-base opacity-85">/ 100점</p>
@@ -142,11 +142,11 @@ export default function ReportResult({ report }: Props) {
       {activeTab === "summary" && (
         <div className="flex flex-col gap-4">
           <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-8">
-            <div className="grid grid-cols-2 gap-10 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
               {/* 레이더 차트 */}
               <div>
                 <p className="text-sm font-semibold text-gray-500 mb-4 text-center">8축 역량 레이더</p>
-                <div className="max-w-[420px] mx-auto">
+                <div className="max-w-[300px] md:max-w-[420px] mx-auto">
                   <Radar data={radarData} options={radarOptions} />
                 </div>
               </div>

@@ -103,7 +103,7 @@ export default function ResumesPage() {
                     {resume.inferredTargetRole || resume.fileName}
                   </div>
 
-                  <div className="flex gap-2 mt-3 items-center">
+                  <div className="flex flex-wrap gap-2 mt-3 items-center">
                     <Link
                       href={`/resumes/${resume.id}`}
                       className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full px-3 py-1.5 text-xs font-semibold transition-all active:scale-95"

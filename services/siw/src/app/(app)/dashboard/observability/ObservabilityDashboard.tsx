@@ -123,10 +123,10 @@ export default function ObservabilityDashboard() {
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-4">
         <div className="h-8 w-52 rounded-lg bg-slate-100 animate-pulse" />
         <div className="h-4 w-80 rounded bg-slate-100 animate-pulse" />
-        <div className="grid grid-cols-4 gap-4 pt-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
           {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-slate-100 animate-pulse" />)}
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
           <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
         </div>
@@ -298,7 +298,7 @@ export default function ObservabilityDashboard() {
       {/* KPI 카드 4개 */}
       <div>
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">전체 요약</p>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="총 AI 호출 횟수" value={summary.totalCalls.toLocaleString()} unit="건"
             tooltip={`최근 ${days}일간 AI 기능이 사용된 총 횟수입니다.`} accent="#0EA5E9" />
           <StatCard label="총 사용 토큰" value={(summary.totalTokens ?? 0).toLocaleString()} unit="토큰"
@@ -315,7 +315,7 @@ export default function ObservabilityDashboard() {
       </div>
 
       {/* 차트 2열: 호출 건수 + 비용·토큰 */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SectionCard title="기능별 일별 사용 횟수" desc="날짜별 각 AI 기능의 호출 건수 (그룹 막대)">
           <div style={{ height: "200px" }}><Bar data={barData} options={barOptions} /></div>
         </SectionCard>
@@ -325,8 +325,8 @@ export default function ObservabilityDashboard() {
       </div>
 
       {/* 응답속도 + 토큰 비율 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
           <SectionCard title="응답 속도 추이" desc="초록 점선(300ms) = 쾌적 기준 / 빨간 점선(1500ms) = 개선 권고 기준">
             <div style={{ height: "200px" }}><Line data={lineData} options={lineOptions} /></div>
           </SectionCard>

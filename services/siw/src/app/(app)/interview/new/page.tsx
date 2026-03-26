@@ -135,7 +135,7 @@ function InterviewNewPageContent() {
         <motion.div variants={itemVariants}>
           <h2 className="text-base font-bold text-gray-900 mb-1">면접관 소개</h2>
           <p className="text-sm text-gray-500 mb-4">HR·기술팀장·경영진 3인이 함께 면접에 참여합니다</p>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {PERSONAS.map(p => (
               <div
                 key={p.id}
