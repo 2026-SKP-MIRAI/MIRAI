@@ -30,6 +30,8 @@ API 실패(네트워크 오류/5xx) 시 이력서 목록 페이지가 빈 화면
 | 파일 | 변경 내용 |
 |------|-----------|
 | `services/siw/src/app/(app)/resumes/page.tsx` | `error` 상태 추가, `loadResumes` 함수 분리, 에러 배너+새로고침 버튼 렌더링, fetch 실패/비배열 응답 처리 |
+| `services/siw/src/app/api/resumes/route.ts` | `file.type !== "application/pdf"` 분기에 "PDF 파일만 업로드 가능합니다." 메시지 적용 |
+| `services/siw/src/app/api/resumes/analyze/route.ts` | 동일하게 `file.type !== "application/pdf"` 분기에 "PDF 파일만 업로드 가능합니다." 메시지 적용 |
 | `services/siw/src/app/(app)/resumes/.ai.md` | error 상태·에러 배너 구조 기술 업데이트 |
 
 ### 구현 상세

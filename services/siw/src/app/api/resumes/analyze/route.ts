@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   if (file.type !== "application/pdf") {
-    return NextResponse.json({ message: ENGINE_ERROR_MESSAGES.noFile }, { status: 400 })
+    return NextResponse.json({ message: "PDF 파일만 업로드 가능합니다." }, { status: 400 })
   }
 
   if (file.size > 5 * 1024 * 1024) {

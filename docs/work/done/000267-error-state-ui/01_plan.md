@@ -25,6 +25,8 @@
 | 파일 | 변경 내용 |
 |------|-----------|
 | `services/siw/src/app/(app)/resumes/page.tsx` | error 상태, loadResumes 함수, 에러 배너 |
+| `services/siw/src/app/api/resumes/route.ts` | file.type !== "application/pdf" 분기에 "PDF 파일만 업로드 가능합니다." 메시지 적용 |
+| `services/siw/src/app/api/resumes/analyze/route.ts` | 동일하게 file.type !== "application/pdf" 분기에 "PDF 파일만 업로드 가능합니다." 메시지 적용 |
 | `services/siw/src/app/(app)/resumes/.ai.md` | error 상태 기술 |
 
 ### 구현 상세
