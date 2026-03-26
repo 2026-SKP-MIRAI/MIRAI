@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       const resp = await fetch(`${requireEngineBaseUrl()}/api/resume/analyze`, {
         method: "POST",
         body: engineForm,
-        signal: AbortSignal.timeout(55000),
+        signal: AbortSignal.timeout(120000),
       })
 
       if (!resp.ok) {
