@@ -113,42 +113,44 @@ export default function InterviewSessionPage() {
         setSubmitting(false);
       }
     } else {
-      // practice mode: 피드백 없이 바로 다음 질문으로 진행
-      setSubmitting(true);
+      // practice mode: get feedback first, don't advance question
+      setFetchingFeedback(true);
       setError("");
       const currentAnswerText = answer;
+      const prevAnswer = isRetried ? lastAnswer : undefined;
       setPendingAnswer(currentAnswerText);
       try {
-        const res = await fetch("/api/interview/answer", {
+        const body: Record<string, unknown> = {
+          question: currentQuestion?.question ?? "",
+          answer: currentAnswerText,
+        };
+        if (prevAnswer) body.previousAnswer = prevAnswer;
+        if (isRetried && lastScore !== null) body.previousScore = lastScore;
+
+        const res = await fetch("/api/practice/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, currentAnswer: currentAnswerText }),
+          body: JSON.stringify(body),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({ message: "오류 발생" }));
-          setError(data.message);
-          setPendingAnswer("");
-          return;
-        }
-        if (!res.body) { setError("스트림 응답이 없습니다."); setPendingAnswer(""); return; }
+        const data = await res.json();
+        if (!res.ok) { setError(data.message); setPendingAnswer(""); return; }
 
-        const doneEvent = await consumeAnswerStream(res.body);
-
-        if (currentQuestion) {
-          setHistory(prev => [...prev, {
-            persona: currentQuestion.persona,
-            personaLabel: currentQuestion.personaLabel,
-            question: currentQuestion.question,
-            answer: currentAnswerText,
-            type: currentQuestion.type ?? "main",
-          }]);
+        if (!isRetried) {
+          setLastAnswer(currentAnswerText);
+          setLastScore(data.score);
+        } else {
+          setLastAnswer(currentAnswerText);  // 재답변 시에도 lastAnswer 업데이트 (다음질문으로 전송할 답변)
+          setRetryInputVisible(false);
         }
         setAnswer("");
         setPendingAnswer("");
-        setCurrentQuestion(doneEvent?.nextQuestion ?? null);
-        setSessionComplete(doneEvent?.sessionComplete ?? false);
+        setPracticeAnswer(currentAnswerText);
+        setPracticeFeedback(data);
+      } catch {
+        setError("피드백 생성에 실패했습니다.");
+        setPendingAnswer("");
       } finally {
-        setSubmitting(false);
+        setFetchingFeedback(false);
       }
     }
   }
@@ -206,7 +208,9 @@ export default function InterviewSessionPage() {
     setExiting(true);
     try {
       await fetch(`/api/interview/${sessionId}/complete`, { method: "PATCH" });
-      if (history.length >= 5) {
+      if (interviewMode === "practice") {
+        router.push("/interview/new");
+      } else if (history.length >= 5) {
         router.push(`/interview/${sessionId}/report`);
       } else {
         router.push("/dashboard");
@@ -282,7 +286,21 @@ export default function InterviewSessionPage() {
           </div>
         )}
 
-        {sessionComplete && (
+        {sessionComplete && interviewMode === "practice" && (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-[#1F2937] mb-2">연습이 완료됐습니다</h3>
+            <button onClick={() => router.push("/interview/new")} className="btn-outline rounded-xl px-6 py-3 w-full">
+              다시 하기
+            </button>
+          </div>
+        )}
+
+        {sessionComplete && interviewMode === "real" && (
           <div className="glass-card rounded-2xl p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,9 +327,11 @@ export default function InterviewSessionPage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-2">면접을 종료하시겠어요?</h3>
             <p className="text-sm text-gray-500 mb-6 leading-[1.7]">
-              {history.length >= 5
-                ? "충분한 답변이 있어 리포트를 생성할 수 있습니다."
-                : `아직 답변이 ${history.length}개입니다. 리포트는 5개 이상 답변이 필요합니다.`}
+              {interviewMode === "practice"
+                ? `현재 ${history.length}개의 답변이 있습니다. 종료하시겠습니까?`
+                : history.length >= 5
+                  ? "충분한 답변이 있어 리포트를 생성할 수 있습니다."
+                  : `아직 답변이 ${history.length}개입니다. 리포트는 5개 이상 답변이 필요합니다.`}
             </p>
             <div className="flex gap-2">
               <button
