@@ -83,6 +83,11 @@ export default function InterviewSessionPage() {
     }
     setStreamingText("");
     setStreamingPersona(null);
+    // offline 모드 등 스트림이 에러 없이 조기 종료된 경우 (done 이벤트 미수신)
+    if (!donePayload) {
+      setError("연결이 끊겼습니다. 마지막 답변을 다시 제출해주세요.");
+      throw new Error("stream terminated without done event");
+    }
     return donePayload;
   }
 
@@ -124,6 +129,12 @@ export default function InterviewSessionPage() {
         setPendingAnswer("");
         setCurrentQuestion(doneEvent?.nextQuestion ?? null);
         setSessionComplete(doneEvent?.sessionComplete ?? false);
+      } catch (err) {
+        setPendingAnswer("");
+        // fetch 자체 실패 (offline 등) — consumeAnswerStream은 이미 setError 처리함
+        if (err instanceof TypeError) {
+          setError("연결이 끊겼습니다. 마지막 답변을 다시 제출해주세요.");
+        }
       } finally {
         setSubmitting(false);
       }
