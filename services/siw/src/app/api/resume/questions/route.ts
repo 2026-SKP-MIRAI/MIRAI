@@ -3,7 +3,7 @@ import { withEventLogging } from "@/lib/observability/event-logger";
 import { getEngineBaseUrl } from "@/lib/rag/embedding-client";
 
 export const runtime = "nodejs";
-export const maxDuration = 35;
+export const maxDuration = 60;
 
 function requireEngineBaseUrl(): string {
   const url = getEngineBaseUrl();
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       const parseResp = await fetch(`${requireEngineBaseUrl()}/api/resume/parse`, {
         method: "POST",
         body: engineParseForm,
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(55000),
       });
       if (!parseResp.ok) {
         const body = await parseResp.json().catch(() => ({ detail: "" }));
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(55000),
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({ detail: "" }));
