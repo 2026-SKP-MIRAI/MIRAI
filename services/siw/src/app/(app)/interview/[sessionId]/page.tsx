@@ -29,6 +29,8 @@ export default function InterviewSessionPage() {
   const [streamingText, setStreamingText] = useState("");
   const [streamingPersona, setStreamingPersona] = useState<{ persona: string; personaLabel: string } | null>(null);
   const [pendingAnswer, setPendingAnswer] = useState("");
+  const [sessionInterrupted, setSessionInterrupted] = useState(false);
+  const [lastSubmittedAnswer, setLastSubmittedAnswer] = useState("");
   const initialized = useRef(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +43,10 @@ export default function InterviewSessionPage() {
     initialized.current = true;
     const stored = sessionStorage.getItem(`interview-first-${sessionId}`);
     if (stored) {
-      try { setCurrentQuestion(JSON.parse(stored)); } catch { /* 손상된 캐시는 무시 */ }
+      try { setCurrentQuestion(JSON.parse(stored)); } catch { setSessionInterrupted(true); }
+    } else {
+      // sessionStorage miss — 브라우저 종료 후 재접속
+      setSessionInterrupted(true);
     }
     const storedMode = sessionStorage.getItem(`interview-mode-${sessionId}`);
     if (storedMode === "practice" || storedMode === "real") {
@@ -52,23 +57,37 @@ export default function InterviewSessionPage() {
   async function consumeAnswerStream(body: ReadableStream<Uint8Array>) {
     setStreamingText("");
     let donePayload: { nextQuestion: QuestionWithPersona | null; sessionComplete: boolean } | null = null;
-    for await (const event of parseSSEStream(body)) {
-      if (event.type === "token") {
-        flushSync(() => setStreamingText(prev => prev + event.text));
-      } else if (event.type === "meta") {
-        setStreamingPersona({ persona: event.persona, personaLabel: event.personaLabel });
-      } else if (event.type === "done") {
-        donePayload = event as { type: "done"; nextQuestion: QuestionWithPersona | null; updatedQueue: unknown[]; sessionComplete: boolean };
-      } else if (event.type === "error") {
-        setStreamingText("");
-        setStreamingPersona(null);
-        setPendingAnswer("");
-        setError(event.message);
-        throw new Error(event.message);
+    try {
+      for await (const event of parseSSEStream(body)) {
+        if (event.type === "token") {
+          flushSync(() => setStreamingText(prev => prev + event.text));
+        } else if (event.type === "meta") {
+          setStreamingPersona({ persona: event.persona, personaLabel: event.personaLabel });
+        } else if (event.type === "done") {
+          donePayload = event as { type: "done"; nextQuestion: QuestionWithPersona | null; updatedQueue: unknown[]; sessionComplete: boolean };
+        } else if (event.type === "error") {
+          setStreamingText("");
+          setStreamingPersona(null);
+          setPendingAnswer("");
+          setError(event.message);
+          throw new Error(event.message);
+        }
+      }
+    } catch (err) {
+      setStreamingText("");
+      setStreamingPersona(null);
+      if (!donePayload) {
+        setError("연결이 끊겼습니다. 마지막 답변을 다시 제출해주세요.");
+        throw err;
       }
     }
     setStreamingText("");
     setStreamingPersona(null);
+    // offline 모드 등 스트림이 에러 없이 조기 종료된 경우 (done 이벤트 미수신)
+    if (!donePayload) {
+      setError("연결이 끊겼습니다. 마지막 답변을 다시 제출해주세요.");
+      throw new Error("stream terminated without done event");
+    }
     return donePayload;
   }
 
@@ -79,6 +98,7 @@ export default function InterviewSessionPage() {
       setSubmitting(true);
       setError("");
       const submittedAnswer = answer;
+      setLastSubmittedAnswer(submittedAnswer);
       setPendingAnswer(submittedAnswer);
       try {
         const res = await fetch("/api/interview/answer", {
@@ -109,6 +129,12 @@ export default function InterviewSessionPage() {
         setPendingAnswer("");
         setCurrentQuestion(doneEvent?.nextQuestion ?? null);
         setSessionComplete(doneEvent?.sessionComplete ?? false);
+      } catch (err) {
+        setPendingAnswer("");
+        // fetch 자체 실패 (offline 등) — consumeAnswerStream은 이미 setError 처리함
+        if (err instanceof TypeError) {
+          setError("연결이 끊겼습니다. 마지막 답변을 다시 제출해주세요.");
+        }
       } finally {
         setSubmitting(false);
       }
@@ -204,6 +230,48 @@ export default function InterviewSessionPage() {
     }
   }
 
+  async function handleRetryLastAnswer() {
+    if (!lastSubmittedAnswer.trim() || submitting) return;
+    setSubmitting(true);
+    setError("");
+    setPendingAnswer(lastSubmittedAnswer);
+    try {
+      const res = await fetch("/api/interview/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, currentAnswer: lastSubmittedAnswer }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ message: "오류 발생" }));
+        setError(data.message);
+        setPendingAnswer("");
+        return;
+      }
+      if (!res.body) { setError("스트림 응답이 없습니다."); setPendingAnswer(""); return; }
+
+      const doneEvent = await consumeAnswerStream(res.body);
+
+      if (currentQuestion) {
+        setHistory(prev => [...prev, {
+          persona: currentQuestion.persona,
+          personaLabel: currentQuestion.personaLabel,
+          question: currentQuestion.question,
+          answer: lastSubmittedAnswer,
+          type: currentQuestion.type ?? "main",
+        }]);
+      }
+      setAnswer("");
+      setPendingAnswer("");
+      setLastSubmittedAnswer("");
+      setCurrentQuestion(doneEvent?.nextQuestion ?? null);
+      setSessionComplete(doneEvent?.sessionComplete ?? false);
+    } catch {
+      setPendingAnswer("");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleExit() {
     setExiting(true);
     try {
@@ -239,6 +307,26 @@ export default function InterviewSessionPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 flex-1 flex flex-col gap-4 w-full">
+        {/* 세션 중단 안내 */}
+        {sessionInterrupted && !currentQuestion && !sessionComplete && (
+          <div data-testid="session-interrupted" className="glass-card rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-[#1F2937] mb-2">면접이 중단되었습니다</h3>
+            <p className="text-sm text-[#9CA3AF] mb-6">브라우저가 종료되어 세션 정보가 초기화되었습니다.</p>
+            <button
+              data-testid="btn-restart"
+              onClick={() => router.push("/interview/new")}
+              className="btn-primary rounded-xl px-6 py-3 w-full"
+            >
+              처음부터 다시 시작
+            </button>
+          </div>
+        )}
+
         <div className="flex-1">
           <InterviewChat
             currentQuestion={currentQuestion}
@@ -279,7 +367,21 @@ export default function InterviewSessionPage() {
                 {answer.length} / 5000
               </p>
             </div>
-            {error && <p className="text-sm text-[#EF4444] mt-2">{error}</p>}
+            {error && (
+              <div className="mt-2">
+                <p className="text-sm text-[#EF4444]">{error}</p>
+                {error.includes("연결이 끊겼습니다") && lastSubmittedAnswer && (
+                  <button
+                    data-testid="btn-retry-answer"
+                    onClick={handleRetryLastAnswer}
+                    disabled={submitting}
+                    className="btn-outline rounded-xl px-4 py-2 mt-2 text-sm"
+                  >
+                    마지막 답변 다시 제출
+                  </button>
+                )}
+              </div>
+            )}
             <button
               data-testid="submit-answer"
               onClick={handleSubmit}
