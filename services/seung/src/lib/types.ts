@@ -4,6 +4,7 @@ export type Question = {
 }
 
 export type PersonaType = 'hr' | 'tech_lead' | 'executive'
+export type InterviewMode = 'real' | 'practice'
 export type QuestionType = 'main' | 'follow_up'
 export type QueueItem = { persona: PersonaType; type: QuestionType }
 export type QuestionWithPersona = {

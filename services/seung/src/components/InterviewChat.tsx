@@ -1,23 +1,18 @@
 'use client'
 
-import type { QuestionWithPersona, PracticeFeedbackResponse } from '@/lib/types'
+import type { QuestionWithPersona, PracticeFeedbackResponse, InterviewMode } from '@/lib/types'
 
-const PERSONA_COLORS = {
-  hr: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    label: 'bg-blue-100 text-blue-700',
-  },
-  tech_lead: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    label: 'bg-green-100 text-green-700',
-  },
-  executive: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    label: 'bg-purple-100 text-purple-700',
-  },
+const PERSONA_LABELS: Record<string, string> = {
+  hr: 'HR 담당자',
+  tech_lead: '기술 리드',
+  executive: '임원',
+}
+
+// 모든 페르소나 통일: 옅은 보라 계열 배경 + 테두리
+const PERSONA_STYLE: Record<string, { bg: string; border: string; nameColor: string }> = {
+  hr:        { bg: 'bg-white', border: 'border-purple-200', nameColor: 'font-bold text-[#7C3AED]' },
+  tech_lead: { bg: 'bg-white', border: 'border-purple-200', nameColor: 'font-bold text-[#7C3AED]' },
+  executive: { bg: 'bg-white', border: 'border-purple-200', nameColor: 'font-bold text-[#7C3AED]' },
 }
 
 type Message =
@@ -30,8 +25,11 @@ type Props = {
   onRestart?: () => void
   onReport?: () => void
   isGeneratingReport?: boolean
+  // streaming
+  streamingText?: string
+  streamingPersona?: { persona: string; personaLabel: string } | null
   // practice 모드 전용 (모두 optional — 기본값 'real'로 하위 호환)
-  interviewMode?: 'real' | 'practice'
+  interviewMode?: InterviewMode
   practiceFeedback?: PracticeFeedbackResponse | null
   practiceStep?: 'idle' | 'feedback' | 'retry' | 'done'
   onRetry?: () => void
@@ -45,6 +43,8 @@ export default function InterviewChat({
   onRestart,
   onReport,
   isGeneratingReport,
+  streamingText,
+  streamingPersona,
   interviewMode = 'real',
   practiceFeedback,
   practiceStep = 'idle',
@@ -59,49 +59,63 @@ export default function InterviewChat({
       {messages.map((msg, index) => {
         if (msg.type === 'question') {
           const q = msg.data
-          const colors = PERSONA_COLORS[q.persona] ?? PERSONA_COLORS.hr
+          const style = PERSONA_STYLE[q.persona] ?? PERSONA_STYLE.hr
           return (
-            <div key={msg.id} className={`rounded-xl border p-4 ${colors.bg} ${colors.border}`}>
+            <div key={msg.id} data-testid="chat-message" className={`rounded-2xl border p-4 ${style.bg} ${style.border}`}>
               <div className="mb-2 flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-sm font-semibold ${colors.label}`}>{q.personaLabel}</span>
+                <span data-testid="persona-label" className={`rounded-full px-2 py-0.5 text-sm ${style.nameColor}`}>
+                  {q.personaLabel}
+                </span>
                 {q.type === 'follow_up' && (
                   <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                     꼬리질문
                   </span>
                 )}
               </div>
-              <p className="text-gray-900">{q.question}</p>
+              <p className="text-sm text-[#1F2937] leading-relaxed">{q.question}</p>
             </div>
           )
         }
 
         // answer 메시지
         const isLastMessage = index === messages.length - 1
-        const showFeedback = interviewMode === 'practice' && isLastMessage && practiceFeedback && (practiceStep === 'feedback' || practiceStep === 'done')
+        const showFeedback =
+          interviewMode === 'practice' &&
+          isLastMessage &&
+          practiceFeedback &&
+          (practiceStep === 'feedback' || practiceStep === 'done')
 
         return (
           <div key={msg.id}>
             <div className="flex justify-end">
-              <div className="max-w-[80%] rounded-xl bg-[#1a1a2e] px-4 py-3 text-white">
-                <p>{msg.text}</p>
+              <div data-testid="user-answer" className="max-w-[80%] rounded-2xl bg-[#1a1a2e] px-4 py-3 text-white">
+                <p className="text-sm leading-relaxed">{msg.text}</p>
               </div>
             </div>
 
-            {showFeedback && (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+            {showFeedback && practiceFeedback && (
+              <div className="mt-3 rounded-2xl border border-violet-200 bg-white p-5 shadow-sm space-y-4">
                 {/* 점수 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-700">점수</span>
-                  <span className="text-lg font-bold text-blue-600">{practiceFeedback.score}점</span>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-violet-700">AI 피드백</p>
+                  <span className="text-lg font-extrabold text-violet-700">{practiceFeedback.score}점</span>
+                </div>
+
+                {/* 점수 바 */}
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-violet-500 to-indigo-500 h-2 rounded-full transition-all"
+                    style={{ width: `${practiceFeedback.score}%` }}
+                  />
                 </div>
 
                 {/* 잘한 점 */}
                 {practiceFeedback.feedback.good.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-semibold text-green-700">잘한 점</p>
+                    <p className="text-xs font-semibold text-[#10B981] mb-1">잘한 점</p>
                     <ul className="space-y-1">
                       {practiceFeedback.feedback.good.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-700">• {item}</li>
+                        <li key={i} className="text-xs text-[#374151] leading-relaxed">• {item}</li>
                       ))}
                     </ul>
                   </div>
@@ -110,10 +124,10 @@ export default function InterviewChat({
                 {/* 개선할 점 */}
                 {practiceFeedback.feedback.improve.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-semibold text-orange-700">개선할 점</p>
+                    <p className="text-xs font-semibold text-[#F59E0B] mb-1">개선할 점</p>
                     <ul className="space-y-1">
                       {practiceFeedback.feedback.improve.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-700">• {item}</li>
+                        <li key={i} className="text-xs text-[#374151] leading-relaxed">• {item}</li>
                       ))}
                     </ul>
                   </div>
@@ -133,18 +147,18 @@ export default function InterviewChat({
                 {/* 개선 가이드 */}
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs font-semibold text-gray-600 mb-1">개선 가이드</p>
-                  <p className="text-sm text-gray-700">{practiceFeedback.improvedAnswerGuide}</p>
+                  <p className="text-xs text-[#374151] leading-relaxed">{practiceFeedback.improvedAnswerGuide}</p>
                 </div>
 
-                {/* comparisonDelta (재답변 완료 후) */}
+                {/* 향상도 (재답변 완료 후) */}
                 {practiceStep === 'done' && practiceFeedback.comparisonDelta && (
                   <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                    <p className="text-xs font-semibold text-green-700 mb-1">
+                    <p className="text-xs font-bold text-green-700 mb-1">
                       향상도: {practiceFeedback.comparisonDelta.scoreDelta > 0 ? '+' : ''}{practiceFeedback.comparisonDelta.scoreDelta}점
                     </p>
                     <ul className="space-y-1">
                       {practiceFeedback.comparisonDelta.improvements.map((item, i) => (
-                        <li key={i} className="text-sm text-green-800">• {item}</li>
+                        <li key={i} className="text-xs text-green-800">• {item}</li>
                       ))}
                     </ul>
                   </div>
@@ -177,6 +191,22 @@ export default function InterviewChat({
         )
       })}
 
+      {/* 다음 질문 스트리밍 버블 */}
+      {!sessionComplete && streamingText && (() => {
+        const persona = streamingPersona?.persona ?? 'hr'
+        const style = PERSONA_STYLE[persona] ?? PERSONA_STYLE.hr
+        const label = streamingPersona?.personaLabel ?? (PERSONA_LABELS[persona] ?? persona)
+        return (
+          <div data-testid="streaming-text" className={`rounded-2xl border p-4 ${style.bg} ${style.border}`}>
+            <p className={`${style.nameColor} mb-2 text-sm`}>{label}</p>
+            <p className="text-sm text-[#1F2937] leading-relaxed">
+              {streamingText}
+              <span className="inline-block w-0.5 h-3.5 bg-purple-500 ml-0.5 animate-pulse" />
+            </p>
+          </div>
+        )
+      })()}
+
       {!sessionComplete && answerCount < 5 && interviewMode !== 'practice' && (
         <p className="text-xs text-gray-400 text-center">
           리포트는 5개 이상 답변 후 생성할 수 있습니다
@@ -196,7 +226,7 @@ export default function InterviewChat({
       )}
 
       {sessionComplete && (
-        <div className="rounded-xl border border-gray-200 bg-white px-8 py-10 text-center shadow-sm">
+        <div data-testid="session-complete" className="rounded-2xl border border-gray-200 bg-white px-8 py-10 text-center shadow-sm">
           <p className="mb-6 text-lg font-semibold text-gray-900">면접이 완료되었습니다.</p>
           <div className="flex justify-center gap-3">
             {onReport && (
@@ -205,33 +235,7 @@ export default function InterviewChat({
                 disabled={isGeneratingReport}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
               >
-                {isGeneratingReport ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4 mr-2 inline"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    리포트 생성 중...
-                  </>
-                ) : (
-                  '리포트 생성하기'
-                )}
+                {isGeneratingReport ? '리포트 생성 중...' : '리포트 생성하기'}
               </button>
             )}
             {onRestart && (

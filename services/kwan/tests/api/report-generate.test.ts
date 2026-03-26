@@ -123,12 +123,20 @@ describe('POST /api/report/generate', () => {
     expect(body.error).toContain('답변이 부족합니다')
   })
 
-  it('정상 흐름 → 201 + reportId', async () => {
+  it('정상 흐름 → 201 + reportId + Math.round 적용 확인', async () => {
     const req = { json: async () => ({ sessionId: 'session-1' }) } as unknown as Request
     const res = await POST(req)
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.reportId).toBe('report-1')
+    expect(mockPrisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          totalScore: Math.round(DEFAULT_REPORT.totalScore),
+          sessionId: 'session-1',
+        }),
+      })
+    )
   })
 
   it('기존 리포트 존재 (멱등) → 200 + 기존 reportId', async () => {
@@ -179,6 +187,61 @@ describe('POST /api/report/generate', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBe('요청 시간이 초과됐습니다. 잠시 후 다시 시도해주세요.')
+  })
+
+  it('AxisScores 일부 필드 null + not_evaluated 타입 포함 → 201 + DB에 not_evaluated 저장', async () => {
+    const notEvaluatedFeedbacks = [
+      { axis: 'leadership', axisLabel: '리더십', score: null, type: 'not_evaluated', feedback: '리더십 관련 정보 부족.' },
+      { axis: 'creativity', axisLabel: '창의성', score: null, type: 'not_evaluated', feedback: '창의성 관련 답변 부족.' },
+    ]
+    const reportWithNotEvaluated = {
+      ...DEFAULT_REPORT,
+      scores: { ...DEFAULT_REPORT.scores, leadership: null, creativity: null },
+      axisFeedbacks: [
+        ...DEFAULT_REPORT.axisFeedbacks.slice(0, 6),  // 6개
+        ...notEvaluatedFeedbacks,                      // + 2개 = 8개
+      ],
+    }
+    mockCallEngineReportGenerate.mockResolvedValueOnce(
+      makeMockResponse(true, 200, reportWithNotEvaluated)
+    )
+    const req = { json: async () => ({ sessionId: 'session-1' }) } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(201)
+    expect(mockPrisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          axisFeedbacks: expect.arrayContaining([
+            expect.objectContaining({ type: 'not_evaluated', score: null }),
+          ]),
+        }),
+      })
+    )
+  })
+
+  it('not_evaluated 타입 + score non-null 조합 → 201 + 스키마 파싱 통과 확인', async () => {
+    const reportWithNotEvaluatedNonNull = {
+      ...DEFAULT_REPORT,
+      axisFeedbacks: [
+        ...DEFAULT_REPORT.axisFeedbacks.slice(0, 7),
+        { axis: 'sincerity', axisLabel: '성실성', score: 50, type: 'not_evaluated', feedback: '평가 참고값.' },
+      ],
+    }
+    mockCallEngineReportGenerate.mockResolvedValueOnce(
+      makeMockResponse(true, 200, reportWithNotEvaluatedNonNull)
+    )
+    const req = { json: async () => ({ sessionId: 'session-1' }) } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(201)
+    expect(mockPrisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          axisFeedbacks: expect.arrayContaining([
+            expect.objectContaining({ type: 'not_evaluated', score: 50 }),
+          ]),
+        }),
+      })
+    )
   })
 
   it('engine 422 → 422 전달 + engine detail 메시지 사용', async () => {

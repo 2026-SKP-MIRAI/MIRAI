@@ -68,21 +68,21 @@ export interface SuggestionItem {
 }
 
 export interface AxisScores {
-  communication: number
-  problemSolving: number
-  logicalThinking: number
-  jobExpertise: number
-  cultureFit: number
-  leadership: number
-  creativity: number
-  sincerity: number
+  communication: number | null
+  problemSolving: number | null
+  logicalThinking: number | null
+  jobExpertise: number | null
+  cultureFit: number | null
+  leadership: number | null
+  creativity: number | null
+  sincerity: number | null
 }
 
 export interface AxisFeedback {
   axis: string
   axisLabel: string
-  score: number
-  type: 'strength' | 'improvement'
+  score: number | null
+  type: 'strength' | 'improvement' | 'not_evaluated'
   feedback: string
 }
 

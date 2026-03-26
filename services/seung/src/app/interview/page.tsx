@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import InterviewChat from '@/components/InterviewChat'
 import AnswerInput from '@/components/AnswerInput'
 import Spinner from '@/components/Spinner'
+import { parseSSEStream } from '@/lib/sse-utils'
+import type { SSEEvent } from '@/lib/sse-utils'
 import type { QuestionWithPersona, PracticeFeedbackResponse } from '@/lib/types'
 
 type Message =
@@ -30,9 +32,15 @@ function InterviewContent() {
   const [currentAnswer, setCurrentAnswer] = useState<string>('')
   const [practiceFeedback, setPracticeFeedback] = useState<PracticeFeedbackResponse | null>(null)
   const [practiceSubmitting, setPracticeSubmitting] = useState(false)
+  // 스트리밍 상태
+  const [streamingText, setStreamingText] = useState<string>('')
+  const [streamingPersona, setStreamingPersona] = useState<{ persona: string; personaLabel: string } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const submittingRef = useRef(false)
   const msgIdRef = useRef(0)
+  const streamBufRef = useRef('')
+  const scrollRafRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
   const nextMsgId = () => `msg-${++msgIdRef.current}`
 
   useEffect(() => {
@@ -96,8 +104,12 @@ function InterviewContent() {
   }, [sessionId, router, searchParams])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    cancelAnimationFrame(scrollRafRef.current)
+    scrollRafRef.current = requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(scrollRafRef.current)
+  }, [messages, streamingText])
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -110,11 +122,27 @@ function InterviewContent() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [sessionComplete])
 
+  // 언마운트 시 진행 중인 SSE fetch 정리
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
+
   const handleRealAnswer = async (answer: string) => {
     if (submittingRef.current) return
     submittingRef.current = true
     setSubmitting(true)
     setSubmitError(null)
+
+    const resetStreaming = () => {
+      streamBufRef.current = ''
+      setStreamingText('')
+      setStreamingPersona(null)
+    }
+
+    const abort = new AbortController()
+    abortRef.current = abort
+
+    // optimistic: 답변 즉시 messages에 추가
     setMessages((prev) => [...prev, { id: nextMsgId(), type: 'answer', text: answer }])
 
     try {
@@ -122,22 +150,42 @@ function InterviewContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, answer }),
+        signal: abort.signal,
       })
-      const data = await res.json()
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}))
         setMessages((prev) => prev.slice(0, -1))
         setSubmitError(data?.error ?? '답변 제출에 실패했습니다. 다시 시도해 주세요.')
         return
       }
-      if (data.nextQuestion) {
-        setMessages((prev) => [...prev, { id: nextMsgId(), type: 'question', data: data.nextQuestion }])
-      }
-      if (data.sessionComplete) {
-        setSessionComplete(true)
+
+      streamBufRef.current = ''
+      for await (const event of parseSSEStream(res.body)) {
+        const e = event as SSEEvent
+        if (e.type === 'token') {
+          streamBufRef.current += e.text
+          setStreamingText(streamBufRef.current)
+        } else if (e.type === 'meta') {
+          setStreamingPersona({ persona: e.persona, personaLabel: e.personaLabel })
+        } else if (e.type === 'done') {
+          const nextQuestion = e.nextQuestion as QuestionWithPersona | null
+          resetStreaming()
+          if (nextQuestion) {
+            setMessages((prev) => [...prev, { id: nextMsgId(), type: 'question', data: nextQuestion }])
+          }
+          if (e.sessionComplete) {
+            setSessionComplete(true)
+          }
+        } else if (e.type === 'error') {
+          setMessages((prev) => prev.slice(0, -1))
+          resetStreaming()
+          setSubmitError(e.message ?? '답변 처리 중 오류가 발생했습니다.')
+        }
       }
     } catch {
       setMessages((prev) => prev.slice(0, -1))
+      resetStreaming()
       setSubmitError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.')
     } finally {
       submittingRef.current = false
@@ -212,7 +260,6 @@ function InterviewContent() {
   }
 
   const handleRetry = () => {
-    // AnswerInput을 다시 보이게 하기 위해 practiceStep을 'retry'로
     setPracticeStep('retry')
   }
 
@@ -286,6 +333,8 @@ function InterviewContent() {
           <InterviewChat
             messages={messages}
             sessionComplete={sessionComplete}
+            streamingText={streamingText}
+            streamingPersona={streamingPersona}
             onRestart={handleRestart}
             onReport={handleReport}
             isGeneratingReport={isGeneratingReport}

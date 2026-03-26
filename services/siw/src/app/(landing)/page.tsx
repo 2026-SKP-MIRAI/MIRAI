@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { FileText, Users, Zap } from "lucide-react"
+import { FileText, Users, Zap, MessageCircle, PuzzleIcon, Brain, Target, Handshake, Rocket, Lightbulb, TrendingUp } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LayeredCardWrapper from "@/components/landing/LayeredCardWrapper"
@@ -67,17 +67,41 @@ const PERSONAS = [
   },
 ]
 
+// NOTE: 면접 모드 설명은 interview/new/page.tsx 모드 선택 UI와 동기화 필요
+const INTERVIEW_MODES = [
+  {
+    icon: "⚡",
+    label: "실전",
+    tag: "tag-blue",
+    name: "실전 모드",
+    desc: "면접처럼 진행, 즉각 피드백 없음",
+    features: ["실전처럼 몰입", "즉각 피드백 없음", "전체 면접 완주"],
+    accentColor: "border-t-indigo-400",
+    iconBg: "bg-indigo-100 text-indigo-700",
+  },
+  {
+    icon: "📝",
+    label: "연습",
+    tag: "tag-purple",
+    name: "연습 모드",
+    desc: "즉각 AI 피드백, 재답변 가능",
+    features: ["즉각 AI 피드백", "재답변 가능", "약점 집중 훈련"],
+    accentColor: "border-t-violet-400",
+    iconBg: "bg-violet-100 text-violet-700",
+  },
+] as const;
+
 // NOTE: RadarChartInteractive.tsx의 AXES와 동일한 도메인 데이터
 // TODO: 향후 공유 상수로 추출 예정
 const EVALUATION_AXES = [
-  { name: "기술 정확도", weight: 20, desc: "개념이 사실에 기반하는가" },
-  { name: "설명 명확도", weight: 15, desc: "이해하기 쉽게 설명했는가" },
-  { name: "문제 해결",   weight: 15, desc: "체계적 접근 방식을 보였는가" },
-  { name: "의사소통",   weight: 15, desc: "논리적이고 간결한가" },
-  { name: "논리 흐름",  weight: 10, desc: "답변 간 일관성이 있는가" },
-  { name: "구체성",     weight: 10, desc: "수치와 사례를 포함했는가" },
-  { name: "자신감",     weight:  8, desc: "확신을 가지고 답변했는가" },
-  { name: "적응력",     weight:  7, desc: "후속 질문에 유연하게 대응했는가" },
+  { name: "의사소통",     Icon: MessageCircle, iconColor: "text-violet-500",  iconBg: "from-violet-50 to-purple-50",  desc: "의도가 명확하게 전달됐는가" },
+  { name: "문제해결",     Icon: PuzzleIcon,    iconColor: "text-indigo-500",  iconBg: "from-indigo-50 to-violet-50",  desc: "문제를 구조적으로 접근했는가" },
+  { name: "논리적 사고",  Icon: Brain,         iconColor: "text-purple-500",  iconBg: "from-purple-50 to-indigo-50",  desc: "답변의 흐름이 일관적인가" },
+  { name: "직무 전문성",  Icon: Target,        iconColor: "text-indigo-600",  iconBg: "from-indigo-50 to-blue-50",    desc: "직무 관련 지식이 정확한가" },
+  { name: "조직 적합성",  Icon: Handshake,     iconColor: "text-violet-600",  iconBg: "from-violet-50 to-indigo-50",  desc: "조직 문화와 가치에 부합하는가" },
+  { name: "리더십",       Icon: Rocket,        iconColor: "text-purple-600",  iconBg: "from-purple-50 to-violet-50",  desc: "주도적으로 이끌어간 경험이 있는가" },
+  { name: "창의성",       Icon: Lightbulb,     iconColor: "text-indigo-500",  iconBg: "from-blue-50 to-indigo-50",    desc: "새로운 시각으로 접근했는가" },
+  { name: "성실성",       Icon: TrendingUp,    iconColor: "text-violet-500",  iconBg: "from-purple-50 to-violet-50",  desc: "꾸준히 노력한 과정이 드러나는가" },
 ]
 
 // ─── FadeInSection ────────────────────────────────────────────────────────
@@ -113,13 +137,13 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
 
 // ─── 시작하기 버튼 ────────────────────────────────────────────────────────
 
-function StartButton({ className, children }: { className: string; children: React.ReactNode }) {
+function StartButton({ className, children, dest = "/dashboard" }: { className: string; children: React.ReactNode; dest?: string }) {
   const router = useRouter()
 
   const handleStart = async () => {
     const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
-    router.push(user ? "/dashboard" : "/login")
+    router.push(user ? dest : "/login")
   }
 
   return (
@@ -252,12 +276,22 @@ export default function LandingPage() {
 
             {/* 버튼 */}
             <div className="flex gap-3 flex-wrap">
-              <StartButton className="btn-primary rounded-full px-8 py-4 text-base">
+              <StartButton className="btn-primary rounded-full px-8 py-4 text-base" dest="/interview/new">
                 무료로 시작하기 →
               </StartButton>
-              <StartButton className="btn-outline rounded-full px-8 py-4 text-base">
-                대시보드 보기
-              </StartButton>
+              {isLoggedIn ? (
+                <StartButton className="btn-outline rounded-full px-8 py-4 text-base" dest="/dashboard">
+                  대시보드 보기
+                </StartButton>
+              ) : (
+                <Link
+                  href="/demo"
+                  className="rounded-full px-8 py-4 text-base font-medium bg-white transition-all duration-200 hover:bg-violet-50 hover:shadow-md"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}
+                >
+                  데모로 체험하기
+                </Link>
+              )}
             </div>
           </div>
 
@@ -369,6 +403,32 @@ export default function LandingPage() {
               </FadeInSection>
             ))}
           </div>
+
+          {/* ── 면접 모드 소개 ─────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            {INTERVIEW_MODES.map((m, i) => (
+              <FadeInSection key={m.name} delay={i * 80}>
+                <div className={`glass-card glass-card-hover border-t-2 ${m.accentColor} rounded-2xl p-6 cursor-pointer h-full text-center`}>
+                  <div className="flex flex-col items-center mb-3">
+                    <div className={`w-10 h-10 rounded-full ${m.iconBg} flex items-center justify-center text-lg mb-2`}>
+                      {m.icon}
+                    </div>
+                    <span className={`tag ${m.tag}`}>{m.label}</span>
+                  </div>
+                  <h3 className="font-semibold text-[#111827] mb-1">{m.name}</h3>
+                  <p className="text-xs text-[#6B7280] mb-4">{m.desc}</p>
+                  <ul className="space-y-1.5">
+                    {m.features.map((f) => (
+                      <li key={f} className="text-xs text-[#6B7280] flex items-center justify-center gap-2">
+                        <span className="w-1 h-1 rounded-full bg-[#D1D5DB] flex-shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -396,9 +456,9 @@ export default function LandingPage() {
             {EVALUATION_AXES.map((axis, i) => (
               <FadeInSection key={i} delay={i * 60}>
                 <div className="bg-white rounded-2xl p-5 border border-black/6 hover:-translate-y-1 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-50 transition-all duration-200 h-full">
-                  <span className="inline-block text-xs font-bold text-[#6D28D9] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full mb-3">
-                    {axis.weight}%
-                  </span>
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${axis.iconBg} flex items-center justify-center mb-4`}>
+                    <axis.Icon className={`w-6 h-6 ${axis.iconColor}`} />
+                  </div>
                   <p className="text-sm font-bold text-[#1F2937] mb-1">{axis.name}</p>
                   <p className="text-xs text-[#9CA3AF]">{axis.desc}</p>
                 </div>
@@ -435,20 +495,57 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="bg-white border-t border-black/6 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div>
-            <span className="text-lg font-bold gradient-text">MirAI</span>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">AI 모의면접 코치</p>
+      <footer className="bg-white border-t border-black/6 pt-10 pb-8">
+        <div className="max-w-6xl mx-auto px-6">
+
+          {/* 상단: 로고 + 링크 */}
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 pb-8 border-b border-black/6">
+
+            {/* 로고 + 설명 + 이메일 */}
+            <div className="space-y-2">
+              <span className="text-lg font-bold gradient-text">MirAI</span>
+              <p className="text-xs text-[#9CA3AF]">AI 모의면접 코치</p>
+              <a
+                href="mailto:mirainterview5@gmail.com"
+                className="text-xs text-[#6B7280] hover:text-[#4F46E5] transition-colors duration-150 flex items-center gap-1"
+              >
+                ✉ mirainterview5@gmail.com
+              </a>
+            </div>
+
+            {/* 링크 그룹 */}
+            <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#6B7280]">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#374151] uppercase tracking-wide">서비스</p>
+                <div className="flex flex-col gap-1.5">
+                  <Link href="/demo" className="hover:text-[#4F46E5] transition-colors duration-150">데모 체험</Link>
+                  <Link href="/interview/new" className="hover:text-[#4F46E5] transition-colors duration-150">면접 시작</Link>
+                  <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">내 자소서</Link>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#374151] uppercase tracking-wide">문의</p>
+                <div className="flex flex-col gap-1.5">
+                  <a
+                    href="mailto:mirainterview5@gmail.com"
+                    className="hover:text-[#4F46E5] transition-colors duration-150"
+                  >
+                    이메일 문의
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-6 text-sm text-[#6B7280]">
-            <Link href="/dashboard" className="hover:text-[#4F46E5] transition-colors duration-150">
-              면접 시작
-            </Link>
-            <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">
-              내 자소서
-            </Link>
+
+          {/* 하단: 저작권 + 법적 링크 */}
+          <div className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-xs text-[#9CA3AF]">© 2026 MirAI. All rights reserved.</p>
+            <div className="flex gap-4 text-xs text-[#9CA3AF]">
+              <Link href="/terms" className="hover:text-[#4F46E5] transition-colors duration-150">이용약관</Link>
+              <Link href="/privacy" className="hover:text-[#4F46E5] transition-colors duration-150">개인정보처리방침</Link>
+            </div>
           </div>
+
         </div>
       </footer>
     </div>

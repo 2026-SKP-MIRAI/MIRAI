@@ -3,7 +3,7 @@ import { callEngineStart } from '@/lib/engine-client'
 import { EngineStartResponseSchema } from '@/domain/interview/schemas'
 
 export const runtime = 'nodejs'
-export const maxDuration = 35
+export const maxDuration = 45
 
 export async function POST(req: Request) {
   let body: { resumeId?: string; mode?: string }

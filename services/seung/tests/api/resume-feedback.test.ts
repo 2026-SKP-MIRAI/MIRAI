@@ -1,7 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockPrisma, mockCreateClient } = vi.hoisted(() => ({
+const {
+  mockPrisma,
+  mockCreateClient,
+  mockCallEngineFeedback,
+  mockEmbedText,
+  mockSearchSimilarAcceptedResumes,
+} = vi.hoisted(() => ({
   mockPrisma: {
     resume: {
       findUnique: vi.fn(),
@@ -9,13 +15,16 @@ const { mockPrisma, mockCreateClient } = vi.hoisted(() => ({
     },
   },
   mockCreateClient: vi.fn(),
+  mockCallEngineFeedback: vi.fn(),
+  mockEmbedText: vi.fn(),
+  mockSearchSimilarAcceptedResumes: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
-
-const mockFetch = vi.fn()
-global.fetch = mockFetch
+vi.mock('@/lib/engine-client', () => ({ callEngineFeedback: mockCallEngineFeedback }))
+vi.mock('@/lib/rag/embedding-client', () => ({ embedText: mockEmbedText }))
+vi.mock('@/lib/rag/resume-search', () => ({ searchSimilarAcceptedResumes: mockSearchSimilarAcceptedResumes }))
 
 import { POST } from '@/app/api/resume/feedback/route'
 
@@ -23,6 +32,14 @@ function makeRequest(body?: object): NextRequest {
   return {
     json: vi.fn().mockResolvedValue(body ?? {}),
   } as unknown as NextRequest
+}
+
+function makeMockResponse(ok: boolean, status: number, data: unknown): Response {
+  return {
+    ok,
+    status,
+    json: async () => data,
+  } as unknown as Response
 }
 
 const mockEngineResult = {
@@ -40,13 +57,26 @@ const mockEngineResult = {
   ],
 }
 
+const mockResume = {
+  id: 'resume-1',
+  userId: 'user-1',
+  resumeText: '자소서 내용',
+  diagnosisResult: null,
+}
+
 describe('POST /api/resume/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    delete process.env.ENABLE_RAG
     process.env.ENGINE_BASE_URL = 'http://localhost:8000'
     mockCreateClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) },
     })
+    mockCallEngineFeedback.mockResolvedValue(makeMockResponse(true, 200, mockEngineResult))
+    mockPrisma.resume.findUnique.mockResolvedValue(mockResume)
+    mockPrisma.resume.update.mockResolvedValue({})
+    mockEmbedText.mockResolvedValue(null)
+    mockSearchSimilarAcceptedResumes.mockResolvedValue([])
   })
 
   it('resumeId 없으면 400 반환', async () => {
@@ -87,30 +117,15 @@ describe('POST /api/resume/feedback', () => {
 
   it('타인 resume 접근 시 403 반환', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
+      ...mockResume,
       userId: 'other-user',
-      resumeText: '자소서',
-      diagnosisResult: null,
     })
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드' }))
     expect(res.status).toBe(403)
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(mockCallEngineFeedback).not.toHaveBeenCalled()
   })
 
   it('엔진 성공 시 200 + ResumeFeedbackResponse 반환', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서 내용',
-      diagnosisResult: null,
-    })
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockEngineResult,
-    })
-    mockPrisma.resume.update.mockResolvedValueOnce({})
-
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -120,21 +135,7 @@ describe('POST /api/resume/feedback', () => {
   })
 
   it('성공 시 prisma.resume.update로 diagnosisResult 저장', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서 내용',
-      diagnosisResult: null,
-    })
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockEngineResult,
-    })
-    mockPrisma.resume.update.mockResolvedValueOnce({})
-
     await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
-
     expect(mockPrisma.resume.update).toHaveBeenCalledWith({
       where: { id: 'resume-1' },
       data: { diagnosisResult: mockEngineResult },
@@ -143,107 +144,106 @@ describe('POST /api/resume/feedback', () => {
 
   it('엔진에 resumeText와 targetRole을 전달', async () => {
     mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
+      ...mockResume,
       resumeText: '자소서 내용 전문',
-      diagnosisResult: null,
     })
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockEngineResult,
-    })
-    mockPrisma.resume.update.mockResolvedValueOnce({})
-
     await POST(makeRequest({ resumeId: 'resume-1', targetRole: '프론트엔드' }))
-
-    const fetchCall = mockFetch.mock.calls[0]
-    expect(fetchCall[0]).toContain('/api/resume/feedback')
-    const fetchBody = JSON.parse(fetchCall[1].body)
-    expect(fetchBody.resumeText).toBe('자소서 내용 전문')
-    expect(fetchBody.targetRole).toBe('프론트엔드')
-  })
-
-  it('AbortSignal.timeout(40000)으로 엔진 호출', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서',
-      diagnosisResult: null,
-    })
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => mockEngineResult,
-    })
-    mockPrisma.resume.update.mockResolvedValueOnce({})
-
-    await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
-
-    const fetchOptions = mockFetch.mock.calls[0][1]
-    expect(fetchOptions.signal).toBeDefined()
+    expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용 전문', '프론트엔드')
   })
 
   it('엔진 400 에러 그대로 전달', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서',
-      diagnosisResult: null,
-    })
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ detail: '잘못된 요청' }),
-    })
-
+    mockCallEngineFeedback.mockResolvedValueOnce(
+      makeMockResponse(false, 400, { detail: '잘못된 요청' })
+    )
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
     expect(res.status).toBe(400)
   })
 
   it('엔진 500 에러 그대로 전달', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서',
-      diagnosisResult: null,
-    })
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ detail: 'LLM 오류' }),
-    })
-
+    mockCallEngineFeedback.mockResolvedValueOnce(
+      makeMockResponse(false, 500, { detail: 'LLM 오류' })
+    )
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
     expect(res.status).toBe(500)
   })
 
-  it('fetch 자체 실패 시 500 반환', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서',
-      diagnosisResult: null,
-    })
-    mockFetch.mockRejectedValueOnce(new Error('network error'))
-
+  it('엔진 호출 자체 실패 시 500 반환', async () => {
+    mockCallEngineFeedback.mockRejectedValueOnce(new Error('network error'))
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
     expect(res.status).toBe(500)
   })
 
   it('엔진 TimeoutError 시 504 반환', async () => {
-    mockPrisma.resume.findUnique.mockResolvedValueOnce({
-      id: 'resume-1',
-      userId: 'user-1',
-      resumeText: '자소서',
-      diagnosisResult: null,
-    })
     const timeoutError = new DOMException('timeout', 'TimeoutError')
-    mockFetch.mockRejectedValueOnce(timeoutError)
-
+    mockCallEngineFeedback.mockRejectedValueOnce(timeoutError)
     const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '개발자' }))
     expect(res.status).toBe(504)
     const body = await res.json()
     expect(body.error).toContain('지연')
+  })
+
+  // RAG 테스트 케이스
+  describe('RAG 파이프라인', () => {
+    beforeEach(() => {
+      process.env.RAG_DATABASE_URL = 'postgresql://rag-db'
+    })
+
+    afterEach(() => {
+      delete process.env.RAG_DATABASE_URL
+    })
+
+    it('ENABLE_RAG=false 시 embedText 미호출, callEngineFeedback에 resume_context 미전달', async () => {
+      await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(mockEmbedText).not.toHaveBeenCalled()
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
+
+    it('RAG_DATABASE_URL 미설정 시 ENABLE_RAG=true여도 embedText 미호출', async () => {
+      delete process.env.RAG_DATABASE_URL
+      process.env.ENABLE_RAG = 'true'
+      await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(mockEmbedText).not.toHaveBeenCalled()
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
+
+    it('ENABLE_RAG=true + 임베딩 성공 시 resume_context 전달', async () => {
+      process.env.ENABLE_RAG = 'true'
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
+      mockSearchSimilarAcceptedResumes.mockResolvedValueOnce([
+        { id: '1', jobRole: '백엔드 개발자', content: '합격 자소서 A', similarity: 0.9 },
+        { id: '2', jobRole: '백엔드 개발자', content: '합격 자소서 B', similarity: 0.85 },
+      ])
+      await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith(
+        '자소서 내용',
+        '백엔드 개발자',
+        ['합격 자소서 A', '합격 자소서 B']
+      )
+    })
+
+    it('ENABLE_RAG=true + 임베딩 null 반환 시 graceful degradation, 200 반환', async () => {
+      process.env.ENABLE_RAG = 'true'
+      mockEmbedText.mockResolvedValueOnce(null)
+      const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(res.status).toBe(200)
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
+
+    it('ENABLE_RAG=true + 검색 결과 0건 시 resume_context 미전달', async () => {
+      process.env.ENABLE_RAG = 'true'
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
+      mockSearchSimilarAcceptedResumes.mockResolvedValueOnce([])
+      await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
+
+    it('ENABLE_RAG=true + 검색 throw 시 graceful degradation, 200 반환', async () => {
+      process.env.ENABLE_RAG = 'true'
+      mockEmbedText.mockResolvedValueOnce({ vector: [0.1, 0.2], model: 'bge-m3' })
+      mockSearchSimilarAcceptedResumes.mockRejectedValueOnce(new Error('DB error'))
+      const res = await POST(makeRequest({ resumeId: 'resume-1', targetRole: '백엔드 개발자' }))
+      expect(res.status).toBe(200)
+      expect(mockCallEngineFeedback).toHaveBeenCalledWith('자소서 내용', '백엔드 개발자')
+    })
   })
 })

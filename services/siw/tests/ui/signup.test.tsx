@@ -24,15 +24,13 @@ describe("SignupPage", () => {
     vi.clearAllMocks()
   })
 
-  const fillForm = (password: string, confirmPassword: string) => {
-    fireEvent.change(screen.getByPlaceholderText("홍길동"), {
-      target: { value: "테스트" },
-    })
-    fireEvent.change(screen.getByPlaceholderText("name@example.com"), {
-      target: { value: "test@example.com" },
-    })
+  const fillForm = (password: string, confirmPassword: string, checkTerms = true, checkPrivacy = true) => {
+    fireEvent.change(screen.getByPlaceholderText("홍길동"), { target: { value: "테스트" } })
+    fireEvent.change(screen.getByPlaceholderText("name@example.com"), { target: { value: "test@example.com" } })
     fireEvent.change(screen.getByPlaceholderText("8자 이상"), { target: { value: password } })
     fireEvent.change(screen.getByPlaceholderText("비밀번호 재입력"), { target: { value: confirmPassword } })
+    if (checkTerms) fireEvent.click(screen.getByRole('checkbox', { name: /이용약관/ }))
+    if (checkPrivacy) fireEvent.click(screen.getByRole('checkbox', { name: /개인정보처리방침/ }))
     fireEvent.submit(screen.getByRole("button", { name: /가입하고 시작하기/ }))
   }
 
@@ -75,8 +73,29 @@ describe("SignupPage", () => {
       expect(mockSignUp).toHaveBeenCalledWith({
         email: "test@example.com",
         password: "password123",
-        options: { data: { full_name: "테스트" } },
+        options: { data: expect.objectContaining({
+          full_name: "테스트",
+          terms_agreed_at: expect.any(String),
+        })},
       })
     })
+  })
+
+  it("이용약관 미동의 시 가입 차단", async () => {
+    render(<SignupPage />)
+    fillForm("password123", "password123", false, true)
+    await waitFor(() => {
+      expect(screen.getByText("이용약관에 동의해주세요")).toBeInTheDocument()
+    })
+    expect(mockSignUp).not.toHaveBeenCalled()
+  })
+
+  it("개인정보처리방침 미동의 시 가입 차단", async () => {
+    render(<SignupPage />)
+    fillForm("password123", "password123", true, false)
+    await waitFor(() => {
+      expect(screen.getByText("개인정보처리방침에 동의해주세요")).toBeInTheDocument()
+    })
+    expect(mockSignUp).not.toHaveBeenCalled()
   })
 })

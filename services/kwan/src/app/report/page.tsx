@@ -24,7 +24,18 @@ const AXIS_LABELS: Record<keyof AxisScores, string> = {
   sincerity: '성실성',
 }
 
-function ScoreBar({ label, score }: { label: string; score: number }) {
+function ScoreBar({ label, score }: { label: string; score: number | null }) {
+  if (score === null) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-700">{label}</span>
+          <span className="font-semibold text-gray-400">미평가</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2" />
+      </div>
+    )
+  }
   const color =
     score >= 80 ? 'bg-indigo-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-400'
   return (
@@ -74,7 +85,7 @@ function ReportPageInner() {
   if (loading) {
     return (
       <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 15초 소요)</p>
+        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
       </main>
     )
   }
@@ -97,6 +108,7 @@ function ReportPageInner() {
 
   const strengthFeedbacks = report.axisFeedbacks.filter((f) => f.type === 'strength')
   const improveFeedbacks = report.axisFeedbacks.filter((f) => f.type === 'improvement')
+  const notEvaluatedFeedbacks = report.axisFeedbacks.filter((f) => f.type === 'not_evaluated')
 
   return (
     <main className="min-h-screen bg-white flex flex-col items-center py-16 px-4">
@@ -132,7 +144,7 @@ function ReportPageInner() {
               <div key={i} className="p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-green-800">{f.axisLabel}</p>
-                  <span className="text-xs text-green-600 font-medium">{f.score}점</span>
+                  <span className="text-xs text-green-600 font-medium">{f.score != null ? `${f.score}점` : '-'}</span>
                 </div>
                 <p className="text-sm text-green-700">{f.feedback}</p>
               </div>
@@ -148,9 +160,25 @@ function ReportPageInner() {
               <div key={i} className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-amber-800">{f.axisLabel}</p>
-                  <span className="text-xs text-amber-600 font-medium">{f.score}점</span>
+                  <span className="text-xs text-amber-600 font-medium">{f.score != null ? `${f.score}점` : '-'}</span>
                 </div>
                 <p className="text-sm text-amber-700">{f.feedback}</p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* 미평가 영역 */}
+        {notEvaluatedFeedbacks.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-base font-bold text-gray-700">미평가 영역</h2>
+            {notEvaluatedFeedbacks.map((f, i) => (
+              <div key={i} className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-700">{f.axisLabel}</p>
+                  <span className="text-xs text-gray-400 font-medium">미평가</span>
+                </div>
+                <p className="text-sm text-gray-600">{f.feedback}</p>
               </div>
             ))}
           </section>
@@ -171,7 +199,7 @@ export default function ReportPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 15초 소요)</p>
+        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
       </main>
     }>
       <ReportPageInner />

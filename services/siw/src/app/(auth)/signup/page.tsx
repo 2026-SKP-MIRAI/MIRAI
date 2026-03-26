@@ -13,11 +13,21 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [agreeToPrivacy, setAgreeToPrivacy] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleGoogleSignup = async () => {
+    if (!agreeToTerms || !agreeToPrivacy) {
+      setFieldErrors({
+        agreeToTerms: !agreeToTerms ? "이용약관에 동의해주세요" : "",
+        agreeToPrivacy: !agreeToPrivacy ? "개인정보처리방침에 동의해주세요" : "",
+      })
+      return
+    }
     const supabase = createSupabaseBrowser()
     const origin = window.location.origin
     await supabase.auth.signInWithOAuth({
@@ -29,15 +39,27 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    const result = signupSchema.safeParse({ name, email, password, confirmPassword })
-    if (!result.success) { setError(result.error.issues[0].message); return }
+    setFieldErrors({})
+    const result = signupSchema.safeParse({ name, email, password, confirmPassword, agreeToTerms, agreeToPrivacy })
+    if (!result.success) {
+      const fe = result.error.flatten().fieldErrors
+      setFieldErrors({
+        name: fe.name?.[0] ?? "",
+        email: fe.email?.[0] ?? "",
+        password: fe.password?.[0] ?? "",
+        confirmPassword: fe.confirmPassword?.[0] ?? "",
+        agreeToTerms: fe.agreeToTerms?.[0] ?? "",
+        agreeToPrivacy: fe.agreeToPrivacy?.[0] ?? "",
+      })
+      return
+    }
     setLoading(true)
     try {
       const supabase = createSupabaseBrowser()
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: { data: { full_name: name, terms_agreed_at: new Date().toISOString() } },
       })
       if (authError) { setError("회원가입 중 오류가 발생했습니다. 다시 시도해주세요."); return }
       setSuccess(true)
@@ -150,7 +172,10 @@ export default function SignupPage() {
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="8자 이상" required className={inputClass} />
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">ⓘ 8자 이상, 영문 + 숫자 포함</p>
+              {fieldErrors.password
+                ? <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+                : <p className="text-xs text-gray-400 mt-1.5">ⓘ 8자 이상, 영문 + 숫자 포함</p>
+              }
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1.5">비밀번호 확인</label>
@@ -159,6 +184,35 @@ export default function SignupPage() {
                 <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="비밀번호 재입력" required className={inputClass} />
               </div>
+              {fieldErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <a href="/terms" target="_blank" className="underline text-primary">[이용약관]</a>에 동의합니다 <span className="text-destructive">*필수</span>
+                </span>
+              </label>
+              {fieldErrors.agreeToTerms && <p className="text-xs text-red-500">{fieldErrors.agreeToTerms}</p>}
+
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeToPrivacy}
+                  onChange={(e) => setAgreeToPrivacy(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <a href="/privacy" target="_blank" className="underline text-primary">[개인정보처리방침]</a>에 동의합니다 (국외이전 포함) <span className="text-destructive">*필수</span>
+                </span>
+              </label>
+              {fieldErrors.agreeToPrivacy && <p className="text-xs text-red-500">{fieldErrors.agreeToPrivacy}</p>}
             </div>
 
             {error && (

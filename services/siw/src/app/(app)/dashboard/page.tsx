@@ -145,7 +145,8 @@ export default function DashboardPage() {
             {sessions.length === 0 ? (
               <p className="text-sm text-gray-400 py-6 text-center">아직 완료된 면접이 없습니다</p>
             ) : (
-              sessions.slice(0, 5).map((s, i) => {
+              <div className="max-h-[480px] overflow-y-auto">
+              {sessions.map((s) => {
                 const sc = getScoreCircleClass(s.reportTotalScore)
                 return (
                   <div key={s.id} className="flex items-center justify-between py-3.5 border-b border-black/[0.05] last:border-0">
@@ -155,7 +156,7 @@ export default function DashboardPage() {
                         {s.reportTotalScore}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{i + 1}번째 면접</p>
+                        <p className="text-sm font-semibold text-gray-900">{s.resumeFileName || "이력서"}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{formatDate(s.createdAt)}</p>
                       </div>
                     </div>
@@ -164,7 +165,8 @@ export default function DashboardPage() {
                     </Link>
                   </div>
                 )
-              })
+              })}
+              </div>
             )}
           </motion.div>
 

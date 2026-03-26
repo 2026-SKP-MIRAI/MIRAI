@@ -1,0 +1,79 @@
+name: Deploy kwan to EC2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/kwan/**'
+  workflow_dispatch:  # GitHub Actions 탭에서 수동 트리거 가능
+    inputs:
+      skip_build:
+        description: '빌드 생략하고 재시작만 (서버 재시작용)'
+        type: boolean
+        default: false
+
+jobs:
+  build-and-push-kwan:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip_build != true }}  # push 이벤트에서 inputs는 '' (falsy)이므로 항상 빌드 실행
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+      - name: Build and push kwan
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/mirai-kwan:latest \
+            -t $ECR_REGISTRY/mirai-kwan:${{ github.sha }} \
+            -f services/kwan/Dockerfile \
+            services/kwan
+          docker push $ECR_REGISTRY/mirai-kwan --all-tags
+
+  deploy:
+    needs: [build-and-push-kwan]
+    if: ${{ always() && (needs.build-and-push-kwan.result == 'success' || needs.build-and-push-kwan.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        with:
+          host: ${{ secrets.KWAN_EC2_HOST }}
+          username: ${{ secrets.KWAN_EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,AWS_REGION
+          script: |
+            # ECR 로그인
+            aws ecr get-login-password --region $AWS_REGION | \
+              docker login --username AWS --password-stdin $ECR_REGISTRY
+
+            # env 파일 존재 확인 — 없으면 배포 중단
+            if [ ! -f ~/.env.kwan ]; then
+              echo "ERROR: ~/.env.kwan not found on host" >&2
+              exit 1
+            fi
+
+            # 기존 컨테이너 정리
+            docker stop kwan || true
+            docker rm kwan || true
+
+            # 최신 이미지 pull
+            docker pull $ECR_REGISTRY/mirai-kwan:latest
+
+            # 사용하지 않는 이미지 정리 (디스크 용량 확보)
+            docker image prune -f
+
+            # kwan 시작
+            docker run -d --name kwan \
+              --restart unless-stopped \
+              --env-file ~/.env.kwan \
+              -p 3000:3000 \
+              $ECR_REGISTRY/mirai-kwan:latest
