@@ -64,8 +64,11 @@ describe("SignupPage", () => {
     expect(mockSignUp).not.toHaveBeenCalled()
   })
 
-  it("유효한 입력 시 signUp 호출", async () => {
-    mockSignUp.mockResolvedValue({ error: null })
+  it("유효한 입력 시 signUp 호출 후 성공 화면 표시", async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { identities: [{ id: "1" }] } },
+      error: null,
+    })
     render(<SignupPage />)
     fillForm("password123", "password123")
 
@@ -79,6 +82,41 @@ describe("SignupPage", () => {
         })},
       })
     })
+
+    await waitFor(() => {
+      expect(screen.getByText("이메일을 확인해주세요")).toBeInTheDocument()
+    })
+  })
+
+  it("이미 가입된 이메일로 가입 시도 시 에러 메시지와 로그인 링크 표시", async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { identities: [] } },
+      error: null,
+    })
+    render(<SignupPage />)
+    fillForm("password123", "password123")
+
+    await waitFor(() => {
+      expect(screen.getByText(/이미 가입된 이메일입니다/)).toBeInTheDocument()
+    })
+
+    const loginLink = screen.getByRole("link", { name: /로그인 페이지로 이동/ })
+    expect(loginLink).toHaveAttribute("href", "/login")
+  })
+
+  it("이미 가입된 이메일로 가입 시도 시 성공 화면이 표시되지 않는다", async () => {
+    mockSignUp.mockResolvedValue({
+      data: { user: { identities: [] } },
+      error: null,
+    })
+    render(<SignupPage />)
+    fillForm("password123", "password123")
+
+    await waitFor(() => {
+      expect(screen.getByText(/이미 가입된 이메일입니다/)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText("이메일을 확인해주세요")).not.toBeInTheDocument()
   })
 
   it("이용약관 미동의 시 가입 차단", async () => {
