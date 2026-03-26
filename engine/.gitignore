@@ -1,0 +1,17 @@
+# 환경변수
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# E2E 결과 — 이력서 텍스트 포함 가능, 커밋 금지
+tests/e2e/results/
+!tests/e2e/results/.gitkeep
