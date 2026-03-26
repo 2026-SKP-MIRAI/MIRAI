@@ -2,7 +2,7 @@ name: Deploy seung to EC2
 
 on:
   push:
-    branches: [main, refactor/000263-engine-ci-services-ci]
+    branches: [main]
     paths:
       - 'services/seung/**'
       - '.github/workflows/deploy-seung.yml'

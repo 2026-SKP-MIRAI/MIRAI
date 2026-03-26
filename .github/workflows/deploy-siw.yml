@@ -2,7 +2,7 @@ name: Deploy siw to EC2
 
 on:
   push:
-    branches: [main, refactor/000263-engine-ci-services-ci]
+    branches: [main]
     paths:
       - 'services/siw/**'
       - '.github/workflows/deploy-siw.yml'
