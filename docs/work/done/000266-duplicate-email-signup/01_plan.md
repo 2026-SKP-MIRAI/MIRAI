@@ -1,8 +1,14 @@
-# [#266] chore: [siw] 중복 이메일 회원가입 시 에러 안내 부재 수정 — 구현 계획
+# [#266] fix: 중복 이메일 회원가입 시 에러 안내 부재 수정 — 구현 계획
 
 > 작성: 2026-03-26
 
 ---
+
+## 배경
+
+Supabase `auth.signUp()`은 이미 가입된(인증 완료된) 이메일에 대해 `error`를 반환하지 않고, 인증 메일을 재발송한 뒤 성공 응답을 반환한다. `signup/page.tsx`에서 `authError`만 체크하므로 기존 계정 사용자도 "이메일을 확인해주세요" 성공 화면을 보게 된다.
+
+Supabase 공식 패턴: 이미 가입된 이메일은 `data.user?.identities` 배열이 비어있다.
 
 ## 완료 기준
 
@@ -14,8 +20,43 @@
 
 ## 구현 계획
 
-1. `signup/page.tsx`에서 `signUp` 응답의 `data.user?.identities` 확인
-2. identities가 빈 배열이면 기존 계정으로 판단 → 에러 메시지 표시
-3. 에러 메시지에 `/login` 링크 포함
-4. 테스트 코드 작성
-5. .ai.md 최신화
+### 변경 대상
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `services/siw/src/app/(auth)/signup/page.tsx` | signUp 응답 data 수신, identities 체크, 에러 메시지 링크 |
+| `services/siw/tests/ui/signup.test.tsx` | mockSignUp 응답 업데이트, 중복 이메일 테스트 추가 |
+| `services/siw/src/app/(auth)/.ai.md` | 중복 이메일 감지 로직 기술 |
+
+### 구현 상세
+
+**signup/page.tsx 변경:**
+```tsx
+// 기존
+const { error: authError } = await supabase.auth.signUp({...})
+if (authError) { setError("..."); return }
+setSuccess(true)
+
+// 변경
+const { data, error: authError } = await supabase.auth.signUp({...})
+if (authError) { setError("..."); return }
+if (data.user?.identities?.length === 0) {
+  setError("이미 가입된 이메일입니다. 로그인해주세요.")
+  return
+}
+setSuccess(true)
+```
+
+**에러 메시지 링크:**
+```tsx
+{error.includes("이미 가입된") && (
+  <> <Link href="/login" className="underline font-semibold text-violet-600">
+    로그인 페이지로 이동
+  </Link></>
+)}
+```
+
+### 테스트 전략
+- `identities: []` → 에러 메시지 + 로그인 링크 확인
+- `identities: [{ id: "1" }]` → 성공 화면 확인
+- Google OAuth(`provider: "google"`) → identities 체크 미적용 확인
