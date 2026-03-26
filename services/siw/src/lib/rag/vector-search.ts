@@ -1,4 +1,5 @@
 import { ragPrisma } from '@/lib/rag-prisma'
+import { isValidEmbeddingVector } from './embedding-client'
 
 export interface SimilarPosting {
   title: string
@@ -30,6 +31,8 @@ export async function searchSimilarPostings(
   jobRole: string,
   topK = 5
 ): Promise<SimilarPosting[]> {
+  if (!isValidEmbeddingVector(roleVector)) return []
+
   const vectorStr = `[${roleVector.join(',')}]`
   const results = await ragPrisma.$queryRaw<
     Array<{

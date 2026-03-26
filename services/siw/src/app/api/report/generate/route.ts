@@ -1,6 +1,7 @@
 import { ENGINE_ERROR_MESSAGES } from "@/lib/error-messages";
 import { interviewRepository } from "@/lib/interview/interview-repository";
 import { withEventLogging } from "@/lib/observability/event-logger";
+import { getEngineBaseUrl } from "@/lib/rag/embedding-client";
 import { createServerClient } from "@/lib/supabase/server";
 import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
@@ -39,8 +40,9 @@ export async function POST(request: Request) {
 
     const history = session.history.map(({ type: _type, ...rest }) => rest);
 
-    const engineUrl =
-      (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/report/generate";
+    const baseUrl = getEngineBaseUrl();
+    if (!baseUrl) return Response.json({ message: "ENGINE_BASE_URL 환경변수가 설정되지 않았습니다" }, { status: 500 });
+    const engineUrl = baseUrl + "/api/report/generate";
 
     let engineData: unknown;
     let engineStatus: number;

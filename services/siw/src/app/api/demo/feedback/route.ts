@@ -16,9 +16,9 @@ export async function POST(request: Request) {
     return Response.json({ message: "답변을 입력해주세요." }, { status: 400 })
   }
 
-  const engineUrl =
-    (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") +
-    "/api/practice/feedback"
+  const baseUrl = process.env.ENGINE_BASE_URL
+  if (!baseUrl) return Response.json({ message: "ENGINE_BASE_URL 환경변수가 설정되지 않았습니다" }, { status: 500 })
+  const engineUrl = baseUrl + "/api/practice/feedback"
 
   try {
     const engineRes = await fetch(engineUrl, {

@@ -58,6 +58,27 @@ describe('searchSimilarAcceptedResumes', () => {
     expect(result).toEqual([])
   })
 
+  it('NaN이 포함된 벡터일 때 빈 배열 반환 (SQL injection 방지)', async () => {
+    const result = await searchSimilarAcceptedResumes([0.1, NaN, 0.3], '백엔드', 5)
+
+    expect(result).toEqual([])
+    expect(ragPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('빈 벡터일 때 빈 배열 반환', async () => {
+    const result = await searchSimilarAcceptedResumes([], '백엔드', 5)
+
+    expect(result).toEqual([])
+    expect(ragPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('Infinity 포함 벡터일 때 빈 배열 반환', async () => {
+    const result = await searchSimilarAcceptedResumes([0.1, Infinity], '백엔드', 5)
+
+    expect(result).toEqual([])
+    expect(ragPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
   it('DB 오류 시 에러를 그대로 throw한다', async () => {
     vi.mocked(ragPrisma.$queryRaw).mockRejectedValue(new Error('DB connection error'))
 

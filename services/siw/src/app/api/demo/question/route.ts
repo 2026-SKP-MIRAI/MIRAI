@@ -40,9 +40,9 @@ export async function POST(request: Request) {
     )
   }
 
-  const engineUrl =
-    (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") +
-    "/api/interview/start"
+  const baseUrl = process.env.ENGINE_BASE_URL
+  if (!baseUrl) return Response.json({ message: "ENGINE_BASE_URL 환경변수가 설정되지 않았습니다" }, { status: 500 })
+  const engineUrl = baseUrl + "/api/interview/start"
 
   try {
     const engineRes = await fetch(engineUrl, {

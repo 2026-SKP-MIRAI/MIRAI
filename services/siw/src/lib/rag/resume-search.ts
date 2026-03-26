@@ -1,4 +1,5 @@
 import { ragPrisma } from '@/lib/rag-prisma'
+import { isValidEmbeddingVector } from './embedding-client'
 
 export interface AcceptedResumeResult {
   id: string
@@ -20,6 +21,8 @@ export async function searchSimilarAcceptedResumes(
   jobRole?: string,
   topK = 5
 ): Promise<AcceptedResumeResult[]> {
+  if (!isValidEmbeddingVector(embedding)) return []
+
   const vectorStr = `[${embedding.join(',')}]`
 
   const results = jobRole

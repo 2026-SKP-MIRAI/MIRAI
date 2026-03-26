@@ -1,4 +1,5 @@
 import { withEventLogging } from "@/lib/observability/event-logger";
+import { getEngineBaseUrl } from "@/lib/rag/embedding-client";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -11,8 +12,9 @@ export async function POST(request: Request) {
   const previousScore = (typeof rawPreviousScore === "number" && rawPreviousScore >= 0 && rawPreviousScore <= 100)
     ? rawPreviousScore : undefined;
 
-  const engineUrl =
-    (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") + "/api/practice/feedback";
+  const baseUrl = getEngineBaseUrl();
+  if (!baseUrl) return Response.json({ message: "ENGINE_BASE_URL 환경변수가 설정되지 않았습니다" }, { status: 500 });
+  const engineUrl = baseUrl + "/api/practice/feedback";
 
   try {
     const data = await withEventLogging('practice_feedback', null, async (meta) => {
