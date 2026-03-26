@@ -55,13 +55,23 @@
 
 **terms/page.tsx, privacy/page.tsx** — 신규 서버 컴포넌트. AI기본법·개인정보보호법 기반 실제 약관 내용 포함. 자체 스크롤 컨테이너(`overflow-y-auto max-h-[80vh]`). 개인정보처리방침에 Anthropic 국외이전(미국) 명시.
 
-**consent/page.tsx** — OAuth 신규 가입자 전용 동의 확인 페이지. 동의 시 `updateUser({ data: { terms_agreed_at } })`→대시보드. 거부 시 `/api/auth/delete`로 계정 삭제 후 `/login` 이동.
+**callback/route.ts** — `exchangeCodeForSession` 반환 user로 신규 가입 여부(`!terms_agreed_at`) 판별 → `updateUser({ data: { terms_agreed_at } })` 직접 저장 후 대시보드 이동. 별도 consent 페이지 없이 처리.
 
-**callback/route.ts** — `exchangeCodeForSession` 반환 user로 신규 가입 여부(`!terms_agreed_at`) 판별 → `/consent` 리다이렉트. 불필요한 `getUser()` 호출 제거.
-
-**api/auth/delete/route.ts** — OAuth 거부 시 회원탈퇴 API. `supabaseAdmin.auth.admin.deleteUser(userId)` 사용 (service role key 서버에서만 사용).
+**api/auth/delete/route.ts** — 서비스 내 회원탈퇴용 API. `supabaseAdmin.auth.admin.deleteUser(userId)` 사용 (service role key 서버에서만 사용).
 
 **signup.test.tsx** — `fillForm` 헬퍼에 `checkTerms`, `checkPrivacy` 파라미터 추가. 기존 4개 테스트 통과 유지. 신규 테스트 2개: "이용약관 미동의 시 가입 차단", "개인정보처리방침 미동의 시 가입 차단" (6/6 통과).
 
-**변경 파일**: 7개 수정·5개 신규
+**변경 파일**: 7개 수정·4개 신규
+
+---
+
+### 추가 수정 (커밋 후 법적 검토 반영)
+
+**terms/page.tsx** — 제5조 문의 경로: "서비스 내 문의하기/고객센터" → `[운영팀 이메일]로 이메일 문의`로 교체 (미구현 기능 기술 제거). 제8조: "7일 이상 사전 공지" → "사전 공지를 원칙으로 하며, 불가피한 사유 시 사후 공지 가능"으로 완화 (이행 불가 조항 제거).
+
+**privacy/page.tsx** — 처리위탁 Anthropic 항목: "위탁 계약 기준으로 처리됩니다" → "Anthropic API 이용약관에 따라 처리됩니다" (미체결 DPA 계약 표현 제거).
+
+**consent/page.tsx 삭제** — OAuth 흐름 단순화. Google 로그인 전 signup 페이지 체크박스 2개 필수 확인으로 충분. callback에서 직접 `updateUser`로 처리.
+
+**변경 파일 최종**: 7개 수정·4개 신규
 

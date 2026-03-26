@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   if (error) return NextResponse.redirect(`${origin}/login?error=oauth`)
 
   if (user && !user.user_metadata?.terms_agreed_at) {
-    return NextResponse.redirect(new URL("/consent", requestUrl.origin))
+    await supabase.auth.updateUser({ data: { terms_agreed_at: new Date().toISOString() } })
   }
 
   return NextResponse.redirect(`${origin}${safeRedirect}`)

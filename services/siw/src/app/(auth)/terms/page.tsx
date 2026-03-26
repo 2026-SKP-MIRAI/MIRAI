@@ -57,7 +57,7 @@ export default function TermsPage() {
         <section className="space-y-2">
           <h2 className="text-base font-semibold text-gray-800">제5조 (자동화 의사결정 설명 요구 및 이의제기)</h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            이용자는 AI 분석 결과에 대해 설명을 요구하거나 이의를 제기할 수 있습니다(개인정보보호법 제37조의2 적용 가능성). 이의제기는 서비스 내 문의하기 기능 또는 고객센터를 통해 접수할 수 있으며, 회사는 합리적인 기간 내에 검토 후 회신합니다.
+            이용자는 AI 분석 결과에 대해 설명을 요구하거나 이의를 제기할 수 있습니다(개인정보보호법 제37조의2 적용 가능성). 이의제기는 [운영팀 이메일]로 이메일 문의를 통해 접수할 수 있으며, 회사는 합리적인 기간 내에 검토 후 회신합니다.
           </p>
         </section>
 
@@ -86,7 +86,7 @@ export default function TermsPage() {
         <section className="space-y-2">
           <h2 className="text-base font-semibold text-gray-800">제8조 (서비스 변경·중단)</h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            회사는 서비스를 변경하거나 중단할 경우 7일 이상 사전 공지합니다. 다만 천재지변, 시스템 장애, 긴급 보안 패치 등 불가피한 사유가 있는 경우에는 즉시 조치 후 사후 공지할 수 있습니다.
+            회사는 서비스를 변경하거나 중단할 경우 사전 공지를 원칙으로 합니다. 다만 천재지변, 시스템 장애, 긴급 보안 패치 등 불가피한 사유가 있는 경우에는 즉시 조치 후 사후 공지할 수 있습니다.
           </p>
         </section>
 

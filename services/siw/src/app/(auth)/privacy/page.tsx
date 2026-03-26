@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                   <td className="px-3 py-2 border border-black/[0.08] text-gray-700 align-top whitespace-nowrap">Anthropic, PBC</td>
                   <td className="px-3 py-2 border border-black/[0.08] text-gray-600">
                     AI 기반 자기소개서·이력서 분석 피드백
-                    <p className="text-xs text-gray-400 mt-1">API 정책상 입력 데이터는 모델 학습에 사용되지 않는 것으로 안내되어 있으며, 위탁 계약 기준으로 처리됩니다.</p>
+                    <p className="text-xs text-gray-400 mt-1">API 정책상 입력 데이터는 모델 학습에 사용되지 않는 것으로 안내되어 있으며, Anthropic API 이용약관에 따라 처리됩니다.</p>
                   </td>
                 </tr>
                 <tr className="bg-gray-50/50">
@@ -167,8 +167,8 @@ export default function PrivacyPage() {
         <section className="space-y-2">
           <h2 className="text-base font-semibold text-gray-800">8. 개인정보 보호책임자</h2>
           <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-600 space-y-1">
-            <p><span className="font-medium text-gray-700">담당자:</span> [담당자 이름]</p>
-            <p><span className="font-medium text-gray-700">이메일:</span> [이메일 주소]</p>
+            <p><span className="font-medium text-gray-700">담당자:</span> MirAI 운영팀</p>
+            <p><span className="font-medium text-gray-700">이메일:</span> mirainterview5@gmail.com</p>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
             개인정보 처리에 관한 문의, 불만 처리, 피해 구제 등에 관한 사항은 위 담당자에게 문의하시기 바랍니다.
