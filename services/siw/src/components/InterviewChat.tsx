@@ -234,7 +234,7 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
             <button
               data-testid="btn-next-question"
               onClick={onNextQuestion}
-              disabled={isNextLoading}
+              disabled={isNextLoading || isFetchingFeedback}
               className="flex-1 btn-primary rounded-xl py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isNextLoading

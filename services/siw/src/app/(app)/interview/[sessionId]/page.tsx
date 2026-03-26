@@ -208,7 +208,9 @@ export default function InterviewSessionPage() {
     setExiting(true);
     try {
       await fetch(`/api/interview/${sessionId}/complete`, { method: "PATCH" });
-      if (history.length >= 5) {
+      if (interviewMode === "practice") {
+        router.push("/interview/new");
+      } else if (history.length >= 5) {
         router.push(`/interview/${sessionId}/report`);
       } else {
         router.push("/dashboard");
@@ -284,7 +286,21 @@ export default function InterviewSessionPage() {
           </div>
         )}
 
-        {sessionComplete && (
+        {sessionComplete && interviewMode === "practice" && (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-[#1F2937] mb-2">연습이 완료됐습니다</h3>
+            <button onClick={() => router.push("/interview/new")} className="btn-outline rounded-xl px-6 py-3 w-full">
+              다시 하기
+            </button>
+          </div>
+        )}
+
+        {sessionComplete && interviewMode === "real" && (
           <div className="glass-card rounded-2xl p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,9 +327,11 @@ export default function InterviewSessionPage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 mb-2">면접을 종료하시겠어요?</h3>
             <p className="text-sm text-gray-500 mb-6 leading-[1.7]">
-              {history.length >= 5
-                ? "충분한 답변이 있어 리포트를 생성할 수 있습니다."
-                : `아직 답변이 ${history.length}개입니다. 리포트는 5개 이상 답변이 필요합니다.`}
+              {interviewMode === "practice"
+                ? `현재 ${history.length}개의 답변이 있습니다. 종료하시겠습니까?`
+                : history.length >= 5
+                  ? "충분한 답변이 있어 리포트를 생성할 수 있습니다."
+                  : `아직 답변이 ${history.length}개입니다. 리포트는 5개 이상 답변이 필요합니다.`}
             </p>
             <div className="flex gap-2">
               <button
