@@ -23,7 +23,7 @@ def generate_questions(
     target_role: str | None = None,
     model: str | None = None,
     max_input_chars: int = 16000,
-    timeout_seconds: float = 50.0,
+    timeout_seconds: float = 30.0,
 ) -> tuple[list[QuestionItem], UsageMetadata | None]:
     # TODO: 향후 XML 기반 프롬프트 템플릿 엔진 도입 시 이스케이프 로직 중앙화 필요.
     # < > 전체를 HTML 엔티티로 치환해 XML 태그 인젝션(여는 태그·닫는 태그 모두)을 방지한다.
