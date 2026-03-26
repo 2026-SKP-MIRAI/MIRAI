@@ -7,6 +7,9 @@
 [이전 대화]
 {history}
 
+[이전 면접 피드백]
+{prior_feedback}
+
 [면접관 질문]
 {question}
 
