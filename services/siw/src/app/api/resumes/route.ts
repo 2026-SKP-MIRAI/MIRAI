@@ -34,7 +34,7 @@ async function fetchFeedback(resumeText: string, targetRole: string, jobContext?
         ...(jobContext ? { job_context: jobContext } : {}),
         ...(resumeContext ? { resume_context: resumeContext } : {}),
       }),
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(55000),
     })
     if (!r.ok) return null
     const d = await r.json().catch(() => null)
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resumeText, targetRole }),
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(55000),
         });
         if (!r.ok) {
           const body = await r.json().catch(() => ({ detail: "" }));
