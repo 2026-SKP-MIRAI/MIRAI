@@ -282,7 +282,7 @@ export default function GrowthPage() {
         </motion.div>
 
         {/* 하단 2열 */}
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* 세션 목록 */}
           <motion.div variants={itemVariants} className="bg-white/90 border border-black/[0.08] rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all">
             <h3 className="text-sm font-bold text-gray-900 mb-3">면접 기록</h3>
@@ -335,9 +335,9 @@ export default function GrowthPage() {
 
           {/* 강점 & 약점 패턴 */}
           {sessions.length >= 2 && (
-            <motion.div variants={itemVariants} className="col-span-2 bg-white/90 border border-black/[0.08] rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all">
+            <motion.div variants={itemVariants} className="md:col-span-2 bg-white/90 border border-black/[0.08] rounded-2xl p-5 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.09)] transition-all">
               <h3 className="text-sm font-bold text-gray-900 mb-3">강점 & 약점 패턴</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 mb-2">꾸준한 강점</p>
                   {strengths.map(s => (
