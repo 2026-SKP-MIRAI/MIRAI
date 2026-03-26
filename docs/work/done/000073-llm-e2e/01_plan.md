@@ -6,13 +6,13 @@
 
 ## 완료 기준
 
-- [ ] 테스트 에이전트가 샘플 PDF를 업로드하고 질문 목록을 수신한다
-- [ ] 테스트 에이전트가 LLM을 사용해 각 질문에 대한 답변을 자동 생성한다 (페르소나: 지원자 역할)
-- [ ] 꼬리질문(followup) 흐름까지 포함한 완전한 면접 세션을 자동 완주한다
-- [ ] 세션 종료 후 `POST /api/report/generate`를 호출하여 8축 점수를 수집한다
-- [ ] 복수 실행 결과를 JSON으로 저장하고 점수 평균·표준편차를 리포트한다
-- [ ] 프롬프트 버전 A/B 비교 실행을 지원한다 (동일 PDF, 다른 프롬프트)
-- [ ] CI에서 선택적으로 실행 가능하도록 환경변수 플래그(`RUN_E2E_AGENT=true`)로 제어한다
+- [x] 테스트 에이전트가 샘플 PDF를 업로드하고 질문 목록을 수신한다
+- [x] 테스트 에이전트가 LLM을 사용해 각 질문에 대한 답변을 자동 생성한다 (페르소나: 지원자 역할)
+- [x] 꼬리질문(followup) 흐름까지 포함한 완전한 면접 세션을 자동 완주한다
+- [x] 세션 종료 후 `POST /api/report/generate`를 호출하여 8축 점수를 수집한다
+- [x] 복수 실행 결과를 JSON으로 저장하고 점수 평균·표준편차를 리포트한다
+- [x] 프롬프트 버전 A/B 비교 실행을 지원한다 (동일 PDF, 다른 프롬프트)
+- [x] CI에서 선택적으로 실행 가능하도록 환경변수 플래그(`RUN_E2E_AGENT=true`)로 제어한다
 
 ---
 
@@ -258,6 +258,19 @@ def sample_pdf_bytes(minimal_pdf_bytes) -> bytes:
 | `engine/tests/e2e/results/.gitkeep` | 신규 |
 | `engine/tests/.ai.md` | 업데이트 (e2e 디렉토리 추가) |
 | `engine/.gitignore` | `tests/e2e/results/` 추가 — 결과 JSON에 이력서 텍스트 포함 가능, 커밋 금지 |
+
+---
+
+### 구현 중 추가된 내용 (계획 외)
+
+| 항목 | 내용 |
+|------|------|
+| `prior_feedback: str` | `CandidateAgent`에 이전 세션 피드백 주입 파라미터 추가 |
+| `prompt_log: list[str]` | 실제 LLM에 전달된 프롬프트 기록 — 피드백 주입 검증용 |
+| `format_feedback()` | `runner.py`에 추가 — `axisFeedbacks` 목록을 프롬프트용 텍스트로 변환 |
+| `SessionResult.feedback` / `.summary` | 리포트의 `axisFeedbacks` / `summary` 필드 저장 |
+| `TestFeedbackLoop` | `test_agent_session.py`에 추가 — 피드백 루프 핵심 시나리오 (세션1 → 피드백 추출 → 세션2) |
+| v1 페르소나 조정 | STAR 200~400자 → 신입 지원자 150~250자 (~70-80점) — 피드백 효과 가시성 확보 |
 
 ---
 

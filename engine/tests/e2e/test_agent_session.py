@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from tests.e2e.agent import CandidateAgent
 from tests.e2e.reporter import AXIS_KEYS, compute_stats, print_report, save_result
-from tests.e2e.runner import RESULTS_DIR, run_session
+from tests.e2e.runner import RESULTS_DIR, format_feedback, run_session
 
 
 _RESULTS_DIR = RESULTS_DIR
@@ -86,6 +86,67 @@ class TestABComparison:
             assert r.total_score >= 0
             for axis in AXIS_KEYS:
                 assert axis in r.scores
+
+
+class TestFeedbackLoop:
+    def test_feedback_loop_completes(self, base_url: str, e2e_pdf_bytes: bytes):
+        """피드백을 반영한 2회차 세션이 정상 완주되고 점수 delta가 출력된다.
+
+        흐름:
+            세션 1 (피드백 없음) → axisFeedbacks 추출
+            세션 2 (피드백 주입) → 새 점수
+            delta 출력 (LLM 비결정적 — 향상 여부 hard assert 안 함)
+        """
+        # 세션 1: 피드백 없는 기준 세션
+        agent1 = CandidateAgent(prompt_variant="v1")
+        result1 = run_session(base_url, e2e_pdf_bytes, agent1)
+        save_result(result1, _RESULTS_DIR)
+        print(f"\n[세션 1] 총점: {result1.total_score}, 턴: {result1.turn_count}")
+
+        assert result1.feedback, "세션 1 axisFeedbacks가 비어있습니다."
+
+        # 피드백 텍스트 변환
+        feedback_text = format_feedback(result1.feedback)
+        assert feedback_text
+
+        # 세션 2: 피드백 주입
+        agent2 = CandidateAgent(prompt_variant="v1", prior_feedback=feedback_text)
+        result2 = run_session(base_url, e2e_pdf_bytes, agent2)
+        save_result(result2, _RESULTS_DIR)
+        print(f"\n[세션 2] 총점: {result2.total_score}, 턴: {result2.turn_count}")
+
+        delta = result2.total_score - result1.total_score
+        sign = "+" if delta >= 0 else ""
+        print(f"\n점수 변화 (세션 1 → 세션 2): {sign}{delta}")
+
+        if result1.summary:
+            print(f"\n[세션 1 총평] {result1.summary}")
+
+        if result1.feedback:
+            print("\n[세션 1 축별 피드백]")
+            for item in result1.feedback:
+                label = item.get("axisLabel", item.get("axis", ""))
+                score = item.get("score")
+                fb_type = item.get("type", "")
+                fb_text = item.get("feedback", "")
+                score_str = f"{score}점" if score is not None else "미평가"
+                print(f"  {label} ({score_str}, {fb_type}): {fb_text}")
+
+        # 방법 1 — 피드백이 실제로 LLM 프롬프트에 포함됐는지 검증
+        assert agent2.prompt_log, "세션 2에서 프롬프트가 기록되지 않았습니다."
+        assert any(
+            feedback_text in prompt for prompt in agent2.prompt_log
+        ), "세션 2 프롬프트에 피드백 텍스트가 포함되지 않았습니다."
+
+        # 방법 2 — 세션 2 실제 답변 출력 (사람이 눈으로 확인)
+        print("\n[세션 2 실제 답변 — 피드백 반영 여부를 직접 확인하세요]")
+        for i, item in enumerate(result2.history, 1):
+            print(f"\n  Q{i} ({item.get('personaLabel', '')}): {item.get('question', '')}")
+            print(f"  A{i}: {item.get('answer', '')}")
+
+        # 세션 완주 및 유효 점수 범위 검증
+        assert result2.turn_count >= 5
+        assert 0 <= result2.total_score <= 100
 
 
 class TestMultipleRunsStats:

@@ -48,24 +48,24 @@ dev_spec §5 구현 로드맵상 기능 01~07이 모두 완성된 이후, 고도
 ### 신규 파일
 
 **`engine/tests/e2e/agent.py`** — `CandidateAgent`
-지원자 역할 LLM 답변 생성기. `llm_fn` 주입 패턴으로 단위 테스트 시 mock 사용 가능. `app.*` 임포트 금지 — 엔진 내부에 의존하지 않고 `openai.OpenAI`를 직접 사용. 답변은 `InterviewAnswerRequest.currentAnswer max_length=5000` 제한에 맞게 절단.
+지원자 역할 LLM 답변 생성기. `llm_fn` 주입 패턴으로 단위 테스트 시 mock 사용 가능. `app.*` 임포트 금지. `prior_feedback: str` 파라미터로 이전 세션 피드백을 프롬프트에 주입. `prompt_log: list[str]`로 실제 LLM에 전달된 프롬프트를 기록 (피드백 주입 검증용).
 
-**`engine/tests/e2e/runner.py`** — `run_session()`
-전체 면접 HTTP 흐름 자동 실행 (parse → start → answer loop → report). 엔진이 업데이트된 history를 반환하지 않으므로 runner가 매 턴 직접 `history.append()`. `currentQuestion` / `currentPersona`는 엔진 스키마 필수 필드로 명시적 전달. `MAX_TURNS=15` 안전 리밋 및 `MIN_HISTORY_FOR_REPORT=5` 검증 포함.
+**`engine/tests/e2e/runner.py`** — `run_session()` + `format_feedback()`
+전체 면접 HTTP 흐름 자동 실행 (parse → start → answer loop → report). `format_feedback()` 함수로 `axisFeedbacks` 목록을 프롬프트용 텍스트로 변환. `SessionResult` 반환 시 `feedback` / `summary` 필드도 포함.
 
 **`engine/tests/e2e/reporter.py`** — `SessionResult` + 통계
-`SessionResult` dataclass, `save_result()` (JSON 저장), `compute_stats()` (8축 mean/std/delta), `print_report()` (콘솔 출력). `statistics.stdev` 1개 입력 시 `StatisticsError` 방어를 위해 `len >= 2` 가드 적용.
+`SessionResult` dataclass (`feedback: list[dict]`, `summary: str` 필드 포함), `save_result()` (JSON 저장), `compute_stats()` (8축 mean/std/delta — 단일 결과 시 `delta=None`), `print_report()`.
 
 **`engine/tests/e2e/conftest.py`** — pytest 픽스처
-`pytest` 프로세스는 `.env`를 자동 로드하지 않으므로 `engine/.env`를 수동 파싱해 `os.environ.setdefault()`로 주입. `RUN_E2E_AGENT` 없으면 `test_agent_session.py` 자동 skip, `test_agent_unit.py`는 항상 실행. `e2e_pdf_bytes` 픽스처는 실제 PDF 없으면 fitz로 합성 생성.
+`pytest` 프로세스는 `.env`를 자동 로드하지 않으므로 `engine/.env`를 수동 파싱해 `os.environ.setdefault()`로 주입. `RUN_E2E_AGENT` 없으면 `test_agent_session.py` 자동 skip, `test_agent_unit.py`는 항상 실행. `import fitz`는 픽스처 내부 lazy import (단위 테스트 경로에서 PyMuPDF 불필요 로드 방지).
 
-**`engine/tests/e2e/test_agent_unit.py`** — 단위 테스트 22개
-mock LLM 사용, 실제 서버 불필요. CI 항상 실행. CandidateAgent 9개 + compute_stats 9개 + save_result 4개. 전체 통과 확인.
+**`engine/tests/e2e/test_agent_unit.py`** — 단위 테스트 27개
+mock LLM 사용, 실제 서버 불필요. CI 항상 실행. CandidateAgent 11개 + TestFormatFeedback 3개 + compute_stats 9개 + save_result 4개. 전체 통과 확인.
 
-**`engine/tests/e2e/test_agent_session.py`** — E2E 통합 테스트 7개
-`RUN_E2E_AGENT=true` + 실제 서버 필요. TestSingleSession 3개 실제 실행 완료 — 10턴, 총점 89, 전 축 0~100 범위 확인.
+**`engine/tests/e2e/test_agent_session.py`** — E2E 통합 테스트 8개
+`RUN_E2E_AGENT=true` + 실제 서버 필요. TestSingleSession 3개, TestFollowupIncluded 1개, TestABComparison 1개, **TestFeedbackLoop 1개**, TestMultipleRunsStats 1개. 피드백 루프 실제 실행 완료 — 세션1 74점 → 세션2 80점 (+6), `prompt_log` 검증 통과.
 
-**`engine/tests/e2e/prompts/candidate_v1.md`** — STAR 구조 200~400자 페르소나
+**`engine/tests/e2e/prompts/candidate_v1.md`** — 신입 지원자 페르소나 (~70-80점), `{prior_feedback}` 플레이스홀더 포함
 **`engine/tests/e2e/prompts/candidate_v2.md`** — 간결 80~200자 A/B 비교용 페르소나
 **`engine/.gitignore`** — `tests/e2e/results/` 추가 (이력서 텍스트 포함 JSON 커밋 방지)
 
@@ -82,4 +82,7 @@ mock LLM 사용, 실제 서버 불필요. CI 항상 실행. CandidateAgent 9개 
 | history 누적 | runner가 직접 append | 엔진은 업데이트된 history를 반환하지 않음 |
 | `stdev` 가드 | `len >= 2` 체크 | 1개 입력 시 `StatisticsError` 발생 |
 | conftest `.env` 로드 | `os.environ.setdefault` 수동 파싱 | pytest 프로세스는 `.env` 자동 로드 안 함 → 실행 중 401 발견·수정 |
+| 피드백 루프 검증 | `prompt_log` assert | 점수 상승만으로는 피드백 주입 여부 불확실 — 프롬프트에 실제로 포함됐는지 직접 검증 |
+| v1 페르소나 점수대 | ~70-80점 (신입 수준) | 초기 점수가 너무 높으면 피드백 루프 효과가 측정 불가; 개선 여지 확보 필요 |
+| delta 단일 결과 | `None` 반환 | 1개 결과에서 delta 계산은 의미 없음 — 0 대신 `None`으로 명시적 표현 |
 

@@ -21,16 +21,20 @@ class CandidateAgent:
         self,
         llm_fn: Callable[[str], str] | None = None,
         prompt_variant: str = "v1",
+        prior_feedback: str = "",
     ) -> None:
         """
         Args:
             llm_fn: 프롬프트 문자열을 받아 답변 문자열을 반환하는 함수.
                     None이면 실제 OpenRouter API를 호출한다.
             prompt_variant: 사용할 프롬프트 버전 ("v1" 또는 "v2").
+            prior_feedback: 이전 세션의 피드백 텍스트. 빈 문자열이면 무시된다.
         """
         self._llm_fn = llm_fn
         self.prompt_variant = prompt_variant
+        self.prior_feedback = prior_feedback
         self._prompt_template: str | None = None
+        self.prompt_log: list[str] = []  # 실제로 LLM에 전달된 프롬프트 기록
 
     def _load_prompt(self) -> str:
         if self._prompt_template is None:
@@ -41,7 +45,9 @@ class CandidateAgent:
     def _call_real_llm(self, prompt: str) -> str:
         from openai import OpenAI  # noqa: PLC0415
 
-        api_key = os.getenv("OPENROUTER_API_KEY", "")
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENROUTER_API_KEY 환경변수가 설정되지 않았습니다.")
         model = os.getenv("CANDIDATE_MODEL", DEFAULT_MODEL)
         client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key)
         response = client.chat.completions.create(
@@ -85,7 +91,10 @@ class CandidateAgent:
             .replace("{resume_text}", resume_text[:8000])
             .replace("{history}", history_text)
             .replace("{question}", question)
+            .replace("{prior_feedback}", self.prior_feedback)
         )
+
+        self.prompt_log.append(prompt)
 
         if self._llm_fn is not None:
             answer = self._llm_fn(prompt)

@@ -14,6 +14,23 @@ from tests.e2e.reporter import SessionResult
 
 RESULTS_DIR = Path(__file__).parent / "results"
 DEFAULT_PERSONAS = ["hr", "tech_lead", "executive"]
+
+
+def format_feedback(feedback: list[dict]) -> str:
+    """axisFeedbacks 목록을 에이전트 프롬프트용 텍스트로 변환한다."""
+    if not feedback:
+        return ""
+    lines = []
+    for item in feedback:
+        label = item.get("axisLabel", item.get("axis", ""))
+        score = item.get("score")
+        fb_type = item.get("type", "")
+        fb_text = item.get("feedback", "")
+        score_str = f"{score}점" if score is not None else "미평가"
+        lines.append(f"- {label} ({score_str}, {fb_type}): {fb_text}")
+    return "\n".join(lines)
+
+
 MAX_TURNS = 15          # runner 측 안전 리밋 (엔진은 내부적으로 10턴 제한)
 MIN_HISTORY_FOR_REPORT = 5
 REQUEST_TIMEOUT = 120.0  # 엔진 LLM 응답 최대 대기 (report는 최대 60s+)
@@ -148,15 +165,11 @@ def run_session(
             )
 
         report_data = report_resp.json()
-        raw_scores: dict = report_data.get("scores", {})
 
-        # scores 정규화: 각 축의 score 값만 추출
-        scores: dict[str, int | None] = {}
-        for axis, value in raw_scores.items():
-            if isinstance(value, dict):
-                scores[axis] = value.get("score")
-            else:
-                scores[axis] = value
+        # AxisScores는 flat dict — {"communication": 85, ...}
+        scores: dict[str, int | None] = dict(report_data.get("scores", {}))
+        axis_feedbacks: list[dict] = report_data.get("axisFeedbacks", [])
+        summary: str = report_data.get("summary", "")
 
         duration_sec = round(time.monotonic() - start_time, 2)
 
@@ -169,4 +182,6 @@ def run_session(
             turn_count=len(history),
             history=history,
             duration_sec=duration_sec,
+            feedback=axis_feedbacks,
+            summary=summary,
         )

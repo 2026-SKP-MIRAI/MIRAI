@@ -16,6 +16,7 @@ from tests.e2e.reporter import (
     compute_stats,
     save_result,
 )
+from tests.e2e.runner import format_feedback
 
 
 # ── 픽스처 ──────────────────────────────────────────────────────────────────
@@ -119,8 +120,47 @@ class TestCandidateAgent:
         agent.generate_answer("q2", "r", [])
         assert agent._prompt_template is first_template  # 같은 객체 (캐시됨)
 
+    def test_prior_feedback_included_in_prompt(self):
+        captured: list[str] = []
+
+        def capture_llm(prompt: str) -> str:
+            captured.append(prompt)
+            return "답변"
+
+        feedback = "- 논리적 사고 (60점, improvement): 답변에 구체적 수치가 부족합니다."
+        agent = CandidateAgent(llm_fn=capture_llm, prior_feedback=feedback)
+        agent.generate_answer("질문", "이력서", [])
+        assert feedback in captured[0]
+
+    def test_empty_prior_feedback_does_not_crash(self):
+        agent = CandidateAgent(llm_fn=_make_mock_llm(), prior_feedback="")
+        answer = agent.generate_answer("질문", "이력서", [])
+        assert isinstance(answer, str)
+
 
 # ── reporter 단위 테스트 ─────────────────────────────────────────────────────
+
+class TestFormatFeedback:
+    def test_formats_axis_feedback(self):
+        feedback = [
+            {"axis": "communication", "axisLabel": "의사소통", "score": 85, "type": "strength", "feedback": "명확하게 표현했습니다."},
+            {"axis": "problemSolving", "axisLabel": "문제해결", "score": 60, "type": "improvement", "feedback": "구체적 수치가 부족합니다."},
+        ]
+        result = format_feedback(feedback)
+        assert "의사소통" in result
+        assert "85점" in result
+        assert "strength" in result
+        assert "문제해결" in result
+        assert "구체적 수치가 부족합니다." in result
+
+    def test_empty_feedback_returns_empty_string(self):
+        assert format_feedback([]) == ""
+
+    def test_none_score_shows_unevaluated(self):
+        feedback = [{"axis": "leadership", "axisLabel": "리더십", "score": None, "type": "not_evaluated", "feedback": "평가 불가"}]
+        result = format_feedback(feedback)
+        assert "미평가" in result
+
 
 class TestComputeStats:
     def test_single_result_std_is_zero(self):
@@ -189,6 +229,8 @@ class TestSaveResult:
         assert data["variant"] == "v1"
         assert "scores" in data
         assert "history" in data
+        assert "feedback" in data
+        assert "summary" in data
 
     def test_filename_contains_variant(self, tmp_path: Path):
         result = _make_result(variant="v2")

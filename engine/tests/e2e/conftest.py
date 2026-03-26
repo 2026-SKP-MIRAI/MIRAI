@@ -11,9 +11,8 @@ if _ENV_FILE.exists():
         _line = _line.strip()
         if _line and not _line.startswith("#") and "=" in _line:
             _key, _, _val = _line.partition("=")
-            os.environ.setdefault(_key.strip(), _val.strip())
+            os.environ.setdefault(_key.strip(), _val.strip().strip('"').strip("'"))
 
-import fitz  # PyMuPDF
 import pytest
 
 
@@ -48,6 +47,7 @@ def e2e_pdf_bytes() -> bytes:
         return real_pdf.read_bytes()
 
     # 합성 자소서 PDF 생성
+    import fitz  # noqa: PLC0415  — fixture 내부 lazy import (unit test 경로에서 불필요한 PyMuPDF 로드 방지)
     doc = fitz.open()
     page = doc.new_page()
     resume_content = """

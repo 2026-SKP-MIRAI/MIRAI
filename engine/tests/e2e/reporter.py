@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import statistics
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -17,6 +17,8 @@ class SessionResult:
     turn_count: int
     history: list[dict]  # 전체 Q&A 이력
     duration_sec: float
+    feedback: list[dict] = field(default_factory=list)  # axisFeedbacks (축별 피드백)
+    summary: str = ""                                    # 종합 총평
 
 
 AXIS_KEYS = [
