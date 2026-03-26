@@ -152,7 +152,7 @@ export default function ResumesPage() {
                   </div>
 
                   <div className="mt-3 bg-gray-50 rounded-lg px-3 py-2.5 text-xs text-gray-500 border border-black/[0.05] truncate">
-                    {resume.inferredTargetRole || resume.fileName}
+                    {resume.inferredTargetRole || "직무 미지정"}
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-3 items-center">
