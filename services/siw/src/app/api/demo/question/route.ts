@@ -49,8 +49,8 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        resumeText: `지원 직무: ${targetRole}`,
-        personas: ["hr"],
+        resumeText: `지원 직무: ${targetRole}\n\n이력서 미제출 상태입니다. 지원 직무와 관련된 직무 역량을 확인하는 일반적인 질문을 해주세요. 지원자의 특정 경험을 언급하지 마세요.`,
+        personas: ["tech_lead"],
         mode: "panel",
       }),
       signal: AbortSignal.timeout(25000),
@@ -64,8 +64,8 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
-        question: data.question,
-        persona: data.persona,
+        question: data.firstQuestion?.question,
+        persona: data.firstQuestion?.persona,
         remainingToday: 3 - usage.count,
       },
       { status: 200 }

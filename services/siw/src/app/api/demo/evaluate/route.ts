@@ -12,15 +12,20 @@ export async function POST(request: Request) {
     )
   }
 
-  const history = [
-    {
-      persona,
-      personaLabel: persona,
-      question,
-      answer,
-      type: "main",
-    },
-  ]
+  const PERSONA_LABELS: Record<string, string> = {
+    hr: "HR 담당자",
+    tech_lead: "기술팀장",
+    executive: "경영진",
+  }
+
+  const item = {
+    persona,
+    personaLabel: PERSONA_LABELS[persona] ?? persona,
+    question,
+    answer,
+  }
+  // 엔진이 최소 5개 history를 요구하므로 데모용으로 동일 항목을 반복
+  const history = Array(5).fill(item)
 
   const engineUrl =
     (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") +
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        resumeText: `지원 직무: ${targetRole}`,
+        resumeText: `지원 직무: ${targetRole}\n\n이력서 미제출 상태입니다.`,
         history,
       }),
       signal: AbortSignal.timeout(85000),
