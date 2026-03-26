@@ -40,6 +40,7 @@ function InterviewContent() {
   const msgIdRef = useRef(0)
   const streamBufRef = useRef('')
   const scrollRafRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
   const nextMsgId = () => `msg-${++msgIdRef.current}`
 
   useEffect(() => {
@@ -121,6 +122,11 @@ function InterviewContent() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [sessionComplete])
 
+  // 언마운트 시 진행 중인 SSE fetch 정리
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
+
   const handleRealAnswer = async (answer: string) => {
     if (submittingRef.current) return
     submittingRef.current = true
@@ -133,6 +139,9 @@ function InterviewContent() {
       setStreamingPersona(null)
     }
 
+    const abort = new AbortController()
+    abortRef.current = abort
+
     // optimistic: 답변 즉시 messages에 추가
     setMessages((prev) => [...prev, { id: nextMsgId(), type: 'answer', text: answer }])
 
@@ -141,6 +150,7 @@ function InterviewContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, answer }),
+        signal: abort.signal,
       })
 
       if (!res.ok || !res.body) {

@@ -40,6 +40,20 @@ function makeSSEStream(events: object[]): ReadableStream<Uint8Array> {
   })
 }
 
+// 마지막 이벤트에 \n\n 없이 종료되는 스트림 (버퍼 flush 테스트용)
+function makeSSEStreamNoBoundary(events: object[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+  return new ReadableStream({
+    start(controller) {
+      for (let i = 0; i < events.length; i++) {
+        const suffix = i < events.length - 1 ? '\n\n' : ''
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(events[i])}${suffix}`))
+      }
+      controller.close()
+    },
+  })
+}
+
 const mockSession = {
   id: 'session-1',
   userId: 'user-1',
@@ -258,5 +272,22 @@ describe('POST /api/interview/answer (SSE 스트리밍)', () => {
     const body = await response.json()
     expect(body.error).toBe('서버 오류가 발생했습니다.')
     expect(body.detail).toBeUndefined()
+  })
+
+  it('\\n\\n 없이 종료된 스트림에서도 200을 반환한다 (버퍼 flush — parseSSEStream 단위 테스트에서 검증)', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(mockSession)
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({ resumeText: '자소서' })
+    mockPrisma.interviewSession.update.mockResolvedValueOnce({})
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: makeSSEStreamNoBoundary([
+        { type: 'done', nextQuestion: null, updatedQueue: [], sessionComplete: true },
+      ]),
+    })
+
+    const response = await POST(makeRequest({ sessionId: 'session-1', answer: '답변' }))
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
   })
 })

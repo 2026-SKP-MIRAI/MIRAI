@@ -27,5 +27,12 @@ export async function* parseSSEStream(stream: ReadableStream<Uint8Array>): Async
         }
       }
     }
+    // 스트림이 \n\n 없이 종료된 경우 남은 버퍼 flush
+    if (buffer.trim()) {
+      for (const line of buffer.split('\n')) {
+        const event = parseSSELine(line)
+        if (event) yield event
+      }
+    }
   } finally { reader.releaseLock() }
 }
