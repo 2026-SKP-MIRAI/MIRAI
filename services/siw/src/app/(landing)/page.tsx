@@ -137,13 +137,13 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
 
 // ─── 시작하기 버튼 ────────────────────────────────────────────────────────
 
-function StartButton({ className, children }: { className: string; children: React.ReactNode }) {
+function StartButton({ className, children, dest = "/dashboard" }: { className: string; children: React.ReactNode; dest?: string }) {
   const router = useRouter()
 
   const handleStart = async () => {
     const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
-    router.push(user ? "/dashboard" : "/login")
+    router.push(user ? dest : "/login")
   }
 
   return (
@@ -276,12 +276,22 @@ export default function LandingPage() {
 
             {/* 버튼 */}
             <div className="flex gap-3 flex-wrap">
-              <StartButton className="btn-primary rounded-full px-8 py-4 text-base">
+              <StartButton className="btn-primary rounded-full px-8 py-4 text-base" dest="/interview/new">
                 무료로 시작하기 →
               </StartButton>
-              <StartButton className="btn-outline rounded-full px-8 py-4 text-base">
-                대시보드 보기
-              </StartButton>
+              {isLoggedIn ? (
+                <StartButton className="btn-outline rounded-full px-8 py-4 text-base" dest="/dashboard">
+                  대시보드 보기
+                </StartButton>
+              ) : (
+                <Link
+                  href="/demo"
+                  className="rounded-full px-8 py-4 text-base font-medium bg-white transition-all duration-200 hover:bg-violet-50 hover:shadow-md"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}
+                >
+                  데모로 체험하기
+                </Link>
+              )}
             </div>
           </div>
 
@@ -485,20 +495,57 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="bg-white border-t border-black/6 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div>
-            <span className="text-lg font-bold gradient-text">MirAI</span>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">AI 모의면접 코치</p>
+      <footer className="bg-white border-t border-black/6 pt-10 pb-8">
+        <div className="max-w-6xl mx-auto px-6">
+
+          {/* 상단: 로고 + 링크 */}
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 pb-8 border-b border-black/6">
+
+            {/* 로고 + 설명 + 이메일 */}
+            <div className="space-y-2">
+              <span className="text-lg font-bold gradient-text">MirAI</span>
+              <p className="text-xs text-[#9CA3AF]">AI 모의면접 코치</p>
+              <a
+                href="mailto:mirainterview5@gmail.com"
+                className="text-xs text-[#6B7280] hover:text-[#4F46E5] transition-colors duration-150 flex items-center gap-1"
+              >
+                ✉ mirainterview5@gmail.com
+              </a>
+            </div>
+
+            {/* 링크 그룹 */}
+            <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#6B7280]">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#374151] uppercase tracking-wide">서비스</p>
+                <div className="flex flex-col gap-1.5">
+                  <Link href="/demo" className="hover:text-[#4F46E5] transition-colors duration-150">데모 체험</Link>
+                  <Link href="/interview/new" className="hover:text-[#4F46E5] transition-colors duration-150">면접 시작</Link>
+                  <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">내 자소서</Link>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#374151] uppercase tracking-wide">문의</p>
+                <div className="flex flex-col gap-1.5">
+                  <a
+                    href="mailto:mirainterview5@gmail.com"
+                    className="hover:text-[#4F46E5] transition-colors duration-150"
+                  >
+                    이메일 문의
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-6 text-sm text-[#6B7280]">
-            <Link href="/interview/new" className="hover:text-[#4F46E5] transition-colors duration-150">
-              면접 시작
-            </Link>
-            <Link href="/resumes" className="hover:text-[#4F46E5] transition-colors duration-150">
-              내 자소서
-            </Link>
+
+          {/* 하단: 저작권 + 법적 링크 */}
+          <div className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-xs text-[#9CA3AF]">© 2026 MirAI. All rights reserved.</p>
+            <div className="flex gap-4 text-xs text-[#9CA3AF]">
+              <Link href="/terms" className="hover:text-[#4F46E5] transition-colors duration-150">이용약관</Link>
+              <Link href="/privacy" className="hover:text-[#4F46E5] transition-colors duration-150">개인정보처리방침</Link>
+            </div>
           </div>
+
         </div>
       </footer>
     </div>
