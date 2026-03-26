@@ -97,21 +97,21 @@ export const PracticeFeedbackResponseSchema = z.object({
 
 // --- 기능 07: 8축 역량 리포트 ---
 export const AxisScoresSchema = z.object({
-  communication: z.number().min(0).max(100),
-  problemSolving: z.number().min(0).max(100),
-  logicalThinking: z.number().min(0).max(100),
-  jobExpertise: z.number().min(0).max(100),
-  cultureFit: z.number().min(0).max(100),
-  leadership: z.number().min(0).max(100),
-  creativity: z.number().min(0).max(100),
-  sincerity: z.number().min(0).max(100),
+  communication: z.number().min(0).max(100).nullable(),
+  problemSolving: z.number().min(0).max(100).nullable(),
+  logicalThinking: z.number().min(0).max(100).nullable(),
+  jobExpertise: z.number().min(0).max(100).nullable(),
+  cultureFit: z.number().min(0).max(100).nullable(),
+  leadership: z.number().min(0).max(100).nullable(),
+  creativity: z.number().min(0).max(100).nullable(),
+  sincerity: z.number().min(0).max(100).nullable(),
 })
 
 export const AxisFeedbackSchema = z.object({
   axis: z.string(),
   axisLabel: z.string(),
-  score: z.number(),
-  type: z.enum(['strength', 'improvement']),
+  score: z.number().nullable(),
+  type: z.enum(['strength', 'improvement', 'not_evaluated']),
   feedback: z.string(),
 })
 

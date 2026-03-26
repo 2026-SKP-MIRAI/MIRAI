@@ -7,7 +7,7 @@ import type { PersonaType, HistoryItem } from '@/domain/interview/types'
 // 수정 시점: 실사용자 오픈 전 QA 단계. 해결책: pendingResult 컬럼으로 엔진 응답 임시 저장 후 재시도 감지
 
 export const runtime = 'nodejs'
-export const maxDuration = 35
+export const maxDuration = 45
 
 export async function POST(req: Request) {
   let body: { sessionId?: string; answer?: string }
@@ -24,10 +24,16 @@ export async function POST(req: Request) {
 
   const trimmedAnswer = answer.trim().slice(0, 5000)
 
-  const session = await prisma.interviewSession.findUnique({
-    where: { id: sessionId },
-    include: { resume: true },
-  })
+  let session
+  try {
+    session = await prisma.interviewSession.findUnique({
+      where: { id: sessionId },
+      include: { resume: true },
+    })
+  } catch (err) {
+    console.error('[interview/answer] DB session lookup failed', { err })
+    return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
+  }
   if (!session) {
     return Response.json({ error: '세션을 찾을 수 없습니다.' }, { status: 404 })
   }
@@ -68,8 +74,8 @@ export async function POST(req: Request) {
 
   const engineData = await engineRes.json().catch(() => ({ error: '서버 오류가 발생했습니다.' }))
   if (!engineRes.ok) {
-    const msg = engineData.detail ?? '답변 처리 중 오류가 발생했습니다.'
-    return Response.json({ error: msg }, { status: engineRes.status })
+    const msg = (engineData as { detail?: string }).detail ?? '답변 처리 중 오류가 발생했습니다.'
+    return Response.json({ error: msg }, { status: 500 })
   }
 
   const engineParse = EngineAnswerResponseSchema.safeParse(engineData)
@@ -103,7 +109,8 @@ export async function POST(req: Request) {
     if ((err as { code?: string }).code === 'P2025') {
       return Response.json({ error: '이미 완료된 면접 세션입니다.' }, { status: 400 })
     }
-    throw err
+    console.error('[interview/answer] DB session update failed', { err })
+    return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
   return Response.json({ nextQuestion, sessionComplete }, { status: 200 })
