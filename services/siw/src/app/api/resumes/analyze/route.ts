@@ -6,7 +6,7 @@ import { cookies } from "next/headers"
 import { getEngineBaseUrl } from "@/lib/rag/embedding-client"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 150
 
 function requireEngineBaseUrl(): string {
   const url = getEngineBaseUrl();
