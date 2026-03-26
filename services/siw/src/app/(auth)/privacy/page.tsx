@@ -1,8 +1,12 @@
-export default function PrivacyPage() {
+export default async function PrivacyPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
+  const { from } = await searchParams;
+  const backHref = from === "landing" ? "/" : "/signup";
+  const backLabel = from === "landing" ? "← 돌아가기" : "← 회원가입으로 돌아가기";
+
   return (
     <div className="w-full max-w-2xl mx-auto p-6">
-      <a href="/signup" className="text-sm text-gray-400 hover:underline mb-6 block">
-        ← 회원가입으로 돌아가기
+      <a href={backHref} className="text-sm text-gray-400 hover:underline mb-6 block">
+        {backLabel}
       </a>
       <div className="overflow-y-auto max-h-[80vh] bg-white rounded-2xl border border-black/[0.06] shadow-sm p-8 space-y-6">
         <div>

@@ -541,8 +541,8 @@ export default function LandingPage() {
           <div className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-[#9CA3AF]">© 2026 MirAI. All rights reserved.</p>
             <div className="flex gap-4 text-xs text-[#9CA3AF]">
-              <Link href="/terms" className="hover:text-[#4F46E5] transition-colors duration-150">이용약관</Link>
-              <Link href="/privacy" className="hover:text-[#4F46E5] transition-colors duration-150">개인정보처리방침</Link>
+              <Link href="/terms?from=landing" className="hover:text-[#4F46E5] transition-colors duration-150">이용약관</Link>
+              <Link href="/privacy?from=landing" className="hover:text-[#4F46E5] transition-colors duration-150">개인정보처리방침</Link>
             </div>
           </div>
 
