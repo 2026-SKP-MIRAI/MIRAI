@@ -8,4 +8,6 @@
 ---
 
 ## 작업 내역
-
+- `services/siw/src/app/(siw)/interview/[sessionId]/page.tsx`: practice 모드 handleSubmit에서 피드백 API 호출 제거, 다음 질문으로 바로 진행
+- `InterviewChat.tsx`: 피드백 UI 렌더링 조건을 `interviewMode === "real"`로 변경
+- `tests/ui/interview-chat.test.tsx`: practice 모드 피드백 비표시, real 모드 피드백 표시 테스트 추가
