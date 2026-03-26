@@ -71,6 +71,28 @@ export default function ResumesPage() {
         </div>
       )}
 
+      {/* 업로드 영역 (상단) */}
+      {!loading && resumes.length > 0 && (
+        <div className="mb-6">
+          {showUpload ? (
+            <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6">
+              <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/resumes/${data.resumeId}`) }} />
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowUpload(true)}
+              className="w-full border-2 border-dashed border-gray-200 bg-transparent rounded-2xl py-8 text-center hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200 group"
+            >
+              <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center mx-auto mb-3 transition-colors">
+                <Plus className="w-6 h-6 text-gray-400 group-hover:text-violet-600 transition-colors" />
+              </div>
+              <p className="font-semibold text-gray-700 mb-1">새 이력서 추가</p>
+              <p className="text-sm text-gray-400">이력서를 업로드하면 AI가 자동으로 분석해드려요</p>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 이력서 목록 */}
       {!loading && resumes.length > 0 && (
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
@@ -130,26 +152,6 @@ export default function ResumesPage() {
               </div>
             </motion.div>
           ))}
-
-          {/* 추가 업로드 카드 */}
-          <motion.div variants={itemVariants}>
-            {showUpload ? (
-              <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-6">
-                <UploadForm hideTitle onComplete={(data: QuestionsResponse) => { router.push(`/resumes/${data.resumeId}`) }} />
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowUpload(true)}
-                className="w-full border-2 border-dashed border-gray-200 bg-transparent rounded-2xl py-10 text-center hover:border-violet-300 hover:bg-violet-50/30 transition-all duration-200 group"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center mx-auto mb-3 transition-colors">
-                  <Plus className="w-6 h-6 text-gray-400 group-hover:text-violet-600 transition-colors" />
-                </div>
-                <p className="font-semibold text-gray-700 mb-1">새 이력서 추가</p>
-                <p className="text-sm text-gray-400">이력서를 업로드하면 AI가 자동으로 분석해드려요</p>
-              </button>
-            )}
-          </motion.div>
         </motion.div>
       )}
 
