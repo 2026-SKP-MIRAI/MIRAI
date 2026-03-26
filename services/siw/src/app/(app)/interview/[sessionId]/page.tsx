@@ -267,6 +267,16 @@ export default function InterviewSessionPage() {
               rows={4}
               className="input-dark w-full rounded-xl px-4 py-3 text-sm resize-none"
             />
+            <div className="flex items-center justify-between mt-1.5">
+              <div>
+                {answer.length > 5000 && (
+                  <p data-testid="char-warning" className="text-xs text-amber-600 font-medium">5000자를 초과한 내용은 저장되지 않습니다</p>
+                )}
+              </div>
+              <p data-testid="char-count" className={`text-xs ${answer.length > 5000 ? "text-amber-600 font-medium" : "text-gray-400"}`}>
+                {answer.length} / 5000
+              </p>
+            </div>
             {error && <p className="text-sm text-[#EF4444] mt-2">{error}</p>}
             <button
               data-testid="submit-answer"
