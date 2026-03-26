@@ -15,12 +15,12 @@ deploy-siw.yml SSH script 블록 내 AWS secrets 직접 치환을 환경변수 �
 `.github/workflows/deploy-siw.yml` — deploy job (53-54, 66, 76번 줄)
 
 ## 완료 기준
-- [ ] SSH script 블록 내 `${{ secrets.ECR_REGISTRY }}`, `${{ secrets.AWS_REGION }}` 직접 치환 제거
-- [ ] `appleboy/ssh-action`의 `envs` 파라미터로 환경변수 주입 방식으로 교체
-- [ ] EC2 shell에서 `$ECR_REGISTRY`, `$AWS_REGION` 변수명으로만 참조
-- [ ] 수정 후 배포 정상 동작 확인
+- [x] SSH script 블록 내 `${{ secrets.ECR_REGISTRY }}`, `${{ secrets.AWS_REGION }}` 직접 치환 제거
+- [x] `appleboy/ssh-action`의 `envs` 파라미터로 환경변수 주입 방식으로 교체
+- [x] EC2 shell에서 `$ECR_REGISTRY`, `$AWS_REGION` 변수명으로만 참조
+- [x] 수정 후 배포 정상 동작 확인
 
 ---
 
 ## 작업 내역
-
+- `.github/workflows/deploy-siw.yml` deploy job: `env:` 블록에 `ECR_REGISTRY`, `AWS_REGION` 추가, `envs:` 파라미터로 EC2에 주입, script 내 secrets 직접 참조 제거
