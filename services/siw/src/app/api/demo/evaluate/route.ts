@@ -27,9 +27,9 @@ export async function POST(request: Request) {
   // 엔진이 최소 5개 history를 요구하므로 데모용으로 동일 항목을 반복
   const history = Array(5).fill(item)
 
-  const engineUrl =
-    (process.env.ENGINE_BASE_URL ?? "http://localhost:8000") +
-    "/api/report/generate"
+  const baseUrl = process.env.ENGINE_BASE_URL
+  if (!baseUrl) return Response.json({ message: "ENGINE_BASE_URL 환경변수가 설정되지 않았습니다" }, { status: 500 })
+  const engineUrl = baseUrl + "/api/report/generate"
 
   try {
     const engineRes = await fetch(engineUrl, {

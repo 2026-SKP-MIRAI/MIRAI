@@ -3,8 +3,13 @@ import { resumeRepository } from "@/lib/resume-repository";
 import { EngineStartResponseSchema, EngineAnswerResponseSchema } from "./schemas";
 import type { PersonaType, InterviewAnswerResponse } from "@/lib/types";
 import { withEventLogging } from "@/lib/observability/event-logger";
+import { getEngineBaseUrl } from "@/lib/rag/embedding-client";
 
-const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000";
+function requireEngineBaseUrl(): string {
+  const url = getEngineBaseUrl();
+  if (!url) throw new Error("ENGINE_BASE_URL 환경변수가 설정되지 않았습니다");
+  return url;
+}
 
 const PERSONA_LABELS: Record<string, string> = {
   hr: "HR 담당자",
@@ -32,7 +37,7 @@ export const interviewService = {
       for (let attempt = 0; attempt < 3; attempt++) {
         meta.retry_count = attempt;
         try {
-          r = await fetch(`${ENGINE_BASE_URL}/api/interview/start`, {
+          r = await fetch(`${requireEngineBaseUrl()}/api/interview/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ resumeText: engineText, personas, mode: "panel" }),
@@ -48,7 +53,7 @@ export const interviewService = {
         if (attempt < 2) await new Promise(res => setTimeout(res, 1000));
       }
       if (!r?.ok) {
-        console.error(`[interviewService.start] engine_start_failed after retries. ENGINE_BASE_URL=${ENGINE_BASE_URL}`);
+        console.error(`[interviewService.start] engine_start_failed after retries. ENGINE_BASE_URL=${getEngineBaseUrl()}`);
         throw new Error("engine_start_failed");
       }
       const d = await r.json();
@@ -122,7 +127,7 @@ export const interviewService = {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const res = await fetch(`${ENGINE_BASE_URL}/api/interview/answer?stream=true`, fetchOptions);
+        const res = await fetch(`${requireEngineBaseUrl()}/api/interview/answer?stream=true`, fetchOptions);
         if (!res.ok || !res.body) {
           throw new Error(`stream init failed: ${res.status}`);
         }
@@ -150,7 +155,7 @@ export const interviewService = {
         let resp: Response | null = null;
         for (let attempt = 0; attempt < 3; attempt++) {
           meta.retry_count = attempt;
-          resp = await fetch(`${ENGINE_BASE_URL}/api/interview/answer`, {
+          resp = await fetch(`${requireEngineBaseUrl()}/api/interview/answer`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -205,7 +210,7 @@ export const interviewService = {
   async followup(sessionId: string, question: string, answer: string, persona: PersonaType) {
     const { resumeText } = await interviewRepository.findById(sessionId);
     const resp = await withEventLogging('interview_followup', sessionId, async (meta) => {
-      const r = await fetch(`${ENGINE_BASE_URL}/api/interview/followup`, {
+      const r = await fetch(`${requireEngineBaseUrl()}/api/interview/followup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, answer, persona, resumeText }),

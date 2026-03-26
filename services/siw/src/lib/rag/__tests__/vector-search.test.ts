@@ -14,6 +14,20 @@ describe('searchSimilarPostings', () => {
     vi.clearAllMocks()
   })
 
+  it('NaN 포함 벡터일 때 빈 배열 반환 (SQL injection 방지)', async () => {
+    const result = await searchSimilarPostings([0.1, NaN], '백엔드', 5)
+
+    expect(result).toEqual([])
+    expect(ragPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('빈 벡터일 때 빈 배열 반환', async () => {
+    const result = await searchSimilarPostings([], '백엔드', 5)
+
+    expect(result).toEqual([])
+    expect(ragPrisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
   it('prisma.$queryRaw를 호출하고 결과를 매핑한다', async () => {
     const mockRows = [
       { title: '백엔드 개발자', company: '테스트컴퍼니', source_url: 'http://example.com/1', job_role: '백엔드', similarity: 0.85 },

@@ -1,10 +1,15 @@
 import { ENGINE_ERROR_MESSAGES, mapDetailToKey } from "@/lib/error-messages";
 import { withEventLogging } from "@/lib/observability/event-logger";
+import { getEngineBaseUrl } from "@/lib/rag/embedding-client";
 
 export const runtime = "nodejs";
 export const maxDuration = 35;
 
-const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000";
+function requireEngineBaseUrl(): string {
+  const url = getEngineBaseUrl();
+  if (!url) throw new Error("ENGINE_BASE_URL 환경변수가 설정되지 않았습니다");
+  return url;
+}
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -29,7 +34,7 @@ export async function POST(request: Request) {
   let resumeText: string;
   try {
     const parsed = await withEventLogging('resume_parse', null, async (meta) => {
-      const parseResp = await fetch(`${ENGINE_BASE_URL}/api/resume/parse`, {
+      const parseResp = await fetch(`${requireEngineBaseUrl()}/api/resume/parse`, {
         method: "POST",
         body: engineParseForm,
         signal: AbortSignal.timeout(30000),
@@ -53,7 +58,7 @@ export async function POST(request: Request) {
 
   try {
     const engineData = await withEventLogging('resume_questions', null, async (meta) => {
-      const resp = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
+      const resp = await fetch(`${requireEngineBaseUrl()}/api/resume/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText }),

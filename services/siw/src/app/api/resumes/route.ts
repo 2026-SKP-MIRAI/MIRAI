@@ -10,17 +10,22 @@ import { embedText } from "@/lib/rag/embedding-client"
 import { searchSimilarPostings, extractTrendSkills } from "@/lib/rag/vector-search"
 import { searchSimilarAcceptedResumes } from "@/lib/rag/resume-search"
 import type { TrendComparison } from "@/lib/types"
+import { getEngineBaseUrl } from "@/lib/rag/embedding-client"
 
 const MIN_SIMILARITY = 0.6
 
 export const runtime = "nodejs"
 export const maxDuration = 300
 
-const ENGINE_BASE_URL = process.env.ENGINE_BASE_URL ?? "http://localhost:8000"
+function requireEngineBaseUrl(): string {
+  const url = getEngineBaseUrl();
+  if (!url) throw new Error("ENGINE_BASE_URL 환경변수가 설정되지 않았습니다");
+  return url;
+}
 
 async function fetchFeedback(resumeText: string, targetRole: string, jobContext?: string[], resumeContext?: string[]) {
   return withEventLogging('resume_feedback', null, async (meta) => {
-    const r = await fetch(`${ENGINE_BASE_URL}/api/resume/feedback`, {
+    const r = await fetch(`${requireEngineBaseUrl()}/api/resume/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -77,7 +82,7 @@ export async function POST(request: Request) {
     const [storageKey, engineData, embResult] = await Promise.all([
       uploadResumePdf(user.id, buffer, file.name),
       withEventLogging('resume_questions', null, async (meta) => {
-        const r = await fetch(`${ENGINE_BASE_URL}/api/resume/questions`, {
+        const r = await fetch(`${requireEngineBaseUrl()}/api/resume/questions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resumeText, targetRole }),
