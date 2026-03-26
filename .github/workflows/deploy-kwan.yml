@@ -27,6 +27,14 @@ jobs:
       - name: Install dependencies
         working-directory: services/kwan
         run: npm ci
+      - name: Create test fixtures
+        working-directory: services/kwan
+        run: |
+          mkdir -p tests/fixtures/input
+          echo '{"nextQuestion":{"persona":"tech_lead","personaLabel":"기술 리더","question":"가장 어려웠던 기술적 문제는 무엇인가요?","type":"main"},"updatedQueue":[{"persona":"executive","type":"main"}],"sessionComplete":false}' \
+            > tests/fixtures/input/mock_interview_answer_response.json
+          echo '{"firstQuestion":{"persona":"hr","personaLabel":"HR 담당자","question":"자기소개를 해주세요.","type":"main"},"questionsQueue":[{"persona":"tech_lead","type":"main"},{"persona":"executive","type":"main"}]}' \
+            > tests/fixtures/input/mock_interview_start_response.json
       - name: Run tests
         working-directory: services/kwan
         env:
