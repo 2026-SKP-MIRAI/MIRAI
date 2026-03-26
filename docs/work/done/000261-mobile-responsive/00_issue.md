@@ -35,6 +35,10 @@ Issue #261
 | `services/siw/src/app/(app)/interview/new/page.tsx` | 면접관 소개 3열 grid 반응형 |
 | `services/siw/src/app/(app)/resumes/page.tsx` | 이력서 카드 버튼 flex-wrap 추가 |
 | `services/siw/src/components/ReportResult.tsx` | 리포트 결과 컴포넌트 반응형 |
+| `services/siw/src/app/(app)/dashboard/observability/.ai.md` | 신규 생성 |
+| `services/siw/src/app/(app)/growth/.ai.md` | 신규 생성 |
+| `services/siw/src/app/(app)/interview/new/.ai.md` | 신규 생성 |
+| `services/siw/src/components/.ai.md` | 신규 생성 |
 
 ### 구현 상세
 모든 변경은 기존 Tailwind 클래스에 `sm:` 또는 `md:` 접두사를 추가하는 방식으로 이루어졌다. 기존 동작·스타일에 영향 없이 모바일 breakpoint 이하에서만 단열 레이아웃으로 전환된다.
