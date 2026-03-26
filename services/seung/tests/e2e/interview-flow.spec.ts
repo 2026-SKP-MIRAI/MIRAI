@@ -3,6 +3,8 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 
+test.describe.configure({ mode: 'serial' })
+
 const MOCK_QUESTIONS_RESPONSE = {
   questions: [
     { category: '직무역량', question: '지원한 직무에서 가장 중요한 역량은 무엇이라고 생각하시나요?' },
@@ -22,30 +24,22 @@ const MOCK_START_RESPONSE = {
   },
 }
 
-const MOCK_ANSWER_RESPONSE_FOLLOWUP = {
-  nextQuestion: {
-    persona: 'hr',
-    personaLabel: 'HR 면접관',
-    question: '좀 더 구체적으로 설명해주세요.',
-    type: 'follow_up',
-  },
-  sessionComplete: false,
+// SSE 형식: handleRealAnswer가 parseSSEStream으로만 읽으므로 text/event-stream + done 이벤트 필요
+function makeSSEBody(nextQuestion: object | null, sessionComplete: boolean): string {
+  return `data: ${JSON.stringify({ type: 'done', nextQuestion, updatedQueue: [], sessionComplete })}\n\n`
 }
 
-const MOCK_ANSWER_RESPONSE_NEXT = {
-  nextQuestion: {
-    persona: 'tech_lead',
-    personaLabel: '기술 리드',
-    question: '사용한 기술 스택을 설명해주세요.',
-    type: 'main',
-  },
-  sessionComplete: false,
-}
+const MOCK_ANSWER_SSE_FOLLOWUP = makeSSEBody(
+  { persona: 'hr', personaLabel: 'HR 면접관', question: '좀 더 구체적으로 설명해주세요.', type: 'follow_up' },
+  false
+)
 
-const MOCK_ANSWER_RESPONSE_COMPLETE = {
-  nextQuestion: null,
-  sessionComplete: true,
-}
+const MOCK_ANSWER_SSE_NEXT = makeSSEBody(
+  { persona: 'tech_lead', personaLabel: '기술 리드', question: '사용한 기술 스택을 설명해주세요.', type: 'main' },
+  false
+)
+
+const MOCK_ANSWER_SSE_COMPLETE = makeSSEBody(null, true)
 
 const MOCK_SESSION_RESPONSE = {
   currentQuestion: '자기소개를 해주세요.',
@@ -65,6 +59,13 @@ function createDummyPdf(): string {
 }
 
 test.describe('면접 플로우', () => {
+  // 미들웨어 E2E 우회 쿠키 주입 (/interview, /dashboard 보호 경로 우회)
+  test.beforeEach(async ({ context }) => {
+    await context.addCookies([
+      { name: '__e2e_bypass', value: '1', domain: 'localhost', path: '/' },
+    ])
+  })
+
   test('업로드 → 면접 시작 → 질문 표시', async ({ page }) => {
     // Mock upload
     await page.route('**/api/resume/questions', (route) =>
@@ -126,12 +127,12 @@ test.describe('면접 플로우', () => {
       })
     )
 
-    // Mock answer
+    // Mock answer (SSE 형식)
     await page.route('**/api/interview/answer', (route) =>
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_ANSWER_RESPONSE_FOLLOWUP),
+        contentType: 'text/event-stream',
+        body: MOCK_ANSWER_SSE_FOLLOWUP,
       })
     )
 
@@ -161,8 +162,8 @@ test.describe('면접 플로우', () => {
     await page.route('**/api/interview/answer', (route) =>
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_ANSWER_RESPONSE_NEXT),
+        contentType: 'text/event-stream',
+        body: MOCK_ANSWER_SSE_NEXT,
       })
     )
 
@@ -188,8 +189,8 @@ test.describe('면접 플로우', () => {
     await page.route('**/api/interview/answer', (route) =>
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_ANSWER_RESPONSE_COMPLETE),
+        contentType: 'text/event-stream',
+        body: MOCK_ANSWER_SSE_COMPLETE,
       })
     )
 
@@ -202,10 +203,10 @@ test.describe('면접 플로우', () => {
     await expect(page.getByRole('button', { name: '다시 시작' })).toBeVisible()
   })
 
-  test('sessionId 없으면 /resume로 리다이렉트', async ({ page }) => {
+  test('sessionId 없으면 /dashboard로 리다이렉트', async ({ page }) => {
     await page.goto('/interview')
 
-    // Should redirect to /resume
-    await expect(page).toHaveURL(/\/resume/)
+    // Should redirect to /dashboard (page.tsx: router.replace('/dashboard'))
+    await expect(page).toHaveURL(/\/dashboard/)
   })
 })

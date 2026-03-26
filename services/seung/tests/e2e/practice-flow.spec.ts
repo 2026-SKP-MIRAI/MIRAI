@@ -5,6 +5,8 @@ import os from 'os'
 
 test.setTimeout(120_000)
 
+test.describe.configure({ mode: 'serial' })
+
 // Mock 데이터
 const MOCK_QUESTIONS_RESPONSE = {
   questions: [
@@ -78,6 +80,13 @@ function createDummyPdf(): string {
 }
 
 test.describe('연습 모드 플로우', () => {
+  // 미들웨어 E2E 우회 쿠키 주입 (/interview, /dashboard 보호 경로 우회)
+  test.beforeEach(async ({ context }) => {
+    await context.addCookies([
+      { name: '__e2e_bypass', value: '1', domain: 'localhost', path: '/' },
+    ])
+  })
+
   test('연습 모드 선택 → 면접 시작 → 첫 질문 표시', async ({ page }) => {
     await page.route('**/api/resume/questions', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_QUESTIONS_RESPONSE) })
@@ -183,7 +192,11 @@ test.describe('연습 모드 플로우', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PRACTICE_FEEDBACK) })
     )
     await page.route('**/api/interview/answer', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_ANSWER_RESPONSE_NEXT) })
+      route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: `data: ${JSON.stringify({ type: 'done', nextQuestion: MOCK_ANSWER_RESPONSE_NEXT.nextQuestion, updatedQueue: [], sessionComplete: false })}\n\n`,
+      })
     )
 
     await page.goto('/interview?sessionId=session-practice-1&interviewMode=practice')

@@ -221,6 +221,62 @@ describe('InterviewChat', () => {
   })
 })
 
+describe('SSE 스트리밍 UI', () => {
+  it('streamingText prop이 있으면 스트리밍 버블이 렌더된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={false}
+        streamingText="질문이 생성"
+        streamingPersona={{ persona: 'hr', personaLabel: 'HR 면접관' }}
+      />
+    )
+    expect(screen.getByTestId('streaming-text')).toBeInTheDocument()
+    expect(screen.getByText('HR 면접관')).toBeInTheDocument()
+    expect(screen.getByText(/질문이 생성/)).toBeInTheDocument()
+  })
+
+  it('streamingText 없으면 스트리밍 버블이 없다', () => {
+    render(<InterviewChat messages={[]} sessionComplete={false} />)
+    expect(screen.queryByTestId('streaming-text')).not.toBeInTheDocument()
+  })
+
+  it('streamingPersona 없을 때 기본 레이블(HR 담당자)이 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={false}
+        streamingText="질문 생성 중"
+      />
+    )
+    expect(screen.getByTestId('streaming-text')).toBeInTheDocument()
+    expect(screen.getByText('HR 담당자')).toBeInTheDocument()
+  })
+
+  it('sessionComplete=true이면 streamingText가 있어도 스트리밍 버블이 없다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={true}
+        streamingText="잔류 텍스트"
+      />
+    )
+    expect(screen.queryByTestId('streaming-text')).not.toBeInTheDocument()
+  })
+
+  it('streamingPersona가 tech_lead이면 해당 레이블이 표시된다', () => {
+    render(
+      <InterviewChat
+        messages={[]}
+        sessionComplete={false}
+        streamingText="기술 질문"
+        streamingPersona={{ persona: 'tech_lead', personaLabel: '기술 리드' }}
+      />
+    )
+    expect(screen.getByText('기술 리드')).toBeInTheDocument()
+  })
+})
+
 describe('practice 모드 피드백 UI', () => {
   const mockMessages: Message[] = [
     {
