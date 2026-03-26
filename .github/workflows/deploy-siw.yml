@@ -29,6 +29,12 @@ jobs:
         run: npm ci
       - name: Run tests
         working-directory: services/siw
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+          SUPABASE_STORAGE_BUCKET: test-bucket
         run: npm run test
 
   build-and-push-siw:
