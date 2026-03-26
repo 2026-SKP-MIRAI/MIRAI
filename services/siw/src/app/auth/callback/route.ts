@@ -18,8 +18,12 @@ export async function GET(request: Request) {
 
   const cookieStore = await cookies()
   const supabase = createServerClient(cookieStore)
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) return NextResponse.redirect(`${origin}/login?error=oauth`)
+
+  if (user && !user.user_metadata?.terms_agreed_at) {
+    await supabase.auth.updateUser({ data: { terms_agreed_at: new Date().toISOString() } })
+  }
 
   return NextResponse.redirect(`${origin}${safeRedirect}`)
 }
