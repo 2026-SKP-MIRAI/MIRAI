@@ -137,13 +137,13 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
 
 // ─── 시작하기 버튼 ────────────────────────────────────────────────────────
 
-function StartButton({ className, children }: { className: string; children: React.ReactNode }) {
+function StartButton({ className, children, dest = "/dashboard" }: { className: string; children: React.ReactNode; dest?: string }) {
   const router = useRouter()
 
   const handleStart = async () => {
     const supabase = createSupabaseBrowser()
     const { data: { user } } = await supabase.auth.getUser()
-    router.push(user ? "/dashboard" : "/login")
+    router.push(user ? dest : "/login")
   }
 
   return (
@@ -276,15 +276,19 @@ export default function LandingPage() {
 
             {/* 버튼 */}
             <div className="flex gap-3 flex-wrap">
-              <StartButton className="btn-primary rounded-full px-8 py-4 text-base">
+              <StartButton className="btn-primary rounded-full px-8 py-4 text-base" dest="/interview/new">
                 무료로 시작하기 →
               </StartButton>
               {isLoggedIn ? (
-                <StartButton className="btn-outline rounded-full px-8 py-4 text-base">
+                <StartButton className="btn-outline rounded-full px-8 py-4 text-base" dest="/dashboard">
                   대시보드 보기
                 </StartButton>
               ) : (
-                <Link href="/demo" className="btn-outline rounded-full px-8 py-4 text-base">
+                <Link
+                  href="/demo"
+                  className="rounded-full px-8 py-4 text-base font-medium bg-white transition-all duration-200 hover:bg-violet-50 hover:shadow-md"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}
+                >
                   데모로 체험하기
                 </Link>
               )}

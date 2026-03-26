@@ -24,10 +24,11 @@ interface EvaluateResult {
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────
 
-const TARGET_ROLES = [
+const ROLE_SUGGESTIONS = [
   "프론트엔드 개발자",
   "백엔드 개발자",
   "기획자(PM)",
+  "데이터 분석가",
   "디자이너",
   "마케터",
 ]
@@ -71,6 +72,7 @@ export default function DemoPage() {
   const router = useRouter()
 
   const [step, setStep] = useState<Step>("select")
+  const [roleInput, setRoleInput] = useState("")
   const [targetRole, setTargetRole] = useState("")
   const [question, setQuestion] = useState("")
   const [persona, setPersona] = useState("")
@@ -160,7 +162,7 @@ export default function DemoPage() {
 
         {/* ── SELECT ────────────────────────────────────────────────────── */}
         {step === "select" && (
-          <div className="space-y-8">
+          <div className="space-y-10">
             <div className="text-center space-y-3">
               <span className="tag tag-purple inline-flex items-center gap-1.5">
                 <span className="text-purple-400">✦</span>
@@ -176,17 +178,55 @@ export default function DemoPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {TARGET_ROLES.map((role) => (
-                <button
-                  key={role}
-                  onClick={() => handleSelectRole(role)}
-                  className="glass-card glass-card-hover rounded-2xl p-5 text-left transition-all duration-200 hover:border-purple-200 hover:shadow-lg hover:shadow-purple-50 hover:-translate-y-0.5"
-                >
-                  <p className="font-semibold text-[#111827]">{role}</p>
-                  <p className="text-xs text-[#9CA3AF] mt-1">AI 면접 질문 생성</p>
-                </button>
-              ))}
+            {/* 입력 폼 */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); if (roleInput.trim()) handleSelectRole(roleInput.trim()) }}
+              className="space-y-4"
+            >
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={roleInput}
+                  onChange={(e) => setRoleInput(e.target.value)}
+                  placeholder="지원 직무를 입력하세요 (예: 프론트엔드 개발자)"
+                  className="w-full rounded-2xl border border-[#E5E7EB] pl-11 pr-4 py-4 text-sm text-[#111827] bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all duration-200 shadow-sm"
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={!roleInput.trim()}
+                className="w-full btn-primary rounded-2xl py-4 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                면접 질문 받기 →
+              </button>
+            </form>
+
+            {/* 빠른 선택 */}
+            <div className="space-y-3">
+              <p className="text-xs text-[#9CA3AF] text-center">또는 빠르게 선택하세요</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {ROLE_SUGGESTIONS.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setRoleInput(role)}
+                    className={`px-4 py-2 rounded-full text-xs font-medium border transition-all duration-150 ${
+                      roleInput === role
+                        ? "border-violet-400 bg-violet-50 text-violet-700"
+                        : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50"
+                    }`}
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
