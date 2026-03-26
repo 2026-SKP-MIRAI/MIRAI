@@ -91,8 +91,8 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
         </div>
       )}
 
-      {/* 연습 모드 — 첫 제출 피드백 생성 중 스피너 (피드백 카드 없을 때) */}
-      {!sessionComplete && interviewMode === "practice" && isFetchingFeedback && !practiceFeedback && (
+      {/* 실전 모드 — 첫 제출 피드백 생성 중 스피너 (피드백 카드 없을 때) */}
+      {!sessionComplete && interviewMode === "real" && isFetchingFeedback && !practiceFeedback && (
         <div className="rounded-2xl p-4 border bg-white border-purple-200">
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin" />
@@ -136,16 +136,16 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
         </div>
       )}
 
-      {/* 연습 모드 — 제출한 답변 버블 */}
-      {!sessionComplete && interviewMode === "practice" && practiceFeedback && practiceAnswer && (
+      {/* 실전 모드 — 제출한 답변 버블 */}
+      {!sessionComplete && interviewMode === "real" && practiceFeedback && practiceAnswer && (
         <div className="ml-8 bg-white rounded-2xl p-4 border border-black/[0.08]">
           <p className="text-xs text-gray-400 mb-1 font-semibold">내 답변</p>
           <p className="text-sm text-[#4B5563] leading-relaxed whitespace-pre-wrap">{practiceAnswer}</p>
         </div>
       )}
 
-      {/* 연습 모드 피드백 카드 */}
-      {!sessionComplete && interviewMode === "practice" && practiceFeedback && (
+      {/* 실전 모드 피드백 카드 */}
+      {!sessionComplete && interviewMode === "real" && practiceFeedback && (
         <div className="glass-card rounded-2xl p-5 space-y-4 border border-violet-200">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-violet-700">AI 피드백</p>
@@ -246,8 +246,8 @@ export default function InterviewChat({ currentQuestion, history, sessionComplet
         </div>
       )}
 
-      {/* 연습 모드 — 재답변 피드백 생성 중 스피너 (피드백 카드 아래) */}
-      {!sessionComplete && interviewMode === "practice" && isFetchingFeedback && practiceFeedback && (
+      {/* 실전 모드 — 재답변 피드백 생성 중 스피너 (피드백 카드 아래) */}
+      {!sessionComplete && interviewMode === "real" && isFetchingFeedback && practiceFeedback && (
         <div className="rounded-2xl p-4 border bg-white border-purple-200">
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 border-2 border-purple-200 border-t-purple-500 rounded-full animate-spin" />

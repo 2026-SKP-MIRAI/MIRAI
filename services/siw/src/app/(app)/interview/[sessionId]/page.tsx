@@ -113,44 +113,42 @@ export default function InterviewSessionPage() {
         setSubmitting(false);
       }
     } else {
-      // practice mode: get feedback first, don't advance question
-      setFetchingFeedback(true);
+      // practice mode: 피드백 없이 바로 다음 질문으로 진행
+      setSubmitting(true);
       setError("");
       const currentAnswerText = answer;
-      const prevAnswer = isRetried ? lastAnswer : undefined;
       setPendingAnswer(currentAnswerText);
       try {
-        const body: Record<string, unknown> = {
-          question: currentQuestion?.question ?? "",
-          answer: currentAnswerText,
-        };
-        if (prevAnswer) body.previousAnswer = prevAnswer;
-        if (isRetried && lastScore !== null) body.previousScore = lastScore;
-
-        const res = await fetch("/api/practice/feedback", {
+        const res = await fetch("/api/interview/answer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ sessionId, currentAnswer: currentAnswerText }),
         });
-        const data = await res.json();
-        if (!res.ok) { setError(data.message); setPendingAnswer(""); return; }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ message: "오류 발생" }));
+          setError(data.message);
+          setPendingAnswer("");
+          return;
+        }
+        if (!res.body) { setError("스트림 응답이 없습니다."); setPendingAnswer(""); return; }
 
-        if (!isRetried) {
-          setLastAnswer(currentAnswerText);
-          setLastScore(data.score);
-        } else {
-          setLastAnswer(currentAnswerText);  // 재답변 시에도 lastAnswer 업데이트 (다음질문으로 전송할 답변)
-          setRetryInputVisible(false);
+        const doneEvent = await consumeAnswerStream(res.body);
+
+        if (currentQuestion) {
+          setHistory(prev => [...prev, {
+            persona: currentQuestion.persona,
+            personaLabel: currentQuestion.personaLabel,
+            question: currentQuestion.question,
+            answer: currentAnswerText,
+            type: currentQuestion.type ?? "main",
+          }]);
         }
         setAnswer("");
         setPendingAnswer("");
-        setPracticeAnswer(currentAnswerText);
-        setPracticeFeedback(data);
-      } catch {
-        setError("피드백 생성에 실패했습니다.");
-        setPendingAnswer("");
+        setCurrentQuestion(doneEvent?.nextQuestion ?? null);
+        setSessionComplete(doneEvent?.sessionComplete ?? false);
       } finally {
-        setFetchingFeedback(false);
+        setSubmitting(false);
       }
     }
   }
