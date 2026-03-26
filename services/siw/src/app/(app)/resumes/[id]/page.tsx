@@ -135,15 +135,13 @@ export default function ResumeDetailPage() {
           <p className="text-xs text-gray-400 mt-1">{formatDate(resume.uploadedAt)} 저장</p>
         </div>
         <div className="flex items-center gap-2">
-          {resume.inferredTargetRole && (
-            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
-              <div>
-                <p className="text-[10px] font-medium text-indigo-400 leading-none mb-0.5">희망 직무</p>
-                <p className="text-sm font-bold text-indigo-800">{resume.inferredTargetRole}</p>
-              </div>
+          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+            <div>
+              <p className="text-[10px] font-medium text-indigo-400 leading-none mb-0.5">희망 직무</p>
+              <p className="text-sm font-bold text-indigo-800">{resume.inferredTargetRole ?? "직무 미지정"}</p>
             </div>
-          )}
+          </div>
           <button
             onClick={handleDownload}
             disabled={downloading}

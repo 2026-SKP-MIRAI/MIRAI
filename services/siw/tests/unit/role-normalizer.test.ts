@@ -14,16 +14,16 @@ describe("normalizeRole", () => {
     expect(normalizeRole("데이터 엔지니어")).toBe("데이터 엔지니어")
   })
 
-  it("빈 문자열 → 소프트웨어 개발자 (기본값)", () => {
-    expect(normalizeRole("")).toBe("소프트웨어 개발자")
+  it("빈 문자열 → \"\" (직무 미지정)", () => {
+    expect(normalizeRole("")).toBe("")
   })
 
-  it("null → 소프트웨어 개발자 (기본값)", () => {
-    expect(normalizeRole(null)).toBe("소프트웨어 개발자")
+  it("null → \"\" (직무 미지정)", () => {
+    expect(normalizeRole(null)).toBe("")
   })
 
-  it("undefined → 소프트웨어 개발자 (기본값)", () => {
-    expect(normalizeRole(undefined)).toBe("소프트웨어 개발자")
+  it("undefined → \"\" (직무 미지정)", () => {
+    expect(normalizeRole(undefined)).toBe("")
   })
 
   it("매칭 없는 직무 → 원문 반환", () => {

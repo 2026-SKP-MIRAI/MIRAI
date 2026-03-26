@@ -1,7 +1,7 @@
 /**
  * targetRole 문자열을 정규화된 직무 카테고리로 변환한다.
  * - 불필요한 공백 제거
- * - 빈 문자열이면 기본값 반환
+ * - 빈 문자열이면 "" 반환 (호출부에서 null 처리)
  */
 
 const ROLE_MAP: Array<[RegExp, string]> = [
@@ -18,10 +18,8 @@ const ROLE_MAP: Array<[RegExp, string]> = [
   [/디자이너|ux|ui\s*\/\s*ux|designer/i, "디자이너"],
 ]
 
-const DEFAULT_ROLE = "소프트웨어 개발자"
-
 export function normalizeRole(raw: string | null | undefined): string {
-  if (!raw || raw.trim() === "") return DEFAULT_ROLE
+  if (!raw || raw.trim() === "") return ""
   const trimmed = raw.trim()
   for (const [pattern, normalized] of ROLE_MAP) {
     if (pattern.test(trimmed)) return normalized
