@@ -6,9 +6,8 @@
 
 ## 완료 기준
 
-- [ ] `docs/work/active/`에 3개 폴더가 사라지고 `.gitkeep`만 남음
-- [ ] `docs/work/done/`에 000185, 000288, 000289 폴더가 정상 존재
-- [ ] `docs/work/active/.ai.md` 최신화
+- [x] `docs/work/active/`에 3개 폴더가 사라지고 `.gitkeep`만 남음
+- [x] `docs/work/done/`에 000185, 000288, 000289 폴더가 정상 존재
 
 ---
 
