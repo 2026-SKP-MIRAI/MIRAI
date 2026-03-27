@@ -7,8 +7,8 @@ from app.schemas import ParsedResume
 
 logger = logging.getLogger(__name__)
 
-# OCR 렌더링 해상도 — ~24MB/페이지, max_pages=10 기준 최대 ~240MB
-_OCR_DPI = 300
+# OCR 렌더링 해상도 — ~19MB/페이지, max_pages=10 기준 최대 ~190MB
+_OCR_DPI = 250
 
 
 def _ocr_fallback(doc: fitz.Document) -> str:
