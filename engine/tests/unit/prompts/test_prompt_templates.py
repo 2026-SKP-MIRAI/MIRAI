@@ -50,6 +50,51 @@ def test_v2_followup_output_format_contract():
         assert key in followup, f"followup v2: 출력 포맷에 \"{key}\" 키 누락"
 
 
+def test_v3_tech_lead_prompt_placeholders():
+    """interview_tech_lead_v3.md: 필수 플레이스홀더 존재 확인"""
+    content = read_prompt("interview_tech_lead_v3.md")
+    assert "{resume_text}" in content, "tech_lead v3: {resume_text} 누락"
+    assert "{personas_context}" in content, "tech_lead v3: {personas_context} 누락"
+
+
+def test_v3_tech_lead_prompt_output_format_contract():
+    """interview_tech_lead_v3.md: 출력 포맷 계약 확인"""
+    content = read_prompt("interview_tech_lead_v3.md")
+    assert '"question"' in content, "tech_lead v3: 출력 포맷에 \"question\" 키 누락"
+    assert '"personaLabel"' in content, "tech_lead v3: 출력 포맷에 \"personaLabel\" 키 누락"
+    assert '"기술팀장"' in content, "tech_lead v3: personaLabel 값 \"기술팀장\" 누락"
+
+
+def test_v3_tech_lead_prompt_no_sw_fixed_keywords():
+    """interview_tech_lead_v3.md: SW 고정 키워드 미포함 확인"""
+    content = read_prompt("interview_tech_lead_v3.md")
+    assert "Docker" not in content, "tech_lead v3: SW 고정 키워드 'Docker' 포함됨"
+    assert "GraphQL" not in content, "tech_lead v3: SW 고정 키워드 'GraphQL' 포함됨"
+    assert "gRPC" not in content, "tech_lead v3: SW 고정 키워드 'gRPC' 포함됨"
+    assert "시니어 엔지니어" not in content, "tech_lead v3: SW 고정 표현 '시니어 엔지니어' 포함됨"
+    assert "프로덕션에서 발생한" not in content, "tech_lead v3: SW 고정 표현 '프로덕션에서 발생한' 포함됨"
+    assert "응답 지연이 갑자기" not in content, "tech_lead v3: SW 고정 표현 '응답 지연이 갑자기' 포함됨"
+
+
+def test_v3_tech_lead_prompt_domain_adaptive_keywords():
+    """interview_tech_lead_v3.md: 도메인 적응 키워드 존재 확인"""
+    content = read_prompt("interview_tech_lead_v3.md")
+    assert "직무 도메인" in content, "tech_lead v3: '직무 도메인' 키워드 누락"
+    assert "도구" in content, "tech_lead v3: '도구' 키워드 누락"
+    assert "방법론" in content, "tech_lead v3: '방법론' 키워드 누락"
+
+
+def test_v3_followup_tech_lead_no_sw_fixed_keywords():
+    """interview_followup_tech_lead_v3.md: SW 고정 키워드 미포함 확인"""
+    content = read_prompt("interview_followup_tech_lead_v3.md")
+    assert "NoSQL" not in content, "followup tech_lead v3: SW 고정 키워드 'NoSQL' 포함됨"
+    assert "RDB" not in content, "followup tech_lead v3: SW 고정 키워드 'RDB' 포함됨"
+    assert "마이크로서비스" not in content, "followup tech_lead v3: SW 고정 키워드 '마이크로서비스' 포함됨"
+    assert "캐싱" not in content, "followup tech_lead v3: SW 고정 키워드 '캐싱' 포함됨"
+    assert "시니어 엔지니어" not in content, "followup tech_lead v3: SW 고정 표현 '시니어 엔지니어' 포함됨"
+    assert "코드를 보면" not in content, "followup tech_lead v3: SW 고정 표현 '코드를 보면' 포함됨"
+
+
 def test_v2_prompts_persona_boundary_constraints():
     """페르소나 경계: HR은 기술 질문 금지, 경영진은 기술 세부 질문 금지 명시"""
     hr = read_prompt("interview_hr_v2.md")
