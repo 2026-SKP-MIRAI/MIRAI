@@ -13,7 +13,7 @@ PR #299에서 t3a.micro (RAM 1GB) 환경의 OOM 방지를 위해 `engine/app/rou
 - [x] 변경 값에 대한 근거 주석 추가 (인스턴스 스펙 기준)
 - [x] `engine/app/parsers/pdf_parser.py`의 `_OCR_DPI` 값을 250 → 200으로 하향
 - [x] DPI 변경에 대한 근거 주석 추가 (세마포어 상향에 따른 메모리 안전 마진)
-- [ ] 기존 테스트 통과
+- [x] 기존 테스트 통과
 
 ## 구현 플랜
 1. t3a.small (2GB RAM) 기준 OCR 1건당 메모리 사용량 추정
