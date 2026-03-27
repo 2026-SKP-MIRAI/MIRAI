@@ -31,8 +31,8 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/interview/interview-repository", () => ({
   interviewRepository: {
     listCompleted: vi.fn().mockResolvedValue([
-      { ...baseSession, id: "s1", resumeText: "A".repeat(35) },
-      { ...baseSession, id: "s2", resumeText: "짧은 이력서" },
+      { ...baseSession, id: "s1", resume: { fileName: "A".repeat(35), inferredTargetRole: null } },
+      { ...baseSession, id: "s2", resume: { fileName: "짧은 이력서", inferredTargetRole: null } },
     ]),
   },
 }));
@@ -44,7 +44,7 @@ describe("GET /api/growth/sessions", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toHaveLength(2);
-    expect(data[0].resumeLabel.endsWith("…")).toBe(true);
+    expect(data[0].resumeFileName).toBe("A".repeat(35));
   });
 
   it("200: 빈 배열", async () => {
@@ -59,18 +59,17 @@ describe("GET /api/growth/sessions", () => {
     expect(data).toEqual([]);
   });
 
-  it("resumeLabel: 30자 초과 시 말줄임표", async () => {
+  it("resumeFileName: 35자 fileName 그대로 반환", async () => {
     const { interviewRepository } = await import(
       "@/lib/interview/interview-repository"
     );
     (interviewRepository.listCompleted as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { ...baseSession, resumeText: "가".repeat(35) },
+      { ...baseSession, resume: { fileName: "가".repeat(35), inferredTargetRole: null } },
     ]);
     const { GET } = await import("@/app/api/growth/sessions/route");
     const res = await GET();
     const data = await res.json();
-    expect(data[0].resumeLabel).toHaveLength(31);
-    expect(data[0].resumeLabel.endsWith("…")).toBe(true);
+    expect(data[0].resumeFileName).toBe("가".repeat(35));
   });
 
   it("500: repository throws", async () => {

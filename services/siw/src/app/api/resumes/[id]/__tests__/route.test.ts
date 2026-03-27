@@ -23,6 +23,7 @@ vi.mock('next/headers', () => ({
 }))
 
 import { resumeRepository } from '@/lib/resume-repository'
+import { createServerClient } from '@/lib/supabase/server'
 
 const BASE_RESUME = {
   id: 'resume-1',
@@ -41,6 +42,9 @@ describe('DELETE /api/resumes/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.SUPABASE_STORAGE_BUCKET = 'test-bucket'
+    vi.mocked(createServerClient).mockReturnValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }) },
+    } as never)
   })
 
   it('401 - 미인증 요청', async () => {

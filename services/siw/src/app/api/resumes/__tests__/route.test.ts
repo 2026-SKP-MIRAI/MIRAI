@@ -19,6 +19,7 @@ vi.mock('@/lib/resume-repository', () => ({
 }))
 vi.mock('@/lib/rag/embedding-client', () => ({
   embedText: vi.fn(),
+  getEngineBaseUrl: vi.fn().mockReturnValue('http://localhost:3001'),
 }))
 vi.mock('@/lib/rag/vector-search', () => ({
   searchSimilarPostings: vi.fn().mockResolvedValue([]),
