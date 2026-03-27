@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'services/kwan/**'
+      - '.github/workflows/deploy-kwan.yml'
   workflow_dispatch:  # GitHub Actions 탭에서 수동 트리거 가능
     inputs:
       skip_build:
@@ -13,9 +14,39 @@ on:
         default: false
 
 jobs:
-  build-and-push-kwan:
+  test-kwan:
     runs-on: ubuntu-latest
-    if: ${{ inputs.skip_build != true }}  # push 이벤트에서 inputs는 '' (falsy)이므로 항상 빌드 실행
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'services/kwan/package-lock.json'
+      - name: Install dependencies
+        working-directory: services/kwan
+        run: npm ci
+      - name: Create test fixtures
+        working-directory: services/kwan
+        run: |
+          mkdir -p tests/fixtures/input
+          echo '{"nextQuestion":{"persona":"tech_lead","personaLabel":"기술 리더","question":"가장 어려웠던 기술적 문제는 무엇인가요?","type":"main"},"updatedQueue":[{"persona":"executive","type":"main"}],"sessionComplete":false}' \
+            > tests/fixtures/input/mock_interview_answer_response.json
+          echo '{"firstQuestion":{"persona":"hr","personaLabel":"HR 담당자","question":"자기소개를 해주세요.","type":"main"},"questionsQueue":[{"persona":"tech_lead","type":"main"},{"persona":"executive","type":"main"}]}' \
+            > tests/fixtures/input/mock_interview_start_response.json
+      - name: Run tests
+        working-directory: services/kwan
+        env:
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+          SUPABASE_STORAGE_BUCKET: test-bucket
+        run: npm run test
+
+  build-and-push-kwan:
+    needs: [test-kwan]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || inputs.skip_build == false }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -37,8 +68,8 @@ jobs:
           docker push $ECR_REGISTRY/mirai-kwan --all-tags
 
   deploy:
-    needs: [build-and-push-kwan]
-    if: ${{ always() && (needs.build-and-push-kwan.result == 'success' || needs.build-and-push-kwan.result == 'skipped') }}
+    needs: [test-kwan, build-and-push-kwan]
+    if: ${{ always() && needs.test-kwan.result == 'success' && (needs.build-and-push-kwan.result == 'success' || needs.build-and-push-kwan.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1

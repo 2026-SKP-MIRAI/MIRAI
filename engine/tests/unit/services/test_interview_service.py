@@ -27,15 +27,20 @@ def make_mock_llm_side_effect(contents: list[str]):
 
 
 def make_embeddings_fn(scores: list[float]):
-    """주어진 score 목록을 순서대로 반환하는 mock embedding 함수."""
+    """주어진 score 목록을 순서대로 반환하는 mock embedding 함수.
+    1번째 호출은 weak_part 임베딩(고정 기준 벡터), 이후 호출은 scores 순서대로 similarity 반환."""
     call_count = [0]
 
     def _fn(texts):
-        idx = min(call_count[0], len(scores) - 1)
-        s = max(-1.0, min(1.0, scores[idx]))
+        idx = call_count[0]
         call_count[0] += 1
+        if idx == 0:
+            # weak_part 임베딩: 고정 기준 벡터
+            return [[1.0, 0.0]], None
+        # question 임베딩: cosine([s, b], [1.0, 0.0]) = s
+        s = max(-1.0, min(1.0, scores[min(idx - 1, len(scores) - 1)]))
         b = math.sqrt(max(0.0, 1.0 - s ** 2))
-        return [[1.0, 0.0], [s, b]], None
+        return [[s, b]], None
 
     return _fn
 
@@ -349,15 +354,15 @@ class TestGenerateFollowupOverlap:
 
         def capture_emb(texts):
             captured_texts.extend(texts)
-            return [[1.0, 0.0], [1.0, 0.0]], None
+            return [[1.0, 0.0]], None
 
         with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
              patch("app.services.interview_service.get_embeddings", side_effect=capture_emb):
             generate_followup("질문", "내 답변 전체", "hr", "이력서")
 
-        # weak_part(두 번째 텍스트)가 answer("내 답변 전체")여야 함
+        # weak_part(첫 번째 호출 텍스트)가 answer("내 답변 전체")여야 함
         if captured_texts:
-            assert captured_texts[1] == "내 답변 전체"
+            assert captured_texts[0] == "내 답변 전체"
 
     def test_whitespace_reasoning_uses_answer_fallback(self):
         """reasoning='  \\n  ' → strip() 후 빈 문자열 → answer fallback"""
@@ -367,14 +372,14 @@ class TestGenerateFollowupOverlap:
 
         def capture_emb(texts):
             captured_texts.extend(texts)
-            return [[1.0, 0.0], [1.0, 0.0]], None
+            return [[1.0, 0.0]], None
 
         with patch("app.services.llm_client.OpenAI", return_value=llm_mock), \
              patch("app.services.interview_service.get_embeddings", side_effect=capture_emb):
             generate_followup("질문", "답변 텍스트", "hr", "이력서")
 
         if captured_texts:
-            assert captured_texts[1] == "답변 텍스트"
+            assert captured_texts[0] == "답변 텍스트"
 
 
 # ── process_answer overlap 검증 통합 테스트 ─────────────────────────────────

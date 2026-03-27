@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'services/siw/**'
+      - '.github/workflows/deploy-siw.yml'
   workflow_dispatch:  # GitHub Actions 탭에서 수동 트리거 가능
     inputs:
       skip_build:
@@ -13,7 +14,31 @@ on:
         default: false
 
 jobs:
+  test-siw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'services/siw/package-lock.json'
+      - name: Install dependencies
+        working-directory: services/siw
+        run: npm ci
+      - name: Run tests
+        working-directory: services/siw
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+          SUPABASE_STORAGE_BUCKET: test-bucket
+        run: npm run test
+
   build-and-push-siw:
+    needs: [test-siw]
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || inputs.skip_build == false }}
     steps:
@@ -39,8 +64,8 @@ jobs:
           docker push $ECR_REGISTRY/mirai-siw --all-tags
 
   deploy:
-    needs: [build-and-push-siw]
-    if: ${{ always() && (needs.build-and-push-siw.result == 'success' || needs.build-and-push-siw.result == 'skipped') }}
+    needs: [test-siw, build-and-push-siw]
+    if: ${{ always() && needs.test-siw.result == 'success' && (needs.build-and-push-siw.result == 'success' || needs.build-and-push-siw.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1

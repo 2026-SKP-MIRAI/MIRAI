@@ -1,13 +1,37 @@
 import json
 import pytest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 from pydantic import ValidationError
 
-FIXTURES_OUTPUT = Path(__file__).parent.parent.parent / "fixtures/output"
+MOCK_REPORT_JSON = json.dumps({
+    "scores": {
+        "communication": 85, "problemSolving": 70, "logicalThinking": 80,
+        "jobExpertise": 90, "cultureFit": 75, "leadership": 60,
+        "creativity": 65, "sincerity": 88,
+    },
+    "totalScore": 77,
+    "summary": "지원자는 전반적으로 우수한 역량을 보여주었습니다.",
+    "axisFeedbacks": [
+        {"axis": "communication",   "axisLabel": "의사소통",    "score": 85, "type": "strength",    "feedback": "명확한 구조로 의사소통 능력을 잘 보여주었습니다."},
+        {"axis": "problemSolving",  "axisLabel": "문제해결",    "score": 70, "type": "improvement", "feedback": "원인 분석과 대안 검토를 더 구체적으로 제시해 주세요."},
+        {"axis": "logicalThinking", "axisLabel": "논리적 사고", "score": 80, "type": "strength",    "feedback": "논리적 인과관계가 잘 드러났습니다."},
+        {"axis": "jobExpertise",    "axisLabel": "직무 전문성", "score": 90, "type": "strength",    "feedback": "수치 기반 성과로 전문성을 잘 보여주었습니다."},
+        {"axis": "cultureFit",      "axisLabel": "조직 적합성", "score": 75, "type": "strength",    "feedback": "협업 태도가 잘 드러났습니다."},
+        {"axis": "leadership",      "axisLabel": "리더십",      "score": 60, "type": "improvement", "feedback": "주도적 행동 표현을 더 부각해 주세요."},
+        {"axis": "creativity",      "axisLabel": "창의성",      "score": 65, "type": "improvement", "feedback": "다양한 대안을 검토한 경험을 제시해 주세요."},
+        {"axis": "sincerity",       "axisLabel": "성실성",      "score": 88, "type": "strength",    "feedback": "충분한 분량으로 성실성이 잘 드러났습니다."},
+    ],
+    "signals": None,
+    "growthCurve": None,
+}, ensure_ascii=False)
 
-MOCK_REPORT_JSON = (FIXTURES_OUTPUT / "mock_report_response.json").read_text(encoding="utf-8")
-MOCK_HISTORY = json.loads((FIXTURES_OUTPUT / "mock_history_5items.json").read_text(encoding="utf-8"))
+MOCK_HISTORY = [
+    {"persona": "hr",        "personaLabel": "HR 담당자", "question": "자기소개를 해주세요.",         "answer": "저는 3년차 백엔드 개발자로, 주로 Python과 FastAPI를 사용하여 REST API를 설계하고 운영해왔습니다."},
+    {"persona": "tech_lead", "personaLabel": "기술 리더", "question": "가장 어려웠던 기술적 문제는?", "answer": "트래픽이 급증하는 상황에서 DB 병목이 발생했고, 쿼리 최적화와 캐싱 레이어 도입으로 응답 속도를 80% 개선했습니다."},
+    {"persona": "executive", "personaLabel": "임원",      "question": "5년 후 커리어 목표는?",        "answer": "기술 리더로 성장하여 팀 전체의 코드 품질과 개발 생산성을 높이는 데 기여하고 싶습니다."},
+    {"persona": "hr",        "personaLabel": "HR 담당자", "question": "팀 내 갈등 해결 경험은?",      "answer": "기획과 개발 일정이 충돌했을 때 양측 요구사항을 정리하고 우선순위를 합의하여 일정 내 출시에 성공했습니다."},
+    {"persona": "tech_lead", "personaLabel": "기술 리더", "question": "최근 학습한 기술은?",          "answer": "Kubernetes 기반 컨테이너 오케스트레이션과 GitHub Actions를 활용한 CI/CD 파이프라인 구축을 학습하고 실무에 적용했습니다."},
+]
 
 # v2: LLM은 피드백 텍스트만 반환 (점수 없음)
 MOCK_V2_FEEDBACK_JSON = json.dumps({
