@@ -67,13 +67,13 @@ describe("LandingPage", () => {
 
   it("페르소나 섹션 하단에 실전 모드 카드가 렌더링된다", () => {
     render(<LandingPage />)
-    expect(screen.getAllByText(/실전 모드/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/즉각 피드백 없음/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/실전 모드/)[0]).toBeInTheDocument()
+    expect(screen.getAllByText(/즉각 피드백 없음/)[0]).toBeInTheDocument()
   })
 
   it("페르소나 섹션 하단에 연습 모드 카드가 렌더링된다", () => {
     render(<LandingPage />)
-    expect(screen.getAllByText(/연습 모드/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/즉각 AI 피드백/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/연습 모드/)[0]).toBeInTheDocument()
+    expect(screen.getAllByText(/즉각 AI 피드백/)[0]).toBeInTheDocument()
   })
 })

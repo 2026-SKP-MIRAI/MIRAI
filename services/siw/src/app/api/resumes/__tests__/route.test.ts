@@ -65,7 +65,6 @@ describe('POST /api/resumes — ENABLE_RESUME_RAG', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
-    vi.stubEnv('ENGINE_BASE_URL', 'http://localhost:3001')
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/resume/questions')) {
