@@ -19,6 +19,7 @@ vi.mock('@/lib/resume-repository', () => ({
 }))
 vi.mock('@/lib/rag/embedding-client', () => ({
   embedText: vi.fn(),
+  getEngineBaseUrl: vi.fn().mockReturnValue('http://localhost:3001'),
 }))
 vi.mock('@/lib/rag/vector-search', () => ({
   searchSimilarPostings: vi.fn().mockResolvedValue([]),
@@ -64,6 +65,7 @@ describe('POST /api/resumes — ENABLE_RESUME_RAG', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
+    vi.stubEnv('ENGINE_BASE_URL', 'http://localhost:3001')
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/resume/questions')) {

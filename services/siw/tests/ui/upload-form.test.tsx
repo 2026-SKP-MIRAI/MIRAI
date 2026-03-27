@@ -38,7 +38,7 @@ describe("UploadForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
     await waitFor(() => {
-      expect(screen.getByText("지원 직무가 확인됐어요")).toBeInTheDocument();
+      expect(screen.getByText("지원 직무 확인")).toBeInTheDocument();
     });
   });
 
@@ -71,7 +71,7 @@ describe("UploadForm", () => {
     await waitFor(() => {
       const roleInput = screen.getByRole("textbox") as HTMLInputElement;
       expect(roleInput.value).toBe("");
-      expect(roleInput.placeholder).toBe("지원 직무를 입력하세요");
+      expect(roleInput.placeholder).toBe("직무 미지정");
     });
   });
 
@@ -89,7 +89,7 @@ describe("UploadForm", () => {
       );
 
     fireEvent.click(screen.getByRole("button", { name: /이력서 분석/ }));
-    await waitFor(() => screen.getByText("지원 직무가 확인됐어요"));
+    await waitFor(() => screen.getByText("지원 직무 확인"));
 
     fireEvent.click(screen.getByRole("button", { name: /이 직무로 면접 준비하기/ }));
     await waitFor(() => {

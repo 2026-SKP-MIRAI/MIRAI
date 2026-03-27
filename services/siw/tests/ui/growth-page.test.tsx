@@ -49,7 +49,7 @@ const mockSessions = [
       creativity: 68,
       sincerity: 90,
     },
-    resumeLabel: "테스트 이력서 A",
+    resumeFileName: "테스트 이력서 A",
   },
   {
     id: "s2",
@@ -65,7 +65,7 @@ const mockSessions = [
       creativity: 72,
       sincerity: 92,
     },
-    resumeLabel: "테스트 이력서 B",
+    resumeFileName: "테스트 이력서 B",
   },
 ];
 

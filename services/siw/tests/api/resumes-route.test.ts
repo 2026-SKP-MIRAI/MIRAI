@@ -61,6 +61,7 @@ beforeEach(() => {
   vi.doMock("@/lib/rag/embedding-client", () => ({
     embedText: vi.fn().mockResolvedValue(null),
     fetchTrendSkills: vi.fn().mockResolvedValue([]),
+    getEngineBaseUrl: vi.fn().mockReturnValue("http://localhost:8000"),
   }));
   vi.doMock("@/lib/rag/vector-search", () => ({
     searchSimilarPostings: vi.fn().mockResolvedValue([]),
