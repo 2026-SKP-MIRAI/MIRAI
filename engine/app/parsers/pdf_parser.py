@@ -7,8 +7,10 @@ from app.schemas import ParsedResume
 
 logger = logging.getLogger(__name__)
 
-# OCR 렌더링 해상도 — ~19MB/페이지, max_pages=10 기준 최대 ~190MB
-_OCR_DPI = 250
+# OCR 렌더링 해상도 — ~12MB/페이지, max_pages=10 기준 최대 ~120MB
+# Semaphore(4) 상향에 따른 동시 처리 증가 → 페이지당 메모리 절감 목적 (250→200, ~36% 감소)
+# ※ 200 DPI는 Tesseract 권장(300 DPI)보다 낮음 — 실제 이력서 샘플 OCR 품질 검증 후 조정 필요
+_OCR_DPI = 200
 
 
 def _ocr_fallback(doc: fitz.Document) -> str:
