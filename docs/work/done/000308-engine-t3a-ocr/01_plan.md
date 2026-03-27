@@ -6,10 +6,10 @@
 
 ## 완료 기준
 
-- [ ] `engine/app/routers/resume.py`의 `_OCR_SEMAPHORE` 값을 t3a.small 메모리 기준으로 적절히 상향 (예: 4)
-- [ ] 변경 값에 대한 근거 주석 추가 (인스턴스 스펙 기준)
-- [ ] `engine/app/parsers/pdf_parser.py`의 `_OCR_DPI` 값을 250 → 200으로 하향
-- [ ] DPI 변경에 대한 근거 주석 추가 (세마포어 상향에 따른 메모리 안전 마진)
+- [x] `engine/app/routers/resume.py`의 `_OCR_SEMAPHORE` 값을 t3a.small 메모리 기준으로 적절히 상향 (예: 4)
+- [x] 변경 값에 대한 근거 주석 추가 (인스턴스 스펙 기준)
+- [x] `engine/app/parsers/pdf_parser.py`의 `_OCR_DPI` 값을 250 → 200으로 하향
+- [x] DPI 변경에 대한 근거 주석 추가 (세마포어 상향에 따른 메모리 안전 마진)
 - [ ] 기존 테스트 통과
 
 ---
