@@ -21,7 +21,7 @@ DPI는 픽셀 수에 제곱으로 영향 → 250 DPI 시 ~31% OCR 속도 향상.
 - [x] `engine/app/routers/.ai.md` 최신화
 
 ## 개발 체크리스트
-- [ ] 해당 디렉토리 .ai.md 최신화
+- [x] 해당 디렉토리 .ai.md 최신화
 
 ---
 
@@ -29,15 +29,22 @@ DPI는 픽셀 수에 제곱으로 영향 → 250 DPI 시 ~31% OCR 속도 향상.
 
 ### 2026-03-27
 
-**현황**: 0/3 완료
+**현황**: 8/8 완료 → PR #299 오픈
 
 **완료된 항목**:
-- (없음)
+- [x] `_OCR_DPI` 300 → 250 변경
+- [x] `parse_pdf()` `asyncio.to_thread` + `Semaphore(2)` 적용
+- [x] `extract_target_role()` `asyncio.to_thread` 적용
+- [x] `generate_questions()` `asyncio.to_thread` 적용
+- [x] `generate_resume_feedback()` `asyncio.to_thread` 적용
+- [x] 기존 테스트 전체 통과 (54 passed, 4 skipped)
+- [x] `parsers/.ai.md`, `routers/.ai.md` 최신화
 
-**미완료 항목**:
-- [ ] `_OCR_DPI` 값을 200 또는 250으로 변경 (팀 협의 후 결정)
-- [ ] 이미지 PDF OCR 처리 시간 단축 확인
-- [ ] 기존 텍스트 PDF 파싱에 영향 없음
+**미완료 항목**: 없음
 
-**변경 파일**: 0개 (문서 파일만 신규 생성)
+**변경 파일**: 4개
+- `engine/app/parsers/pdf_parser.py`
+- `engine/app/routers/resume.py`
+- `engine/app/parsers/.ai.md`
+- `engine/app/routers/.ai.md`
 

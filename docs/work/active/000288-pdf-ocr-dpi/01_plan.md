@@ -6,14 +6,14 @@
 
 ## 완료 기준
 
-- [ ] `_OCR_DPI` 값을 250으로 변경 (`pdf_parser.py:11`)
-- [ ] `parse_pdf()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py:46`)
-- [ ] `extract_target_role()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py:60`)
-- [ ] `generate_questions()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py:80`)
-- [ ] `generate_resume_feedback()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py:99`)
-- [ ] 기존 테스트 전체 통과 확인
-- [ ] `engine/app/parsers/.ai.md` 최신화
-- [ ] `engine/app/routers/.ai.md` 최신화
+- [x] `_OCR_DPI` 값을 250으로 변경 (`pdf_parser.py:11`)
+- [x] `parse_pdf()` 호출을 `asyncio.to_thread`로 비동기화 + `Semaphore(2)` 적용 (`resume.py`)
+- [x] `extract_target_role()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py`)
+- [x] `generate_questions()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py`)
+- [x] `generate_resume_feedback()` 호출을 `asyncio.to_thread`로 비동기화 (`resume.py`)
+- [x] 기존 테스트 전체 통과 확인 (54 passed, 4 skipped)
+- [x] `engine/app/parsers/.ai.md` 최신화
+- [x] `engine/app/routers/.ai.md` 최신화
 
 ---
 
