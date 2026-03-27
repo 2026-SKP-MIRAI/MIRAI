@@ -29,7 +29,12 @@ const mockEvaluateResponse = {
   summary: '전반적으로 우수한 답변입니다.',
   axisFeedbacks: [
     { axis: 'communication', axisLabel: '의사소통', score: 80, type: 'strength', feedback: '명확하게 설명했습니다.' },
+    { axis: 'leadership', axisLabel: '리더십', score: 60, type: 'improvement', feedback: '리더십 경험을 구체화하세요.' },
+    { axis: 'problemSolving', axisLabel: '문제해결', score: 70, type: 'strength', feedback: '체계적으로 접근했습니다.' },
+    { axis: 'logicalThinking', axisLabel: '논리적 사고', score: 65, type: 'improvement', feedback: '논리 구조를 강화하세요.' },
+    { axis: 'jobExpertise', axisLabel: '직무 전문성', score: 75, type: 'strength', feedback: '기술 이해도가 높습니다.' },
     { axis: 'cultureFit', axisLabel: '조직 적합성', score: 85, type: 'strength', feedback: '팀워크를 강조했습니다.' },
+    { axis: 'creativity', axisLabel: '창의성', score: 70, type: 'strength', feedback: '다양한 관점을 제시했습니다.' },
     { axis: 'sincerity', axisLabel: '성실성', score: 90, type: 'strength', feedback: '성실한 태도가 보입니다.' },
   ],
   usage: { tokens: 500 },
@@ -90,7 +95,7 @@ describe('POST /api/demo/evaluate', () => {
 
     expect(data.scores).toBeDefined()
     expect(Object.keys(data.scores)).toHaveLength(8)
-    expect(data.axisFeedbacks).toHaveLength(3)
+    expect(data.axisFeedbacks).toHaveLength(8)
     expect(data.totalScore).toBe(74)
     // usage는 제거됨
     expect(data.usage).toBeUndefined()

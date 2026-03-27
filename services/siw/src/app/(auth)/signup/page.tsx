@@ -201,7 +201,7 @@ export default function SignupPage() {
                   className="mt-0.5"
                 />
                 <span>
-                  <a href="/terms" target="_blank" className="underline text-primary">[이용약관]</a>에 동의합니다 <span className="text-destructive">*필수</span>
+                  <a href="/terms" target="_blank" className="underline text-primary">[이용약관]</a>에 동의합니다
                 </span>
               </label>
               {fieldErrors.agreeToTerms && <p className="text-xs text-red-500">{fieldErrors.agreeToTerms}</p>}
@@ -214,7 +214,7 @@ export default function SignupPage() {
                   className="mt-0.5"
                 />
                 <span>
-                  <a href="/privacy" target="_blank" className="underline text-primary">[개인정보처리방침]</a>에 동의합니다 (국외이전 포함) <span className="text-destructive">*필수</span>
+                  <a href="/privacy" target="_blank" className="underline text-primary">[개인정보처리방침]</a>에 동의합니다 (국외이전 포함)
                 </span>
               </label>
               {fieldErrors.agreeToPrivacy && <p className="text-xs text-red-500">{fieldErrors.agreeToPrivacy}</p>}
