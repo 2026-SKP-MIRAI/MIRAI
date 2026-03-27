@@ -212,7 +212,7 @@ def upsert_vectors(**kwargs):
         sql = """
             INSERT INTO accepted_resume_embeddings (job_role, content, embedding, source)
             VALUES %s
-            ON CONFLICT DO NOTHING
+            ON CONFLICT ((md5(content))) DO NOTHING
         """
         template = "(%s, %s, %s::vector, %s)"
         records = [
@@ -226,8 +226,8 @@ def upsert_vectors(**kwargs):
         ]
         with conn.cursor() as cur:
             execute_values(cur, sql, records, template=template)
-            conn.commit()
             upserted = cur.rowcount if cur.rowcount >= 0 else len(records)
+            conn.commit()
     finally:
         conn.close()
 

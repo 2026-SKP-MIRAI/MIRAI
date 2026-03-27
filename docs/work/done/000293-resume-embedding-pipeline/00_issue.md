@@ -56,3 +56,14 @@
 **`services/seung/airflow/requirements.txt`**
 - `requests>=2.28.0,<3.0.0` 추가 (embed_batch HTTP 호출용).
 
+### PR 리뷰 후 수정
+
+**`services/seung/airflow/sql/001_accepted_resumes_unique.sql`** (신규)
+- `accepted_resume_embeddings` 테이블에 `UNIQUE INDEX ON (md5(content))` 추가.
+- PK가 UUID 자동생성이라 기존 `ON CONFLICT DO NOTHING`이 무력화되어 있었음 — 이 마이그레이션을 RAG_DATABASE_URL에 수동 적용 후 실제 중복 방지 동작.
+
+**`services/seung/airflow/dags/seung_resume_embed_dag.py`** (추가 수정)
+- `ON CONFLICT DO NOTHING` → `ON CONFLICT ((md5(content))) DO NOTHING`으로 수정.
+- `cur.rowcount` 읽기를 `conn.commit()` 전으로 이동 (commit 후 -1 반환 가능성 차단).
+- dead code 제거, `zip` 길이 불일치 경고 로그 추가, 벡터 직렬화 `json.dumps()` 교체.
+

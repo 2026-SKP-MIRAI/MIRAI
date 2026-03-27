@@ -185,10 +185,10 @@ def test_upsert_vectors_no_duplicate(mock_ti):
         pushes = _xcom_pushes(mock_ti)
         assert pushes["upserted_count"] == 0
 
-        # execute_values SQL에 ON CONFLICT DO NOTHING 포함 여부 검증
+        # execute_values SQL에 md5 기반 ON CONFLICT 포함 여부 검증
         execute_values_call = _psycopg2_extras.execute_values.call_args
         sql_arg = execute_values_call.args[1] if execute_values_call.args else ""
-        assert "ON CONFLICT DO NOTHING" in sql_arg
+        assert "ON CONFLICT ((md5(content))) DO NOTHING" in sql_arg
     finally:
         os.unlink(tmp_path)
 

@@ -91,4 +91,15 @@ tests/test_seung_resume_embed_dag.py::test_mark_processed_updates_db PASSED
 | `run_id` 기반 tmp 파일명 (`re.sub` sanitize) | 같은 날짜 재실행 시 파일 충돌 방지 |
 | `find_new_submissions`에서 두 Variable 조기 검증 | `SEUNG_DATABASE_URL` 없이 임베딩까지 진행하면 비용 낭비 후 `mark_processed`에서 실패 |
 | `processed_ids` = 임베딩 시도한 전체 ID (upserted만이 아님) | 이미 RAG DB에 있는 중복 레코드도 `processed=true`로 마킹해야 재처리 방지 |
-| `ON CONFLICT DO NOTHING` | 파이프라인 재실행 멱등성 보장 |
+| `ON CONFLICT ((md5(content))) DO NOTHING` | PK가 UUID 자동생성이라 target 없는 `ON CONFLICT DO NOTHING`은 무력화됨. content md5 해시 함수형 UNIQUE 인덱스로 실제 중복 방지 및 멱등성 보장 |
+| `cur.rowcount` 읽기를 `conn.commit()` 전에 수행 | psycopg2 일부 버전에서 commit 이후 rowcount가 -1 반환 가능 |
+
+## 코드 리뷰 후 수정 사항 (PR 리뷰)
+
+| 심각도 | 내용 | 수정 |
+|--------|------|------|
+| CRITICAL | `ON CONFLICT DO NOTHING` 무력화 — UUID PK라 conflict 미발생, 재실행마다 중복 삽입 | `services/seung/airflow/sql/001_accepted_resumes_unique.sql` 마이그레이션 추가 + `ON CONFLICT ((md5(content))) DO NOTHING`으로 변경 |
+| HIGH | `conn.commit()` 이후 `cur.rowcount` 읽기 — 신뢰 불가 | rowcount를 commit 전에 읽도록 순서 변경 |
+| MEDIUM | dead code (`try/except` for `Variable.get(default_var=...)`) | 제거 |
+| MEDIUM | `zip` 길이 불일치 무음 누락 | warning 로그 추가 |
+| MEDIUM | 벡터 직렬화 `"["+",".join(...)+"]"` | `json.dumps()` 로 교체 |
