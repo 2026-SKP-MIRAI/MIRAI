@@ -21,7 +21,7 @@ PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 PERSONA_LABELS = {"hr": "HR 담당자", "tech_lead": "기술팀장", "executive": "경영진"}
 PERSONA_PROMPTS = {
     "hr": "interview_hr_v2.md",
-    "tech_lead": "interview_tech_lead_v2.md",
+    "tech_lead": "interview_tech_lead_v3.md",
     "executive": "interview_executive_v2.md",
 }
 PERSONA_FOLLOWUP_PROMPTS = {
