@@ -12,6 +12,10 @@ services:
       # Airflow Variables — AIRFLOW_VAR_* 패턴으로 자동 등록
       # AWS 자격증명은 EC2 IAM Instance Role로 자동 주입 — 여기에 명시하지 않음
       AIRFLOW_VAR_SEUNG_S3_ANALYTICS_BUCKET: "${SEUNG_S3_ANALYTICS_BUCKET}"
+      # seung_resume_embed_dag 필요 Variables (#293)
+      AIRFLOW_VAR_RAG_DATABASE_URL: "${RAG_DATABASE_URL}"
+      AIRFLOW_VAR_SEUNG_DATABASE_URL: "${SEUNG_DATABASE_URL}"
+      # AIRFLOW_VAR_ENGINE_BASE_URL: "${ENGINE_BASE_URL}"  # 기본값 http://localhost:8000 — 변경 필요 시 활성화
       # Airflow Connections — AIRFLOW_CONN_* 패턴으로 자동 등록
       AIRFLOW_CONN_SEUNG_DB_READONLY: "${SEUNG_DB_READONLY_CONN}"
     volumes:
