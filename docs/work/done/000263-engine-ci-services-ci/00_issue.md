@@ -9,13 +9,13 @@
 - services: kwan/siw/seung 모두 `vitest run` 테스트 스크립트 있으나, deploy 워크플로우에 test job 없이 바로 build → deploy 중
 
 ## 완료 기준
-- [ ] engine: `test_report_service.py` 외부 픽스처 의존 제거 (인라인 mock 교체)
-- [ ] engine: `test_interview_service.py` overlap mock을 현재 개별 호출 구조에 맞게 수정 (overlap 테스트 통과)
-- [ ] engine: `pytest engine/tests/unit -v` 전체 통과
-- [ ] kwan: `deploy-kwan.yml`에 test job 추가 (`npm run test` → build)
-- [ ] siw: `deploy-siw.yml`에 test job 추가 (test job은 추가됨; siw 서비스 pre-existing 테스트 버그는 #282에서 별도 처리)
-- [ ] seung: `deploy-seung.yml`에 test job 추가
-- [ ] GitHub Actions에서 각 워크플로우 정상 동작 확인
+- [x] engine: `test_report_service.py` 외부 픽스처 의존 제거 (인라인 mock 교체)
+- [x] engine: `test_interview_service.py` overlap mock을 현재 개별 호출 구조에 맞게 수정 (overlap 테스트 통과)
+- [x] engine: `pytest engine/tests/unit -v` 전체 통과
+- [x] kwan: `deploy-kwan.yml`에 test job 추가 (`npm run test` → build)
+- [x] siw: `deploy-siw.yml`에 test job 추가 (test job은 추가됨; siw 서비스 pre-existing 테스트 버그는 #282에서 별도 처리)
+- [x] seung: `deploy-seung.yml`에 test job 추가
+- [x] GitHub Actions에서 각 워크플로우 정상 동작 확인
 
 ## 구현 플랜
 1. `engine/tests/unit/services/test_report_service.py` — 외부 JSON 파일 읽기 제거, 인라인 mock 데이터로 교체
@@ -33,7 +33,7 @@
 - `.github/workflows/.ai.md`
 
 ## 개발 체크리스트
-- [ ] 해당 디렉토리 .ai.md 최신화
+- [x] 해당 디렉토리 .ai.md 최신화
 
 ---
 
