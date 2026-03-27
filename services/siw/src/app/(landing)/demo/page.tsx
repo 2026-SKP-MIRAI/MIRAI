@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import {
   Chart as ChartJS,
   RadialLinearScale,
@@ -31,7 +31,7 @@ interface FeedbackResult {
 interface AxisFeedback {
   axis: string
   axisLabel: string
-  score: number
+  score: number | null
   type: "strength" | "improvement" | "not_evaluated"
   feedback: string
 }
@@ -60,8 +60,6 @@ const PERSONA_LABELS: Record<string, string> = {
   executive: "경영진",
 }
 
-// 데모에서 표시할 3개 축
-const DEMO_AXES = ["communication", "cultureFit", "sincerity"]
 
 const ALL_AXIS_LABELS: Record<string, string> = {
   communication: "의사소통",
@@ -124,20 +122,28 @@ export default function DemoPage() {
   const [activeAxis, setActiveAxis] = useState<string | null>(null)
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null)
   const [rateLimitMsg, setRateLimitMsg] = useState("")
+  const [errorMsg, setErrorMsg] = useState("")
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
 
   const handleEnter = useCallback((axis: string) => setActiveAxis(axis), [])
   const handleLeave = useCallback(() => setActiveAxis(null), [])
   const handleClick = useCallback((axis: string) => setExpandedAxis((prev) => prev === axis ? null : axis), [])
-  const [errorMsg, setErrorMsg] = useState("")
 
   const handleSelectRole = async (role: string) => {
     setTargetRole(role)
     setStep("loading")
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
     try {
       const res = await fetch("/api/demo/question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetRole: role }),
+        signal: abortRef.current.signal,
       })
       if (res.status === 429) {
         const data = await res.json()
@@ -154,7 +160,8 @@ export default function DemoPage() {
       setQuestion(data.question)
       setPersona(data.persona ?? "hr")
       setStep("answering")
-    } catch {
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return
       setErrorMsg("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
       setStep("error")
     }
@@ -163,26 +170,37 @@ export default function DemoPage() {
   const handleSubmit = async () => {
     if (!answer.trim()) return
     setStep("loading")
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+    const signal = abortRef.current.signal
     try {
       const [fbRes, evRes] = await Promise.all([
         fetch("/api/demo/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question, answer }),
+          signal,
         }),
         fetch("/api/demo/evaluate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ targetRole, question, answer, persona }),
+          signal,
         }),
       ])
 
+      if (!fbRes.ok && !evRes.ok) {
+        setErrorMsg("분석에 실패했습니다. 잠시 후 다시 시도해주세요.")
+        setStep("error")
+        return
+      }
       const fbData = fbRes.ok ? await fbRes.json() : null
       const evData = evRes.ok ? await evRes.json() : null
       setFeedback(fbData)
       setEvaluation(evData)
       setStep("result")
-    } catch {
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return
       setErrorMsg("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
       setStep("error")
     }
@@ -206,17 +224,26 @@ export default function DemoPage() {
     ],
   }), [evaluation?.scores])
 
-  const demoAxesFeedbacks = useMemo(
-    () => evaluation?.axisFeedbacks?.filter((f) => DEMO_AXES.includes(f.axis)) ?? [],
+  const topAxes = useMemo(
+    () => evaluation?.axisFeedbacks
+      ?.filter(f => f.score != null)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 3)
+      .map(f => f.axis) ?? [],
     [evaluation?.axisFeedbacks]
+  )
+
+  const demoAxesFeedbacks = useMemo(
+    () => evaluation?.axisFeedbacks?.filter((f) => topAxes.includes(f.axis)) ?? [],
+    [evaluation?.axisFeedbacks, topAxes]
   )
   const improvements = useMemo(
-    () => evaluation?.axisFeedbacks?.filter((f) => f.type === "improvement").slice(0, 5) ?? [],
-    [evaluation?.axisFeedbacks]
+    () => evaluation?.axisFeedbacks?.filter((f) => topAxes.includes(f.axis) && f.type === "improvement").slice(0, 5) ?? [],
+    [evaluation?.axisFeedbacks, topAxes]
   )
   const strengths = useMemo(
-    () => evaluation?.axisFeedbacks?.filter((f) => f.type === "strength").slice(0, 5) ?? [],
-    [evaluation?.axisFeedbacks]
+    () => evaluation?.axisFeedbacks?.filter((f) => topAxes.includes(f.axis) && f.type === "strength").slice(0, 5) ?? [],
+    [evaluation?.axisFeedbacks, topAxes]
   )
 
   return (
@@ -350,9 +377,9 @@ export default function DemoPage() {
 
             {/* 이번 답변 점수 */}
             {typeof feedback?.score === "number" && (
-              <div className="rounded-2xl p-8 text-center text-white" style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}>
+              <div className="rounded-2xl p-5 md:p-8 text-center text-white" style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)" }}>
                 <p className="text-sm opacity-80 mb-3">이번 답변 점수</p>
-                <p className="font-black leading-none mb-1" style={{ fontSize: "80px", letterSpacing: "-3px" }}>
+                <p className="font-black leading-none mb-1 text-[48px] md:text-[80px] tracking-[-3px]">
                   {feedback.score}
                 </p>
                 <p className="text-base opacity-85">/ 100점</p>
@@ -377,18 +404,18 @@ export default function DemoPage() {
             {/* 총평 탭 */}
             {activeTab === "summary" && (
               <div className="flex flex-col gap-4">
-                <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-8">
-                  <div className="grid grid-cols-2 gap-10 items-start">
+                <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-4 md:p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-10 items-start">
 
                     {/* 레이더 차트 — 블러 + 오버레이 */}
-                    <div className="relative">
+                    <div className="relative order-last md:order-none">
                       <p className="text-sm font-semibold text-gray-500 mb-4 text-center">8축 역량 레이더</p>
-                      <div className="relative max-w-[420px] mx-auto">
+                      <div className="relative max-w-full md:max-w-[420px] mx-auto">
                         <div className="blur-sm pointer-events-none select-none">
                           <Radar data={radarData} options={RADAR_OPTIONS} />
                         </div>
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                          <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-sm border border-violet-100">
+                          <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-3 py-3 md:px-5 md:py-4 shadow-sm border border-violet-100">
                             <p className="text-xs font-semibold text-[#374151] leading-relaxed">
                               전체 8축 평가는<br />모든 면접을 진행 후 확인 가능합니다
                             </p>
@@ -454,7 +481,7 @@ export default function DemoPage() {
                               {item.feedback}
                             </p>
                           </div>
-                        )) : DEMO_AXES.map((axis) => (
+                        )) : Object.keys(ALL_AXIS_LABELS).slice(0, 3).map((axis) => (
                           <div key={axis} className="axis-row opacity-40">
                             <div className="axis-row__header">
                               <span className="axis-row__name">{ALL_AXIS_LABELS[axis]}</span>
