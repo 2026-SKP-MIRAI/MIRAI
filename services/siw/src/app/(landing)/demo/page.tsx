@@ -463,13 +463,13 @@ export default function DemoPage() {
                                 <span className="axis-row__name">{item.axisLabel}</span>
                               </div>
                               <div className="axis-row__scores">
-                                <span className="axis-row__current-score" style={{ color: getScoreColor(item.score) }}>
+                                <span className="axis-row__current-score" style={{ color: item.score != null ? getScoreColor(item.score) : undefined }}>
                                   {item.score}점
                                 </span>
                               </div>
                             </div>
                             <div className="axis-row__track">
-                              <div className="axis-row__bar-current" style={getBarStyle(item.score)} aria-hidden="true" />
+                              <div className="axis-row__bar-current" style={item.score != null ? getBarStyle(item.score) : undefined} aria-hidden="true" />
                             </div>
                             <p
                               className="axis-row__desc"
