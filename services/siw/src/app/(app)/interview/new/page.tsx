@@ -2,7 +2,7 @@
 import React, { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Users, Code2, Briefcase } from "lucide-react"
+import { Users, Code2, Briefcase, FileText, ArrowRight } from "lucide-react"
 import type { InterviewMode } from "@/lib/types"
 
 const containerVariants = {
@@ -179,7 +179,23 @@ function InterviewNewPageContent() {
           {selectedResume ? (
             <p className="text-sm text-gray-700 leading-[1.6]">{selectedResume.fileName}</p>
           ) : resumes.length === 0 ? (
-            <p className="text-sm text-gray-400">이력서를 먼저 업로드해주세요.</p>
+            <div className="flex flex-col items-center gap-4 py-5 px-2">
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-violet-50 border border-violet-100/80">
+                <FileText className="w-5 h-5 text-violet-400" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-gray-700">아직 이력서가 없어요</p>
+                <p className="text-xs text-gray-400 leading-relaxed">이력서를 업로드하면 면접을 시작할 수 있어요</p>
+              </div>
+              <button
+                onClick={() => router.push('/resumes')}
+                className="group inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-200 ease-out active:scale-[0.97]"
+                style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)", boxShadow: "0 2px 8px rgba(124,58,237,0.25)" }}
+              >
+                이력서 업로드하러 가기
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </button>
+            </div>
           ) : (
             <div className="space-y-2">
               {resumes.map(r => (

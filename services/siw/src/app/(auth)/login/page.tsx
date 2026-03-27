@@ -65,13 +65,7 @@ function LoginPageContent() {
         {/* 로고 */}
         <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}>
-              <svg className="w-[18px] h-[18px] text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-              </svg>
-            </div>
-            <span className="text-lg font-extrabold text-gray-800">MirAI</span>
+            <span className="text-lg font-extrabold gradient-text">MirAI</span>
           </Link>
           <h1 className="text-2xl font-extrabold text-gray-900">다시 오신 걸 환영합니다</h1>
           <p className="text-sm text-gray-400 mt-1">면접 연습을 이어서 진행하세요</p>
