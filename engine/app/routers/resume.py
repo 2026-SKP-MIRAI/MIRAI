@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, File, Request, UploadFile
@@ -17,6 +18,9 @@ logger = logging.getLogger(__name__)
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/resume")
+
+# OCR 동시 실행 제한 — t3a.micro 1GB RAM 기준 안전 한계 (동시 2개 초과 시 OOM 위험)
+_OCR_SEMAPHORE = asyncio.Semaphore(2)
 
 
 async def _validate_and_parse_pdf(request: Request, file: UploadFile | None, endpoint: str):
@@ -43,7 +47,8 @@ async def _validate_and_parse_pdf(request: Request, file: UploadFile | None, end
             raise FileSizeError("파일 크기가 너무 큽니다. 5MB 이하의 파일을 업로드해 주세요.")
 
     file_bytes = await file.read()
-    parsed = parse_pdf(file_bytes, filename=file.filename)
+    async with _OCR_SEMAPHORE:
+        parsed = await asyncio.to_thread(parse_pdf, file_bytes, filename=file.filename)
     logger.info("[resume/%s] 파싱 완료: 텍스트 길이=%d", endpoint, parsed.extracted_length)
     return parsed
 
@@ -57,7 +62,7 @@ async def parse_resume(request: Request, file: UploadFile | None = File(None)):
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_resume(request: Request, file: UploadFile | None = File(None)):
     parsed = await _validate_and_parse_pdf(request, file, "analyze")
-    role = extract_target_role(parsed.text)
+    role = await asyncio.to_thread(extract_target_role, parsed.text)
     logger.info("[resume/analyze] 직무 추출 완료: %s", role)
     return AnalyzeResponse(
         resumeText=parsed.text,
@@ -69,7 +74,7 @@ async def analyze_resume(request: Request, file: UploadFile | None = File(None))
 @router.post("/target-role", response_model=TargetRoleResponse)
 async def get_target_role(body: TargetRoleRequest):
     logger.info("[resume/target-role] 요청 수신: resumeText 길이=%d", len(body.resumeText))
-    role = extract_target_role(body.resumeText)
+    role = await asyncio.to_thread(extract_target_role, body.resumeText)
     logger.info("[resume/target-role] 직무 추출 완료: %s", role)
     return TargetRoleResponse(targetRole=role)
 
@@ -77,7 +82,9 @@ async def get_target_role(body: TargetRoleRequest):
 @router.post("/questions", response_model=QuestionsResponse)
 async def create_questions(body: QuestionsRequest):
     logger.info("[resume/questions] 요청 수신: resumeText 길이=%d", len(body.resumeText))
-    questions, usage = generate_questions(body.resumeText, target_role=body.targetRole)
+    questions, usage = await asyncio.to_thread(
+        generate_questions, body.resumeText, target_role=body.targetRole
+    )
     logger.info("[resume/questions] 질문 생성 완료: %d개", len(questions))
     categories_used = list(dict.fromkeys(q.category for q in questions))
     return QuestionsResponse(
@@ -96,7 +103,8 @@ async def create_feedback(body: ResumeFeedbackRequest):
         len(body.job_context) if body.job_context else 0,
         len(body.resume_context) if body.resume_context else 0,
     )
-    data, usage = generate_resume_feedback(
+    data, usage = await asyncio.to_thread(
+        generate_resume_feedback,
         body.resumeText,
         body.targetRole,
         job_context=body.job_context,
