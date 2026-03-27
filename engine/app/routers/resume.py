@@ -19,8 +19,10 @@ MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/resume")
 
-# OCR 동시 실행 제한 — t3a.micro 1GB RAM 기준 안전 한계 (동시 2개 초과 시 OOM 위험)
-_OCR_SEMAPHORE = asyncio.Semaphore(2)
+# OCR 동시 실행 제한 — t3a.small 2GB RAM 기준 안전 한계
+# (OCR 1건당 피크 ~400MB 추정, 2GB 가용 메모리에서 동시 4개까지 허용)
+# t3a.micro(1GB) 시절 Semaphore(2) → t3a.small(2GB) 업그레이드로 Semaphore(4)로 상향 (PR #299 참고)
+_OCR_SEMAPHORE = asyncio.Semaphore(4)
 
 
 async def _validate_and_parse_pdf(request: Request, file: UploadFile | None, endpoint: str):
