@@ -111,7 +111,20 @@ gh issue comment {이슈번호} --body "## 이슈 포기
 gh issue close {이슈번호} --reason "not planned"
 ```
 
-### 7. 작업 폴더 이동
+### 7. 열린 PR 닫기
+
+```bash
+gh pr list --search "head:{BRANCH}" --state open --json number,title
+```
+
+열린 PR이 있으면:
+```bash
+gh pr close {pr_num} --comment "이슈 #{번호} 포기로 인해 PR을 닫습니다. 사유: {입력된 사유}"
+```
+
+없으면 이 단계를 skip한다.
+
+### 8. 작업 폴더 이동
 
 `{WORKFOLDER}`가 존재하면:
 
@@ -132,7 +145,7 @@ mv {WORKFOLDER} docs/work/done/DROPPED-{PADDED}-{짧은이름}
 
 존재하지 않으면 이 단계를 건너뛴다.
 
-### 8. Worktree 삭제
+### 9. Worktree 삭제
 
 ```
 git worktree remove --force {WORKTREE}
@@ -143,7 +156,7 @@ git worktree remove --force {WORKTREE}
 이미 삭제됐거나 존재하지 않는 워크트리입니다. 브랜치 정리를 계속합니다.
 ```
 
-### 9. 로컬 브랜치 삭제
+### 10. 로컬 브랜치 삭제
 
 ```
 git branch | grep {PADDED}-{짧은이름}
@@ -159,7 +172,7 @@ git branch -D {브랜치명}
 이미 삭제됐거나 존재하지 않는 브랜치입니다.
 ```
 
-### 10. 리모트 브랜치 삭제
+### 11. 리모트 브랜치 삭제
 
 리모트 브랜치 존재 여부를 확인한다:
 ```
@@ -173,7 +186,7 @@ git push origin --delete {브랜치명}
 
 존재하지 않으면 이 단계를 건너뛴다.
 
-### 11. 완료 안내
+### 12. 완료 안내
 
 브랜치·워크트리가 있었던 경우:
 ```
