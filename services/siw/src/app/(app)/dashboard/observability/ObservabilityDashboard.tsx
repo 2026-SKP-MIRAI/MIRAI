@@ -1,49 +1,28 @@
 "use client"
-import React, { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
-  BarController,
   PointElement,
   LineElement,
   LineController,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js"
-import { Bar, Line, Doughnut } from "react-chartjs-2"
+import { Line } from "react-chartjs-2"
 import { ObservabilityResponseSchema } from "@/lib/observability/schemas"
 import type { ObservabilityResponse } from "@/lib/observability/schemas"
+import { useObservabilityCharts, featureName, featureDesc } from "./useObservabilityCharts"
 
 ChartJS.register(
-  CategoryScale, LinearScale, BarElement, BarController,
-  PointElement, LineElement, LineController, ArcElement,
+  CategoryScale, LinearScale,
+  PointElement, LineElement, LineController,
   Title, Tooltip, Legend
 )
 
-// ─── 기능명 매핑 ────────────────────────────────────────────────
-const FEATURE_META: Record<string, { name: string; desc: string }> = {
-  interview_start:    { name: "면접 시작",   desc: "면접 세션을 시작할 때 AI가 첫 질문을 생성하는 단계입니다." },
-  interview_answer:   { name: "답변 분석",   desc: "사용자의 면접 답변을 AI가 읽고 내용을 분석하는 단계입니다." },
-  interview_feedback: { name: "면접 피드백", desc: "분석된 답변을 바탕으로 AI가 개선 피드백을 작성하는 단계입니다." },
-  question_generate:  { name: "질문 생성",   desc: "직무·이력서 맞춤형 면접 질문을 AI가 생성하는 단계입니다." },
-  resume_parse:       { name: "이력서 분석", desc: "업로드된 이력서를 AI가 읽고 주요 정보를 추출하는 단계입니다." },
-  answer_evaluate:    { name: "답변 평가",   desc: "면접 답변의 완성도·논리성을 AI가 점수화하는 단계입니다." },
-  feedback_generate:  { name: "피드백 생성", desc: "면접 전 과정을 종합해 최종 피드백 리포트를 생성하는 단계입니다." },
-}
-
-function featureName(key: string) {
-  return FEATURE_META[key]?.name ?? key.replace(/_/g, " ")
-}
-function featureDesc(key: string) {
-  return FEATURE_META[key]?.desc ?? `"${key}" 기능의 AI 호출 현황입니다.`
-}
-
-const PALETTE = ["#0EA5E9","#6366F1","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6"]
 const DAY_OPTIONS = [7, 14, 30] as const
 
 // ─── 공통 컴포넌트 ───────────────────────────────────────────────
@@ -83,7 +62,7 @@ function StatCard({ label, value, unit, tooltip, accent, warning }: {
   )
 }
 
-function SectionCard({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
+function SectionCard({ title, desc, children }: { title: string; desc?: string; children: ReactNode }) {
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
       <div className="mb-4">
@@ -93,6 +72,12 @@ function SectionCard({ title, desc, children }: { title: string; desc?: string; 
       {children}
     </div>
   )
+}
+
+function errorLevel(rate: number) {
+  if (rate > 0.05) return { bg: "#FFF5F5", border: "#FED7D7", text: "#C53030", badge: "주의 필요", bar: "#C53030" }
+  if (rate > 0)   return { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", badge: "양호",     bar: "#F59E0B" }
+  return             { bg: "#F0FDF4", border: "#BBF7D0", text: "#166534", badge: "정상",     bar: "#10B981" }
 }
 
 // ─── 메인 대시보드 ───────────────────────────────────────────────
@@ -118,13 +103,15 @@ export default function ObservabilityDashboard() {
       .catch(() => setLoading(false))
   }, [days, router])
 
+  const charts = useObservabilityCharts(data)
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-4">
         <div className="h-8 w-52 rounded-lg bg-slate-100 animate-pulse" />
         <div className="h-4 w-80 rounded bg-slate-100 animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-slate-100 animate-pulse" />)}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-2">
+          {[1,2,3,4,5].map(i => <div key={i} className="h-28 rounded-2xl bg-slate-100 animate-pulse" />)}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
@@ -149,61 +136,17 @@ export default function ObservabilityDashboard() {
     )
   }
 
-  const { rows, summary } = data
-  const dates = [...new Set(rows.map(r => r.date))].sort()
-  const colorMap: Record<string, string> = {}
-  summary.featureTypes.forEach((ft, i) => { colorMap[ft] = PALETTE[i % PALETTE.length] })
+  if (!charts) return null
 
-  const tokenAnomaly = summary.totalCalls > 0 && (summary.totalTokens ?? 0) === 0
+  const { summary } = data
+  const {
+    tokenAnomaly,
+    costLineData,
+    errorRateByFeature,
+    modeGroupStats, modeLatencyLineData,
+  } = charts
 
-  // 일별 집계
-  const costByDate = dates.map(d => rows.filter(r => r.date === d).reduce((s, r) => s + (r.estimatedCostUsd ?? 0), 0))
-  const tokenByDate = dates.map(d => rows.filter(r => r.date === d).reduce((s, r) => s + (r.totalTokens ?? 0), 0))
-
-  // 토큰 비율 (전체 합산)
-  const totalPrompt = rows.reduce((s, r) => s + (r.promptTokens ?? 0), 0)
-  const totalCompletion = rows.reduce((s, r) => s + (r.completionTokens ?? 0), 0)
-  const hasTokenSplit = totalPrompt + totalCompletion > 0
-
-  // ── Grouped Bar ────────────────────────────────────────────────
-  const barData = {
-    labels: dates,
-    datasets: summary.featureTypes.map(ft => ({
-      label: featureName(ft),
-      data: dates.map(d => rows.find(r => r.date === d && r.featureType === ft)?.callCount ?? 0),
-      backgroundColor: colorMap[ft],
-      borderRadius: 3,
-      barPercentage: 0.8,
-      categoryPercentage: 0.85,
-    })),
-  }
-  const barOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, position: "top" as const, labels: { font: { size: 11 }, boxWidth: 10, padding: 10, color: "#64748B" } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tooltip: { callbacks: { label: (ctx: any) => ` ${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toLocaleString()}건` } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, color: "#94A3B8" } },
-      y: { stacked: false, grid: { color: "rgba(0,0,0,0.04)" }, ticks: { font: { size: 11 }, color: "#94A3B8", callback: (v: number | string) => `${v}건` } },
-    },
-  }
-
-  // ── Latency + 기준선 ────────────────────────────────────────────
-  const lineData = {
-    labels: dates,
-    datasets: [
-      ...summary.featureTypes.map(ft => ({
-        label: featureName(ft),
-        data: dates.map(d => { const r = rows.find(row => row.date === d && row.featureType === ft); return r ? Math.round(r.avgLatencyMs) : null }),
-        borderColor: colorMap[ft], backgroundColor: colorMap[ft] + "18",
-        borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: 0.35, spanGaps: true, order: 1,
-      })),
-      { label: "빠름 (300ms)", data: dates.map(() => 300), borderColor: "#10B981", borderWidth: 1, borderDash: [5, 4], pointRadius: 0, tension: 0, spanGaps: true, order: 0 },
-      { label: "느림 (1500ms)", data: dates.map(() => 1500), borderColor: "#EF4444", borderWidth: 1, borderDash: [5, 4], pointRadius: 0, tension: 0, spanGaps: true, order: 0 },
-    ],
-  }
+  // ── Chart options ────────────────────────────────────────────
   const lineOptions = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
@@ -215,55 +158,6 @@ export default function ObservabilityDashboard() {
       x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#94A3B8" } },
       y: { grid: { color: "rgba(0,0,0,0.04)" }, ticks: { font: { size: 11 }, color: "#94A3B8", callback: (v: number | string) => `${v}ms` } },
     },
-  }
-
-  // ── 비용·토큰 추이 ────────────────────────────────────────────
-  const costLineData = {
-    labels: dates,
-    datasets: [
-      { label: "일별 비용 (USD)", data: costByDate, borderColor: "#F59E0B", backgroundColor: "#F59E0B22", borderWidth: 2, pointRadius: 3, tension: 0.35, yAxisID: "yCost" },
-      { label: "일별 토큰", data: tokenByDate, borderColor: "#8B5CF6", backgroundColor: "#8B5CF622", borderWidth: 2, pointRadius: 3, tension: 0.35, yAxisID: "yToken" },
-    ],
-  }
-  const costLineOptions = {
-    responsive: true, maintainAspectRatio: false,
-    interaction: { mode: "index" as const },
-    plugins: {
-      legend: { display: true, position: "top" as const, labels: { font: { size: 11 }, boxWidth: 10, padding: 10, color: "#64748B" } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tooltip: { callbacks: { label: (ctx: any) => ctx.datasetIndex === 0 ? ` $${(ctx.parsed.y ?? 0).toFixed(5)}` : ` ${(ctx.parsed.y ?? 0).toLocaleString()} 토큰` } },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#94A3B8" } },
-      yCost: { position: "left" as const, grid: { color: "rgba(0,0,0,0.04)" }, ticks: { font: { size: 10 }, color: "#F59E0B", callback: (v: number | string) => `$${Number(v).toFixed(4)}` } },
-      yToken: { position: "right" as const, grid: { display: false }, ticks: { font: { size: 10 }, color: "#8B5CF6", callback: (v: number | string) => `${Number(v).toLocaleString()}` } },
-    },
-  }
-
-  // ── 토큰 비율 도넛 ────────────────────────────────────────────
-  const donutData = {
-    labels: ["입력 토큰 (프롬프트)", "출력 토큰 (생성)"],
-    datasets: [{ data: [totalPrompt, totalCompletion], backgroundColor: ["#6366F1", "#10B981"], borderWidth: 0 }],
-  }
-  const donutOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: true, position: "bottom" as const, labels: { font: { size: 11 }, boxWidth: 10, padding: 12, color: "#64748B" } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tooltip: { callbacks: { label: (ctx: any) => ` ${ctx.label}: ${(ctx.parsed ?? 0).toLocaleString()} (${totalPrompt + totalCompletion > 0 ? ((ctx.parsed / (totalPrompt + totalCompletion)) * 100).toFixed(1) : 0}%)` } },
-    },
-  }
-
-  // ── 에러율 ────────────────────────────────────────────────────
-  const latestDate = dates[dates.length - 1]
-  const errorRateByFeature = summary.featureTypes.map(ft => {
-    const row = rows.find(r => r.date === latestDate && r.featureType === ft)
-    return { featureType: ft, errorRate: row?.errorRate ?? 0 }
-  })
-  function errorLevel(rate: number) {
-    if (rate > 0.05) return { bg: "#FFF5F5", border: "#FED7D7", text: "#C53030", badge: "주의 필요", bar: "#C53030" }
-    if (rate > 0)   return { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", badge: "양호",     bar: "#F59E0B" }
-    return             { bg: "#F0FDF4", border: "#BBF7D0", text: "#166534", badge: "정상",     bar: "#10B981" }
   }
 
   return (
@@ -295,10 +189,10 @@ export default function ObservabilityDashboard() {
         ))}
       </div>
 
-      {/* KPI 카드 4개 */}
+      {/* ── 3초 영역: Critical KPI ── */}
       <div>
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">전체 요약</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard label="총 AI 호출 횟수" value={summary.totalCalls.toLocaleString()} unit="건"
             tooltip={`최근 ${days}일간 AI 기능이 사용된 총 횟수입니다.`} accent="#0EA5E9" />
           <StatCard label="총 사용 토큰" value={(summary.totalTokens ?? 0).toLocaleString()} unit="토큰"
@@ -311,58 +205,151 @@ export default function ObservabilityDashboard() {
           <StatCard label="예상 AI 비용" value={`$${(summary.totalCostUsd ?? 0).toFixed(4)}`} unit="USD"
             tooltip={`최근 ${days}일간 AI API 호출 예상 비용입니다. 토큰 사용량 기반 추정치입니다.`}
             accent="#F59E0B" />
+          <StatCard
+            label="평균 에러율"
+            value={`${(summary.avgErrorRate * 100).toFixed(2)}%`}
+            unit=""
+            tooltip="전체 AI 호출 중 에러가 발생한 비율. 5% 초과 시 즉시 확인이 필요합니다."
+            accent={summary.avgErrorRate > 0.05 ? "#EF4444" : summary.avgErrorRate > 0 ? "#F59E0B" : "#10B981"}
+            warning={summary.avgErrorRate > 0.05 ? "에러율 5% 초과 — 즉시 확인 필요" : undefined}
+          />
         </div>
       </div>
 
-      {/* 차트 2열: 호출 건수 + 비용·토큰 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SectionCard title="기능별 일별 사용 횟수" desc="날짜별 각 AI 기능의 호출 건수 (그룹 막대)">
-          <div style={{ height: "200px" }}><Bar data={barData} options={barOptions} /></div>
-        </SectionCard>
-        <SectionCard title="일별 비용 · 토큰 추이" desc="하루 동안 소비된 비용(USD)과 토큰 수의 변화입니다.">
-          <div style={{ height: "200px" }}><Line data={costLineData} options={costLineOptions} /></div>
-        </SectionCard>
-      </div>
+      {/* ── 30초 영역: 기능 그룹별 현황 ── */}
 
-      {/* 응답속도 + 토큰 비율 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <SectionCard title="응답 속도 추이" desc="초록 점선(300ms) = 쾌적 기준 / 빨간 점선(1500ms) = 개선 권고 기준">
-            <div style={{ height: "200px" }}><Line data={lineData} options={lineOptions} /></div>
-          </SectionCard>
-        </div>
-        <SectionCard
-          title="입력 / 출력 토큰 비율"
-          desc="입력(프롬프트) vs 출력(생성) 토큰 비율입니다. 입력이 지나치게 크면 프롬프트 최적화를 검토하세요."
-        >
-          {hasTokenSplit ? (
-            <>
-              <div style={{ height: "160px" }}><Doughnut data={donutData} options={donutOptions} /></div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-                <div className="bg-indigo-50 rounded-xl p-2">
-                  <p className="text-[11px] text-indigo-500 font-semibold">입력</p>
-                  <p className="text-sm font-black text-indigo-700">{totalPrompt.toLocaleString()}</p>
-                </div>
-                <div className="bg-emerald-50 rounded-xl p-2">
-                  <p className="text-[11px] text-emerald-600 font-semibold">출력</p>
-                  <p className="text-sm font-black text-emerald-700">{totalCompletion.toLocaleString()}</p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-center">
-              <p className="text-2xl mb-2">🔀</p>
-              <p className="text-xs font-semibold text-slate-500">데이터 집계 중</p>
-              <p className="text-[11px] text-slate-400 mt-1">스키마 마이그레이션 후 표시됩니다</p>
+      {(() => {
+        const MODE_STYLES: Record<string, { border: string; badge: string; badgeText: string; iconBg: string; barColor: string; label: string }> = {
+          interview: { border: "#6366F1", badge: "#EEF2FF", badgeText: "#4338CA", iconBg: "#EEF2FF", barColor: "#6366F1", label: "실전 면접" },
+          practice:  { border: "#10B981", badge: "#ECFDF5", badgeText: "#065F46", iconBg: "#ECFDF5", barColor: "#10B981", label: "연습 면접" },
+          resume:    { border: "#F59E0B", badge: "#FFFBEB", badgeText: "#92400E", iconBg: "#FFFBEB", barColor: "#F59E0B", label: "이력서 분석" },
+        }
+        const totalCallsAll = modeGroupStats.reduce((s, m) => s + m.totalCalls, 0)
+        return (
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">기능 그룹별 현황</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {modeGroupStats.map(({ mode, totalCalls, avgLatency, errorRate, featureCounts, insufficient }) => {
+                const s = MODE_STYLES[mode]
+                const groupPct = totalCallsAll > 0 ? (totalCalls / totalCallsAll) * 100 : 0
+                const maxCount = Math.max(...featureCounts.map(f => f.count), 1)
+                return (
+                  <div key={mode} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100"
+                    style={{ borderTop: `3px solid ${s.border}` }}>
+                    <div className="p-5">
+                      {/* 모드 헤더 */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-sm font-black text-slate-800">{s.label}</span>
+                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: s.badge, color: s.badgeText }}>
+                          {groupPct.toFixed(0)}%
+                        </span>
+                      </div>
+
+                      {/* 핵심 지표 3개 */}
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        <div className="text-center">
+                          <p className="text-xl font-black text-slate-800">{totalCalls.toLocaleString()}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">총 호출</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xl font-black text-slate-800">{Math.round(avgLatency).toLocaleString()}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">평균 ms</p>
+                        </div>
+                        <div className="text-center">
+                          {insufficient ? (
+                            <>
+                              <p className="text-xl font-black text-slate-300">—</p>
+                              <p className="text-[10px] text-slate-300 mt-0.5">에러율</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xl font-black" style={{ color: (errorRate * 100) > 5 ? "#EF4444" : "#10B981" }}>
+                                {(errorRate * 100).toFixed(1)}%
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">에러율</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 전체 대비 비중 바 */}
+                      <div className="h-1 rounded-full bg-slate-100 mb-4 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${groupPct}%`, background: s.border }} />
+                      </div>
+
+                      {/* feature별 사용량 바 */}
+                      <div className="space-y-2.5">
+                        {featureCounts.map(({ ft, count }) => (
+                          <div key={ft}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[11px] font-medium text-slate-600">{featureName(ft)}</span>
+                              <span className="text-[10px] text-slate-400">{count.toLocaleString()}건</span>
+                            </div>
+                            <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all"
+                                style={{ width: `${(count / maxCount) * 100}%`, background: s.barColor + "99" }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </SectionCard>
-      </div>
+          </div>
+        )
+      })()}
 
-      {/* 에러율 */}
-      <SectionCard title="기능별 오류율" desc={`최근 날짜(${latestDate}) 기준. 5% 이상이면 즉시 확인이 필요합니다.`}>
+      {/* ── 응답 속도 추이 (모드 통합, 기준선 없음) ── */}
+      <SectionCard title="응답 속도 추이" desc="면접·연습·이력서 모드별 가중 평균 레이턴시 추이">
+        <div style={{ height: "220px" }}>
+          <Line
+            data={{ labels: modeLatencyLineData.labels, datasets: modeLatencyLineData.datasets.filter(d => !("borderDash" in d)) }}
+            options={lineOptions}
+          />
+        </div>
+      </SectionCard>
+
+      {/* ── 일별 비용 추이 ── */}
+      <SectionCard title="일별 비용 추이" desc="하루 동안 소비된 AI 호출 비용(USD) 변화입니다.">
+        <div style={{ height: "200px" }}>
+          <Line
+            data={{ labels: costLineData.labels, datasets: [{ ...costLineData.datasets[0], yAxisID: undefined }] }}
+            options={{
+              responsive: true, maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                tooltip: { callbacks: { label: (ctx: any) => ` $${(ctx.parsed.y ?? 0).toFixed(5)}` } },
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#94A3B8" } },
+                y: { grid: { color: "rgba(0,0,0,0.04)" }, ticks: { font: { size: 10 }, color: "#F59E0B", callback: (v: number | string) => `$${Number(v).toFixed(4)}` } },
+              },
+            }}
+          />
+        </div>
+      </SectionCard>
+
+      {/* ── 기능별 오류율 (드릴다운) ── */}
+      <SectionCard title="기능별 오류율" desc="조회 기간 전체 집계 기준. 5% 이상이면 즉시 확인이 필요합니다. 10건 미만은 통계 신뢰도가 낮습니다.">
         <div className="space-y-2.5">
-          {errorRateByFeature.map(({ featureType, errorRate }) => {
+          {errorRateByFeature.map(({ featureType, errorRate, callCount, insufficient }) => {
+            if (insufficient) {
+              return (
+                <div key={featureType} className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-500">{featureName(featureType)}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">
+                      데이터 부족 ({callCount}건)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">{featureDesc(featureType)}</p>
+                </div>
+              )
+            }
             const c = errorLevel(errorRate)
             const pct = errorRate * 100
             return (

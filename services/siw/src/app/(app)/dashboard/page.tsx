@@ -1,10 +1,52 @@
 "use client"
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { MessageSquare, TrendingUp, FileText, BarChart2 } from "lucide-react"
+import { MessageSquare, TrendingUp, FileText, BarChart2, Flame } from "lucide-react"
 import type { GrowthSession } from "@/lib/types"
 import { createSupabaseBrowser } from "@/lib/supabase/browser"
+
+function toKSTDateString(isoString: string): string {
+  return new Date(isoString).toLocaleDateString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+}
+
+function calcStreak(sessions: GrowthSession[]): number {
+  if (sessions.length === 0) return 0
+  const kstDates = [...new Set(sessions.map(s => toKSTDateString(s.createdAt)))].sort().reverse()
+  const todayKST = toKSTDateString(new Date().toISOString())
+  const yesterdayKST = toKSTDateString(new Date(Date.now() - 86400000).toISOString())
+  // 오늘 또는 어제부터 시작하지 않으면 0
+  if (kstDates[0] !== todayKST && kstDates[0] !== yesterdayKST) return 0
+  let streak = 0
+  let prev = new Date(kstDates[0].replace(/(\d+)\. (\d+)\. (\d+)\./, "$1-$2-$3"))
+  for (const d of kstDates) {
+    const cur = new Date(d.replace(/(\d+)\. (\d+)\. (\d+)\./, "$1-$2-$3"))
+    const diff = Math.round((prev.getTime() - cur.getTime()) / 86400000)
+    if (diff > 1) break
+    streak++
+    prev = cur
+  }
+  return streak
+}
+
+function calcHeatmap(sessions: GrowthSession[]): Record<string, number> {
+  const map: Record<string, number> = {}
+  const now = new Date()
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000)
+    map[toKSTDateString(d.toISOString())] = 0
+  }
+  for (const s of sessions) {
+    const k = toKSTDateString(s.createdAt)
+    if (k in map) map[k] = (map[k] ?? 0) + 1
+  }
+  return map
+}
 
 const containerVariants = {
   hidden: {},
@@ -59,6 +101,9 @@ export default function DashboardPage() {
     ? sessions[0].reportTotalScore - sessions[1].reportTotalScore
     : null
 
+  const streak = calcStreak(sessions)
+  const heatmap = calcHeatmap(sessions)
+
   const latestSession = sessions[0]
   const axisKeys = latestSession ? Object.entries(latestSession.scores) : []
   const topAxis = axisKeys.length > 0 ? axisKeys.reduce((a, b) => a[1] > b[1] ? a : b) : null
@@ -100,13 +145,14 @@ export default function DashboardPage() {
           <p className="text-gray-500 mt-1">오늘도 한 걸음 더 성장하세요.</p>
         </motion.div>
 
-        {/* 통계 4카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        {/* 통계 5카드 */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
           {[
             { iconBg: "#EDE9FE", label: "총 면접 횟수", value: `${sessions.length}`, sub: "누적 횟수", valueColor: null, grad: true, Icon: MessageSquare, iconColor: "#7C3AED" },
             { iconBg: "#E0E7FF", label: "평균 점수", value: avgScore !== null ? `${avgScore}점` : "—", sub: "8축 기준", valueColor: "#4F46E5", grad: false, Icon: TrendingUp, iconColor: "#4F46E5" },
             { iconBg: "#CFFAFE", label: "업로드 이력서", value: `${resumeCount}`, sub: "저장된 이력서", valueColor: "#06B6D4", grad: false, Icon: FileText, iconColor: "#06B6D4" },
             { iconBg: "#D1FAE5", label: "성장률", value: growthRate !== null ? `${growthRate > 0 ? "+" : ""}${growthRate}점` : "—", sub: "최근 vs 이전", valueColor: "#10B981", grad: false, Icon: BarChart2, iconColor: "#10B981" },
+            { iconBg: "#FEF3C7", label: "연속 면접", value: streak > 0 ? `${streak}일` : "—", sub: streak > 0 ? "일 연속 달성!" : "오늘 시작해보세요", valueColor: "#D97706", grad: false, Icon: Flame, iconColor: "#D97706" },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -142,10 +188,62 @@ export default function DashboardPage() {
               <h3 className="text-lg font-bold text-gray-900">최근 면접 기록</h3>
               <Link href="/growth" className="text-violet-600 font-semibold text-sm hover:underline">전체 보기</Link>
             </div>
+
+            {/* 30일 캘린더 히트맵 */}
+            <div className="bg-white/90 backdrop-blur-sm border border-black/[0.08] rounded-2xl p-5 mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-900">최근 30일 면접 현황</h3>
+              </div>
+              <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(30, 1fr)" }}>
+                {Object.entries(heatmap).map(([date, count]) => {
+                  const bg = count === 0 ? "#E5E7EB" : count === 1 ? "#DDD6FE" : count === 2 ? "#8B5CF6" : "#5B21B6"
+                  return (
+                    <div
+                      key={date}
+                      className="rounded-sm aspect-square relative group cursor-default"
+                      style={{ background: bg }}
+                      title={`${date}: ${count}회`}
+                    />
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 mt-2 justify-end">
+                {[["#E5E7EB","0회"],["#DDD6FE","1회"],["#8B5CF6","2회"],["#5B21B6","3회+"]].map(([color,label]) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+                    <span className="text-[10px] text-gray-400">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {sessions.length === 0 ? (
-              <p className="text-sm text-gray-400 py-6 text-center">아직 완료된 면접이 없습니다</p>
+              <div className="py-4">
+                <div className="text-center mb-4">
+                  <div className="text-3xl mb-2">🎯</div>
+                  <p className="text-sm font-semibold text-gray-700">첫 AI 면접을 시작해보세요</p>
+                  <p className="text-xs text-gray-400 mt-1">3단계만 완료하면 맞춤 피드백을 받을 수 있어요</p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { step: 1, label: "이력서 업로드", done: resumeCount > 0, cta: resumeCount === 0 ? { href: "/resumes", text: "업로드하기 →" } : null },
+                    { step: 2, label: "첫 AI 면접 시작", done: false, cta: { href: "/interview/new", text: "시작하기 →" } },
+                    { step: 3, label: "리포트 확인", done: false, cta: null },
+                  ].map(({ step, label, done, cta }) => (
+                    <div key={step} className={`flex items-center gap-3 p-3 rounded-xl border ${done ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${done ? "bg-emerald-500 text-white" : "bg-slate-300 text-slate-500"}`}>
+                        {done ? "✓" : step}
+                      </div>
+                      <span className={`text-xs font-medium flex-1 ${done ? "text-emerald-700 line-through" : "text-slate-700"}`}>{label}</span>
+                      {cta && !done && (
+                        <Link href={cta.href} className="text-[11px] font-semibold text-violet-600 hover:underline">{cta.text}</Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <div className="max-h-[480px] overflow-y-auto">
+              <div className="max-h-[480px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
               {sessions.map((s) => {
                 const sc = getScoreCircleClass(s.reportTotalScore)
                 return (
