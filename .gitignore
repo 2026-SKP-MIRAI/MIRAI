@@ -7,9 +7,6 @@ temp/
 *.pkl
 *.parquet
 
-# RAG seed 데이터 (5MB 초과, DB에 적재됨 — 재생성: engine/scripts/extract_pdf_resumes.py)
-data/accepted_resumes.json
-
 # 테스트 fixtures는 무시
 **/tests/fixtures/**
 
