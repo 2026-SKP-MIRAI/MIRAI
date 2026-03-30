@@ -4,6 +4,13 @@
 
 ---
 
+## 2026년 3월 30일 주차 (Mar 30~)
+
+### ✨ 새 기능
+- **합격 자소서 사용자 제출 UI + API** ([#301](../../issues/301)): 로그인 사용자가 합격 자소서 PDF를 직접 제출하는 `/contribute` 페이지 추가. `GET/POST /api/resume/submit-accepted` (엔진 PDF 텍스트 추출, rate limit 10건/24h, 5MB 제한). 관리자 제출 목록·삭제 페이지 `/admin/submissions` 및 `GET/DELETE /api/admin/resume-submissions` 추가. NavBar에 관리자 버튼 (ADMIN_EMAIL 환경변수 기반). `ResumeSubmission` Prisma 모델 + RLS 정책 추가. Vitest 10개 테스트 추가. #293 Airflow DAG 연계 검증 완료.
+
+---
+
 ## 2026년 3월 16일 주차 (Mar 16~22)
 
 ### ✨ 새 기능
