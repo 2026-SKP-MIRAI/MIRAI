@@ -98,4 +98,4 @@
 | Google Cloud Console OAuth 2.0 Client ID 생성 | ✅ | Redirect URI: `https://rwocoqfqhgzleukzopyt.supabase.co/auth/v1/callback` |
 | Supabase Dashboard Google Provider 활성화 | ✅ | Client ID / Secret 등록 완료 |
 | Supabase Redirect URL 추가 | ✅ | `http://localhost:3000/auth/callback` |
-| Supabase 비밀번호 최소 길이 8자 설정 | ⬜ | Authentication → Settings → Minimum password length |
+| Supabase 비밀번호 최소 길이 8자 설정 | ✅ | Authentication → Sign In / Providers → Email → Minimum password length |
