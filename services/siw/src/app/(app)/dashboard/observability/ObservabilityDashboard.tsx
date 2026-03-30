@@ -17,6 +17,8 @@ import { ObservabilityResponseSchema } from "@/lib/observability/schemas"
 import type { ObservabilityResponse } from "@/lib/observability/schemas"
 import { useObservabilityCharts, featureName, featureDesc } from "./useObservabilityCharts"
 
+const S3_LLM_EVENTS_URL = "https://s3.console.aws.amazon.com/s3/buckets/mirai-llm-logs-siw?prefix=llm-events/"
+
 ChartJS.register(
   CategoryScale, LinearScale,
   PointElement, LineElement, LineController,
@@ -371,7 +373,7 @@ export default function ObservabilityDashboard() {
                       <p className="text-[10px] mt-0.5" style={{ color: c.text + "88" }}>오류 비율</p>
                     </div>
                     <a
-                      href={`https://s3.console.aws.amazon.com/s3/buckets/mirai-llm-logs-siw?prefix=logs/${featureType}/`}
+                      href={S3_LLM_EVENTS_URL}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors whitespace-nowrap"
