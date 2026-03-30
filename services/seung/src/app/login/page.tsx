@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/browser'
+import GoogleOAuthButton from '@/components/GoogleOAuthButton'
 
 function LoginContent() {
   const router = useRouter()
@@ -46,6 +47,14 @@ function LoginContent() {
           </div>
           <h1 className="text-2xl font-bold text-[#1a1a2e]">MirAI</h1>
           <p className="text-sm text-gray-500 mt-1">AI 면접 코치</p>
+        </div>
+
+        <GoogleOAuthButton onError={setError} />
+
+        <div className="flex items-center gap-3 my-1">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-gray-400">또는</span>
+          <div className="flex-1 h-px bg-gray-200" />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
