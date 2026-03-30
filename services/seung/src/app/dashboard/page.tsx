@@ -168,12 +168,20 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-[57px] z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm px-4 sm:px-6 py-4 flex items-center justify-between">
         <h1 className="text-base font-bold text-gray-900">내 면접 기록</h1>
-        <button
-          onClick={handleStart}
-          className="rounded-lg bg-[#4361ee] px-4 py-2 text-sm font-bold text-white hover:bg-[#3a56d4] transition-colors"
-        >
-          + 자소서 업로드
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/contribute')}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            합격 자소서 기여
+          </button>
+          <button
+            onClick={handleStart}
+            className="rounded-lg bg-[#4361ee] px-4 py-2 text-sm font-bold text-white hover:bg-[#3a56d4] transition-colors"
+          >
+            + 자소서 업로드
+          </button>
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-8">

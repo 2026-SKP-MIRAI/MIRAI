@@ -34,7 +34,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/interview') ||
     pathname.startsWith('/report') ||
     pathname.startsWith('/diagnosis') ||
-    pathname.startsWith('/dashboard')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/contribute') ||
+    pathname.startsWith('/admin')
 
   // E2E 테스트 환경에서만 인증 우회
   // - 로컬 개발(NODE_ENV !== 'production'): 자동 허용

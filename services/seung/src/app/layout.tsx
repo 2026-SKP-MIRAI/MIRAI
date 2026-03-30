@@ -42,7 +42,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {user && <NavBar onSignOut={signOut} />}
+        {user && <NavBar onSignOut={signOut} isAdmin={user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()} />}
         {children}
       </body>
     </html>
