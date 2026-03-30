@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'crypto'
+import { timingSafeEqual, createHash } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3'
 
@@ -20,12 +20,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 503 })
   }
 
-  // timingSafeEqual로 타이밍 어택 사이드채널 방지
+  // SHA-256 해시 후 timingSafeEqual — 길이 체크 제거로 키 길이 노출 방지
   const internalKey = request.headers.get('x-internal-key') ?? ''
   const isValid =
     internalKey.length > 0 &&
-    internalKey.length === expected.length &&
-    timingSafeEqual(Buffer.from(internalKey), Buffer.from(expected))
+    timingSafeEqual(
+      createHash('sha256').update(internalKey).digest(),
+      createHash('sha256').update(expected).digest(),
+    )
   if (!isValid) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

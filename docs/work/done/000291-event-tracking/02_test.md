@@ -122,3 +122,4 @@ DAG: seung_event_dag — 수동 트리거
 | `S3_EVENTS_BUCKET` graceful skip | 미설정 시 `console.warn` 후 return | 로컬 개발 환경에서 AWS 설정 없이도 서비스 정상 동작 |
 | 기존 버킷 재사용 | `mirai-seung-analytics` | 별도 버킷 생성 시 IAM 정책 수정 필요 → 기존 버킷의 `events/` prefix로 분리 |
 | IAM `s3:ListBucket` 리소스 | 버킷 ARN (`arn:aws:s3:::...`) 별도 추가 | ListBucket은 버킷 수준 권한, `/*` 패턴으로는 부여 불가 |
+| 타이밍 안전 키 비교 | SHA-256 해시 후 `timingSafeEqual` — `analytics/daily`, `analytics/events` 양쪽 적용 | 길이 체크(`length ===`) 제거로 키 길이 노출 방지. 두 해시 모두 32바이트 고정이므로 `timingSafeEqual` 전제 충족 |

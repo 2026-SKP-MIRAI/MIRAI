@@ -58,7 +58,7 @@
 - 2026-03-30: #291 구현 완료
   - `src/lib/event-logger.ts` — 이벤트 스키마 + S3 fire-and-forget (timestamp 옵셔널, 내부 기본값 처리)
   - `interview/start`, `interview/answer`, `report/generate`, `report/route` — 이벤트 로깅 주입
-  - `src/app/api/analytics/events/route.ts` — GET /api/analytics/events
+  - `src/app/api/analytics/events/route.ts` — GET /api/analytics/events; SHA-256 해시 기반 타이밍 안전 인증 (`analytics/daily`도 동일 수정)
   - `airflow/dags/seung_event_dag.py` — collect → aggregate_funnel → load_to_s3 → alert; session_abandoned 이벤트 S3 Raw Zone 적재; IsTruncated 경고 로그; aggregate_funnel 진입 시 session_abandoned 필터링 (DAG 재실행 idempotency)
   - `airflow/docker-compose.yml` — SEUNG_S3_EVENTS_BUCKET Variable 추가
   - vitest 216개 green, pytest 8개 green
