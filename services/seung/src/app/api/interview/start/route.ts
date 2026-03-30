@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { PersonaType, QuestionType } from '@/lib/types'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
+import { logEvent } from '@/lib/event-logger'
 
 export const maxDuration = 35
 
@@ -103,6 +104,13 @@ export async function POST(request: NextRequest) {
     console.error('[interview/start] session create failed', { resumeId, err })
     return NextResponse.json({ error: '세션을 생성할 수 없습니다.' }, { status: 500 })
   }
+
+  logEvent({
+    event_type: 'session_started',
+    user_id: user.id,
+    session_id: session.id,
+    properties: { resume_id: resumeId, interview_mode: interviewMode ?? 'real', personas },
+  }).catch((err) => console.error('[event-logger] session_started failed', err))
 
   return NextResponse.json({ sessionId: session.id, firstQuestion }, { status: 200 })
 }

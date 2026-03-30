@@ -4,7 +4,7 @@ import { S3Client, GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3'
 
 const s3 = new S3Client({ region: process.env.AWS_REGION })
 
-// DAG 스케줄이 KST 00:00 기준이므로 어제 날짜도 KST 기준으로 계산
+// DAG 스케줄이 KST 02:00 기준이므로 어제 날짜도 KST 기준으로 계산
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 
 function getYesterday(): string {
@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const bucket = process.env.SEUNG_S3_ANALYTICS_BUCKET
+  const bucket = process.env.S3_EVENTS_BUCKET
   if (!bucket) {
-    return NextResponse.json({ error: 'Analytics bucket not configured' }, { status: 503 })
+    return NextResponse.json({ error: 'Events bucket not configured' }, { status: 503 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, { status: 400 })
   }
 
-  const key = `seung/processed/${dateParam}/metrics.json`
+  const key = `events/processed/${dateParam}/funnel.json`
 
   try {
     const command = new GetObjectCommand({ Bucket: bucket, Key: key })
@@ -61,14 +61,14 @@ export async function GET(request: NextRequest) {
       const data = JSON.parse(body)
       return NextResponse.json(data, { status: 200 })
     } catch {
-      console.error('[analytics/daily] Corrupted metrics JSON', { key })
-      return NextResponse.json({ error: 'Corrupted metrics data' }, { status: 502 })
+      console.error('[analytics/events] Corrupted funnel JSON', { key })
+      return NextResponse.json({ error: 'Corrupted funnel data' }, { status: 502 })
     }
   } catch (err: unknown) {
     if (err instanceof NoSuchKey || (err as { name?: string }).name === 'NoSuchKey') {
-      return NextResponse.json({ error: 'Metrics not found for the given date' }, { status: 404 })
+      return NextResponse.json({ error: 'Funnel data not found for the given date' }, { status: 404 })
     }
-    console.error('[analytics/daily] S3 error', err)
+    console.error('[analytics/events] S3 error', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

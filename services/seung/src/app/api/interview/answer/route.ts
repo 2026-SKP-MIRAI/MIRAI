@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { parseSSEStream } from '@/lib/sse-utils'
 import type { SSEEvent } from '@/lib/sse-utils'
+import { logEvent } from '@/lib/event-logger'
 
 export const maxDuration = 60
 
@@ -167,6 +168,16 @@ export async function POST(request: NextRequest) {
             }
             console.error('[interview/answer] drain DB 처리 실패:', dbErr)
           }
+          logEvent({
+            event_type: 'answer_submitted',
+            user_id: user.id,
+            session_id: sessionId,
+            properties: {
+              question_index: history.length,
+              answer_length: trimmedAnswer.length,
+              session_complete: doneEvent.sessionComplete,
+            },
+          }).catch((err) => console.error('[event-logger] answer_submitted failed', err))
         }
       }
       if (!doneReceived) {

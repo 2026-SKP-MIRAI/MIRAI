@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { StoredHistoryEntry, AxisScores, AxisFeedback } from '@/lib/types'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
+import { logEvent } from '@/lib/event-logger'
 
 export const maxDuration = 100
 
@@ -142,6 +143,12 @@ export async function POST(request: NextRequest) {
         userId: user.id,
       },
     })
+    logEvent({
+      event_type: 'report_generated',
+      user_id: user.id,
+      session_id: sessionId,
+      properties: { report_id: report.id, total_score: totalScore },
+    }).catch((err) => console.error('[event-logger] report_generated failed', err))
     return NextResponse.json({ reportId: report.id }, { status: 201 })
   } catch (err) {
     // P2002: sessionId unique constraint — 동시 요청으로 이미 생성됨

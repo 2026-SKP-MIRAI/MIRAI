@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { AxisScores, AxisFeedback } from '@/lib/types'
 import { createClient } from '@/lib/supabase/server'
+import { logEvent } from '@/lib/event-logger'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -40,6 +41,13 @@ export async function GET(request: NextRequest) {
   if (report.userId !== user.id) {
     return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
+
+  logEvent({
+    event_type: 'report_viewed',
+    user_id: user.id,
+    session_id: report.sessionId,
+    properties: { report_id: report.id },
+  }).catch((err) => console.error('[event-logger] report_viewed failed', err))
 
   return NextResponse.json(
     {
