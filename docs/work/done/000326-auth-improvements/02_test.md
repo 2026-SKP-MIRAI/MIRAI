@@ -9,12 +9,12 @@
 ### Vitest 단위 테스트 (services/seung/tests/lib/auth-schema.test.ts)
 
 ```
-7 passed in 5ms
+9 passed in 5ms
 ```
 
 | 파일 | 테스트 수 | 결과 | 비고 |
 |------|-----------|------|------|
-| `tests/lib/auth-schema.test.ts` | 7 | ✅ 전체 통과 | signupSchema 유효성 검증 케이스 |
+| `tests/lib/auth-schema.test.ts` | 9 | ✅ 전체 통과 | signupSchema 유효성 검증 케이스 |
 
 **테스트 케이스 상세:**
 
@@ -22,6 +22,8 @@
 |--------|------|
 | 정상 입력 → parse 성공 | ✅ |
 | name 1자 → 에러 | ✅ |
+| name 51자 → 에러 | ✅ |
+| name 앞뒤 공백 → trim 후 parse 성공 | ✅ |
 | email 형식 오류 → 에러 | ✅ |
 | password 7자 → 에러 | ✅ |
 | confirmPassword 불일치 → 에러 | ✅ |
@@ -73,7 +75,7 @@
 | 파일 | 내용 | 결과 |
 |------|------|------|
 | `services/seung/src/lib/schemas/auth.ts` | signupSchema Zod 정의 | ✅ |
-| `services/seung/tests/lib/auth-schema.test.ts` | signupSchema 단위 테스트 7개 | ✅ |
+| `services/seung/tests/lib/auth-schema.test.ts` | signupSchema 단위 테스트 9개 | ✅ |
 | `services/seung/src/app/terms/page.tsx` | 이용약관 정적 페이지 | ✅ |
 | `services/seung/src/app/privacy/page.tsx` | 개인정보처리방침 정적 페이지 | ✅ |
 
@@ -81,8 +83,9 @@
 
 | 파일 | 변경 | 결과 |
 |------|------|------|
-| `services/seung/src/app/signup/page.tsx` | name·confirmPassword 필드, Zod 검증, 동의 체크박스, Google OAuth 버튼 추가 | ✅ |
-| `services/seung/src/app/login/page.tsx` | Google OAuth 버튼 추가 | ✅ |
+| `services/seung/src/app/signup/page.tsx` | name·confirmPassword 필드, Zod 검증, 동의 체크박스, GoogleOAuthButton 컴포넌트 적용 | ✅ |
+| `services/seung/src/app/login/page.tsx` | GoogleOAuthButton 컴포넌트 추가 | ✅ |
+| `services/seung/src/components/GoogleOAuthButton.tsx` | Google OAuth 공통 컴포넌트 (자체 loading, onError 콜백) | ✅ |
 | `services/seung/.ai.md` | 법적 페이지·스키마 위치·OAuth 흐름 문서화 | ✅ |
 | `services/seung/package.json` | zod 의존성 추가 | ✅ |
 
@@ -95,3 +98,4 @@
 | Google Cloud Console OAuth 2.0 Client ID 생성 | ✅ | Redirect URI: `https://rwocoqfqhgzleukzopyt.supabase.co/auth/v1/callback` |
 | Supabase Dashboard Google Provider 활성화 | ✅ | Client ID / Secret 등록 완료 |
 | Supabase Redirect URL 추가 | ✅ | `http://localhost:3000/auth/callback` |
+| Supabase 비밀번호 최소 길이 8자 설정 | ⬜ | Authentication → Settings → Minimum password length |

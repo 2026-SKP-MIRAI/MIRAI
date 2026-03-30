@@ -35,8 +35,8 @@
 
 ### 신규 파일
 
-- **`src/lib/schemas/auth.ts`**: signupSchema Zod 정의. name(2자↑) / email / password(8자↑) / confirmPassword(일치) / termsAgreed·privacyAgreed(boolean refine). `z.literal(true, errorMap)` 방식이 Vitest v4 환경에서 커스텀 메시지를 반환하지 않는 문제를 확인하여 `z.boolean().refine()` 방식으로 구현.
-- **`tests/lib/auth-schema.test.ts`**: signupSchema 단위 테스트 7개 (정상 입력, name/email/password/confirmPassword/termsAgreed/privacyAgreed 각 에러 케이스). 전체 통과.
+- **`src/lib/schemas/auth.ts`**: signupSchema Zod 정의. name(2자↑, 50자↓, trim) / email / password(8자↑) / confirmPassword(일치) / termsAgreed·privacyAgreed(boolean refine). `z.literal(true, errorMap)` 방식이 Vitest v4 환경에서 커스텀 메시지를 반환하지 않는 문제를 확인하여 `z.boolean().refine()` 방식으로 구현. 코드 리뷰 반영: name sanitization을 위해 `.max(50).trim()` 추가.
+- **`tests/lib/auth-schema.test.ts`**: signupSchema 단위 테스트 9개 (정상 입력, name/email/password/confirmPassword/termsAgreed/privacyAgreed 에러 케이스 + name 51자 에러, name 앞뒤 공백 trim). 전체 통과.
 - **`src/app/terms/page.tsx`**: 이용약관 정적 페이지. 서비스명 MirAI, 목적·금지행위·면책·준거법 기본 항목 포함. 미들웨어 보호 대상 미포함 — 비로그인 접근 가능.
 - **`src/app/privacy/page.tsx`**: 개인정보처리방침 정적 페이지. 수집 항목(이메일·이름), 수집 목적, 보유 기간, 제3자 미제공, 이용자 권리 포함.
 - **`src/components/GoogleOAuthButton.tsx`**: Google OAuth 버튼 공통 컴포넌트. `onError` 콜백으로 에러 처리 위임, 자체 loading 상태 관리. signup·login 양쪽에서 재사용.
@@ -51,4 +51,5 @@
 ### 인프라 작업 (코드 외)
 
 Google Cloud Console에서 OAuth 2.0 Client ID 생성, Supabase Dashboard에서 Google Provider 활성화 및 Redirect URL 등록 완료.
+코드 리뷰 반영: Supabase Dashboard → Authentication → Settings에서 비밀번호 최소 길이 8자 설정 필요 (클라이언트 Zod 검증과 일치 목적).
 
