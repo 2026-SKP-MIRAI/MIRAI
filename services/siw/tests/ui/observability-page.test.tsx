@@ -80,15 +80,17 @@ describe("ObservabilityPage", () => {
       expect(screen.getByText("총 AI 호출 횟수")).toBeInTheDocument();
       expect(screen.getByText("평균 응답 시간")).toBeInTheDocument();
       expect(screen.getByText("예상 AI 비용")).toBeInTheDocument();
-      expect(screen.getByText("42")).toBeInTheDocument();
+      // PR #313: 모드 그룹 카드에도 동일 숫자가 렌더될 수 있어 getAllByText 사용
+      expect(screen.getAllByText("42").length).toBeGreaterThan(0);
     });
   });
 
-  it("정상 데이터 → 차트: bar-chart, line-chart 존재", async () => {
+  it("정상 데이터 → 차트·섹션: line-chart + 모드 그룹 현황 존재", async () => {
     const ObservabilityPage = (await import("@/app/(app)/dashboard/observability/ObservabilityDashboard")).default;
     render(<ObservabilityPage />);
     await waitFor(() => {
-      expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+      // PR #313: Bar 컴포넌트 제거 → CSS 기반 모드 그룹 카드로 대체
+      expect(screen.getByText("기능 그룹별 현황")).toBeInTheDocument();
       expect(screen.getAllByTestId("line-chart").length).toBeGreaterThanOrEqual(1);
     });
   });
