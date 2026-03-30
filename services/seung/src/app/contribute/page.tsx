@@ -30,6 +30,10 @@ export default function ContributePage() {
       setError('PDF 파일만 업로드 가능합니다.')
       return
     }
+    if (selected.size > 5 * 1024 * 1024) {
+      setError('PDF 파일은 5MB 이하만 업로드 가능합니다.')
+      return
+    }
     setError('')
     setFile(selected)
   }
@@ -38,7 +42,7 @@ export default function ContributePage() {
     e.preventDefault()
     setError('')
 
-    if (!jobRole) { setError('직군을 선택해주세요.'); return }
+    if (!jobRole.trim()) { setError('직군을 선택해주세요.'); return }
     if (!file) { setError('PDF 파일을 업로드해주세요.'); return }
     if (!consent) { setError('동의가 필요합니다.'); return }
 

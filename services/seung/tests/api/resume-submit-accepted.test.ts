@@ -96,6 +96,11 @@ describe('POST /api/resume/submit-accepted', () => {
     expect(body.error).toMatch(/PDF/)
   })
 
+  it('PDF 아닌 파일이면 415 반환', async () => {
+    const res = await POST(makeFormDataRequest({ jobRole: '백엔드 개발자', file: new File(['x'], 'r.txt', { type: 'text/plain' }), consent: 'true' }))
+    expect(res.status).toBe(415)
+  })
+
   it('consent 없으면 400 반환', async () => {
     const res = await POST(makeFormDataRequest({ jobRole: '백엔드 개발자', file: new File(['x'], 'r.pdf', { type: 'application/pdf' }) }))
     expect(res.status).toBe(400)

@@ -13,7 +13,7 @@ async function assertAdmin(): Promise<{ error: NextResponse } | { adminId: strin
   if (!user) {
     return { error: NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 }) }
   }
-  if (user.email !== adminEmail) {
+  if (user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
     return { error: NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 }) }
   }
   return { adminId: user.id }
@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     : {}
 
   try {
-    const page = Math.max(1, parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10))
+    const pageRaw = parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10)
+    const page = isNaN(pageRaw) ? 1 : Math.max(1, pageRaw)
     const submissions = await prisma.resumeSubmission.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -66,6 +67,9 @@ export async function DELETE(request: NextRequest) {
     await prisma.resumeSubmission.delete({ where: { id } })
     return new NextResponse(null, { status: 204 })
   } catch (err) {
+    if ((err as { code?: string }).code === 'P2025') {
+      return NextResponse.json({ error: '존재하지 않는 제출입니다.' }, { status: 404 })
+    }
     console.error('[admin/resume-submissions] delete failed', { id, err })
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }

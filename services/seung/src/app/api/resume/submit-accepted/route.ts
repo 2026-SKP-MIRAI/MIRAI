@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/rate-limit'
 
 export const maxDuration = 60
 
+// 인증 불필요 — 기여 건수는 공개 정보 (기여 동기 부여용)
 export async function GET() {
   try {
     const count = await prisma.resumeSubmission.count()
@@ -40,11 +41,14 @@ export async function POST(request: NextRequest) {
   const company = formData.get('company')
   const consent = formData.get('consent')
 
-  if (!jobRole || typeof jobRole !== 'string') {
+  if (!jobRole || typeof jobRole !== 'string' || !jobRole.trim()) {
     return NextResponse.json({ error: '직군을 선택해주세요.' }, { status: 400 })
   }
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: 'PDF 파일을 업로드해주세요.' }, { status: 400 })
+  }
+  if (file.type !== 'application/pdf') {
+    return NextResponse.json({ error: 'PDF 파일만 업로드 가능합니다.' }, { status: 415 })
   }
   const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
   if (file.size > MAX_FILE_SIZE) {
