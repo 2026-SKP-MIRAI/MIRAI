@@ -20,6 +20,7 @@ _exceptions.AirflowSkipException = type("AirflowSkipException", (Exception,), {}
 
 _boto3 = MagicMock()
 _psycopg2 = MagicMock()
+_feedparser = MagicMock()
 
 sys.modules.update({
     "airflow": _dag,
@@ -32,6 +33,8 @@ sys.modules.update({
     "airflow.hooks.base": MagicMock(),
     "boto3": _boto3,
     "psycopg2": _psycopg2,
+    "psycopg2.extras": MagicMock(),
+    "feedparser": _feedparser,
 })
 
 # Variable은 테스트별로 patch("seung_analytics_dag.Variable.get")으로 오버라이드

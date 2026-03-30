@@ -58,3 +58,15 @@ model ResumeSubmission {
   processed Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model NewsArticle {
+  id          Int      @id @default(autoincrement())
+  role        String
+  title       String
+  url         String   @unique
+  summary     String?
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([role])
+}

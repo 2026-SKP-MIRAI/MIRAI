@@ -91,7 +91,7 @@ function ResumeContent() {
       const response = await fetch('/api/interview/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeId: result.resumeId, interviewMode }),
+        body: JSON.stringify({ resumeId: result.resumeId, interviewMode, ...(targetRole ? { targetRole } : {}) }),
       })
 
       const data = await response.json()
