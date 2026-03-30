@@ -70,6 +70,9 @@ def aggregate_funnel(ds: str, **kwargs):
     if events is None:
         raise AirflowSkipException("collect_events가 skip되었거나 events가 없습니다.")
 
+    # 파생 이벤트 제거 — DAG 재실행 시 이전 run이 적재한 session_abandoned 중복 집계 방지
+    events = [e for e in events if e.get("event_type") != "session_abandoned"]
+
     # 이벤트 타입별 분류
     by_type: dict[str, list[dict]] = {}
     for event in events:

@@ -115,7 +115,7 @@ DAG: seung_event_dag — 수동 트리거
 
 | 항목 | 결정 | 이유 |
 |------|------|------|
-| `session_abandoned` 구현 방식 | Airflow `aggregate_funnel`에서 판단 후 `load_to_s3`에서 S3 Raw Zone 적재 | 실시간 프론트 연동 없이 S3 이벤트만으로 판단 가능. 코드 변경 범위 최소화 (seung 서비스 외 변경 없음). |
+| `session_abandoned` 구현 방식 | Airflow `aggregate_funnel`에서 판단 후 `load_to_s3`에서 S3 Raw Zone 적재; `aggregate_funnel` 진입 시 파생 이벤트 필터링으로 DAG 재실행 idempotency 보장 | 실시간 프론트 연동 없이 S3 이벤트만으로 판단 가능. 재실행 시 이전 run의 session_abandoned가 집계에 영향 주지 않음. |
 | `session_abandoned` 타임스탬프 | `{ds}T23:59:59.000Z` | Airflow 집계 시점 기준 당일 말미로 설정 — 실시간 이탈 시각 불명이므로 end-of-day 근사값 사용 |
 | `session_abandoned` S3 키 | `events/{date_path}/{uuid4()}.json` | 실시간 이벤트와 동일한 Raw Zone 경로에 저장, 키 충돌 방지 위해 uuid4 사용 |
 | fire-and-forget 패턴 | `.catch()` + `console.error` | 이벤트 로깅 실패가 API 응답에 영향 주지 않도록 — 불변식 준수 |
