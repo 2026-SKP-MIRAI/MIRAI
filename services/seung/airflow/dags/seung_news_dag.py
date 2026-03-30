@@ -313,5 +313,8 @@ with DAG(
     t2 = PythonOperator(task_id="filter_by_role", python_callable=filter_by_role)
     t3 = PythonOperator(task_id="deduplicate", python_callable=deduplicate)
     t4 = PythonOperator(task_id="load_to_s3", python_callable=load_to_s3)
+    # trigger_rule="all_done": load_to_s3(t4)가 error로 실패해도 upsert_db는 실행한다.
+    # 면접 뉴스 컨텍스트(upsert_db)가 S3 raw 적재(load_to_s3) 성공 여부에 의존하면 안 되기 때문.
+    # crawl_rss skip → 이후 task skip → upsert_db도 xcom_pull=None → AirflowSkipException으로 종료 (정상).
     t5 = PythonOperator(task_id="upsert_db", python_callable=upsert_db, trigger_rule="all_done")
     t1 >> t2 >> t3 >> t4 >> t5

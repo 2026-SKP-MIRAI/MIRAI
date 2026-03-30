@@ -9,19 +9,19 @@
 ### pytest 단위 테스트 (services/seung/airflow/tests/test_seung_news_dag.py)
 
 ```
-7 passed in 0.06s
+9 passed in 0.06s
 ```
 
 **파일별 결과:**
 
 | 파일 | 테스트 수 | 결과 | 비고 |
 |------|-----------|------|------|
-| `tests/test_seung_news_dag.py` | 7 | ✅ 전체 통과 | TestDeduplicate 3개 + TestFilterByRole 2개 + TestCrawlRssIncremental 2개 |
+| `tests/test_seung_news_dag.py` | 9 | ✅ 전체 통과 | TestDeduplicate 3개 + TestFilterByRole 2개 + TestCrawlRssIncremental 2개 + TestUpsertDb 2개 |
 
 ### 기존 테스트 회귀 확인
 
 ```
-27 passed in 0.10s
+29 passed in 0.19s
 ```
 
 | 범위 | 결과 | 비고 |
@@ -29,7 +29,7 @@
 | `tests/test_seung_analytics_dag.py` | ✅ 회귀 없음 | 변경 없음 |
 | `tests/test_seung_event_dag.py` | ✅ 회귀 없음 | 변경 없음 |
 | `tests/test_seung_resume_embed_dag.py` | ✅ 회귀 없음 | 변경 없음 |
-| `tests/test_seung_news_dag.py` (신규) | ✅ 7/7 통과 | — |
+| `tests/test_seung_news_dag.py` (신규) | ✅ 9/9 통과 | — |
 
 ### RSS 피드 URL 검증 (수동)
 
@@ -76,7 +76,7 @@ python -c "import urllib.request; ..." 으로 실제 HTTP 응답 확인
 |------|------|------|
 | `services/seung/prisma/migrations/20260330000000_add_news_article/migration.sql` | NewsArticle 테이블 DDL + url unique index | ✅ |
 | `services/seung/airflow/dags/seung_news_dag.py` | crawl_rss → filter_by_role → deduplicate → load_to_s3 → upsert_db DAG (UTC 00:00) | ✅ |
-| `services/seung/airflow/tests/test_seung_news_dag.py` | 단위 테스트 7개 (dedup, filter, 증분 처리) | ✅ |
+| `services/seung/airflow/tests/test_seung_news_dag.py` | 단위 테스트 9개 (dedup, filter, 증분 처리, upsert_db) | ✅ |
 
 ### 수정 파일
 
@@ -84,7 +84,7 @@ python -c "import urllib.request; ..." 으로 실제 HTTP 응답 확인
 |------|------|------|
 | `services/seung/prisma/schema.prisma` | `NewsArticle` 모델 추가 | ✅ |
 | `services/seung/airflow/requirements.txt` | `feedparser>=6.0.0,<7.0.0` 추가 | ✅ |
-| `services/seung/airflow/tests/conftest.py` | `feedparser` sys.modules mock 추가 | ✅ |
+| `services/seung/airflow/tests/conftest.py` | `feedparser`, `psycopg2.extras` sys.modules mock 추가 | ✅ |
 | `services/seung/src/app/api/interview/start/route.ts` | `targetRole` 파라미터, `ROLE_CATEGORY_MAP`, `resolveNewsRole`, 뉴스 조회 + `resumeText` 앞에 뉴스 블록 append (엔진 수정 없음) | ✅ |
 | `services/seung/airflow/.ai.md` | seung_news_dag 목적·구조·Variables 섹션 최신화, SQLite 기술부채 4번째 DAG 반영 | ✅ |
 
@@ -94,8 +94,8 @@ python -c "import urllib.request; ..." 으로 실제 HTTP 응답 확인
 
 ### RED → GREEN
 
-- `test_seung_news_dag.py` 7개 작성 → `seung_news_dag.py` 구현 → 7/7 통과
-- 기존 테스트 20개 회귀 없음 (27 passed 전체)
+- `test_seung_news_dag.py` 9개 작성 → `seung_news_dag.py` 구현 → 9/9 통과
+- 기존 테스트 20개 회귀 없음 (29 passed 전체)
 
 ---
 
