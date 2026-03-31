@@ -6,6 +6,7 @@ import type { ReportResponse } from '@/lib/types'
 import { getGrade } from '@/lib/grade'
 import Spinner from '@/components/Spinner'
 import ScoreGauge from '@/components/ScoreGauge'
+import RadarChart from '@/components/RadarChart'
 
 function LoadingScreen() {
   return (
@@ -110,6 +111,13 @@ function ReportContent() {
               <p className="text-xs text-gray-500 mt-2">등급 {grade.label} · 8개 역량 축 평균</p>
             </div>
           </div>
+
+          <RadarChart
+            data={scoreEntries.map(([axis, score]) => ({
+              label: AXIS_LABEL_MAP[axis] ?? axis,
+              score,
+            }))}
+          />
 
           {/* 8축 점수 바 */}
           <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">역량 축별 점수</h2>

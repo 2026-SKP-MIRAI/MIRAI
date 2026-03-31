@@ -79,6 +79,20 @@ function ResumeCard({ item, onDelete }: { item: DashboardResumeItem; onDelete: (
               <span className="text-xs text-gray-400">{date}</span>
               <span className="text-gray-300 text-xs">·</span>
               <span className="text-xs text-gray-400">면접 {item.sessionCount}회</span>
+              {item.latestScore !== undefined && (
+                <>
+                  <span className="text-gray-300 text-xs">·</span>
+                  <span className={`text-xs font-bold rounded-full px-2 py-0.5 ${
+                    item.latestScore >= 80
+                      ? 'text-emerald-600 bg-emerald-50'
+                      : item.latestScore >= 60
+                        ? 'text-amber-600 bg-amber-50'
+                        : 'text-red-600 bg-red-50'
+                  }`}>
+                    {item.latestScore}점
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
