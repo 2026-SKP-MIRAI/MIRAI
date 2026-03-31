@@ -59,9 +59,9 @@ describe('RadarChart', () => {
     expect(screen.getByTestId('radius-axis')).toHaveAttribute('data-domain', '0,100')
   })
 
-  it('빈 data 배열이면 크래시 없이 렌더되고 item-count가 0이다', () => {
-    render(<RadarChart data={[]} />)
-    expect(screen.getByTestId('radar-chart')).toHaveAttribute('data-item-count', '0')
+  it('빈 data 배열이면 null을 반환한다 (아무것도 렌더되지 않는다)', () => {
+    const { container } = render(<RadarChart data={[]} />)
+    expect(container.firstChild).toBeNull()
   })
 
   it('8개 축 데이터도 정상 렌더된다', () => {

@@ -14,6 +14,7 @@ type Props = {
 }
 
 export default function RadarChart({ data }: Props) {
+  if (data.length === 0) return null
   return (
     <ResponsiveContainer width="100%" height={280}>
       <RechartsRadarChart data={data}>

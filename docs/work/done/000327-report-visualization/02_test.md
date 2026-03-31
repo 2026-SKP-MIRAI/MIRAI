@@ -86,5 +86,6 @@ Error: Failed to resolve import "zod" from "src/lib/schemas/auth.ts"
 |------|------|------|
 | recharts 테스트 방법 | recharts 전체 mock + data-testid 검증 | jsdom에서 ResizeObserver/layout 미지원으로 실제 SVG 미렌더 → mock으로 props 전달 여부 검증이 실질적 |
 | `latestScore` undefined 처리 | `...(condition && { latestScore })` spread | 리포트 없을 때 JSON 키 자체 생략 (`null` 아님) — 프론트에서 `!== undefined` 체크와 일관성 |
-| `SessionWithReport` 타입 수정 | `totalScore: number` 추가 | `include: { report: true }` 로 이미 DB fetch 중 — 타입만 추가, 쿼리 변경 없음 |
+| Prisma report 쿼리 최적화 | `include: { report: true }` → `report: { select: { id, createdAt, totalScore } }` | PR 리뷰 피드백 반영 — 전체 report 행 fetch 대신 필요한 3개 컬럼만 select하여 over-fetching 방지 |
+| `RadarChart` 빈 배열 처리 | `if (data.length === 0) return null` 추가 | PR 리뷰 피드백 반영 — 빈 배열 전달 시 빈 SVG가 공백으로 노출되는 문제 방지. 테스트: `container.firstChild`가 null인지 검증 |
 | `RadarChart`에 `'use client'` | 추가 | recharts는 DOM API 의존 — 서버 컴포넌트에서 import 시 에러 방지 |

@@ -31,7 +31,9 @@ export async function GET() {
       take: 50,
       include: {
         sessions: {
-          include: { report: true },
+          include: {
+            report: { select: { id: true, createdAt: true, totalScore: true } },
+          },
           orderBy: { createdAt: 'asc' },
         },
       },

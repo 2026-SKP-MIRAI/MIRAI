@@ -40,7 +40,7 @@
 ### 신규 파일
 
 **`src/components/RadarChart.tsx`**
-recharts 기반 레이더 차트 컴포넌트. props: `{ label: string; score: number }[]`. `'use client'` 필수 (recharts DOM API 의존). `PolarRadiusAxis domain={[0, 100]}` 고정으로 점수 축 일관성 확보.
+recharts 기반 레이더 차트 컴포넌트. props: `{ label: string; score: number }[]`. `'use client'` 필수 (recharts DOM API 의존). `PolarRadiusAxis domain={[0, 100]}` 고정으로 점수 축 일관성 확보. `data.length === 0`이면 `null` 반환 — 빈 배열 시 빈 SVG 공백 노출 방지 (PR 리뷰 반영).
 
 **`tests/components/RadarChart.test.tsx`**
 jsdom에서 recharts가 DOM dimension을 0으로 읽어 SVG를 렌더링하지 않는 문제로 recharts 전체 mock. `data-testid` 기반으로 SVG 렌더, `dataKey` 전달, domain 값 등 7개 테스트.
@@ -51,7 +51,7 @@ jsdom에서 recharts가 DOM dimension을 0으로 읽어 SVG를 렌더링하지 �
 `DashboardResumeItem`에 `latestScore?: number` 추가. 리포트 없을 때 JSON 키 자체를 생략하는 방식과 일관성 유지.
 
 **`src/app/api/dashboard/route.ts`**
-`SessionWithReport.report` 타입에 `totalScore: number` 추가 (`include: { report: true }`가 이미 전체 필드 fetch 중 — 쿼리 변경 없음). `sessionsWithReport`에서 가장 최근 리포트를 reduce로 찾아 `latestScore`로 반환. 리포트 없을 때 spread 패턴으로 키 자체 생략.
+`SessionWithReport.report` 타입에 `totalScore: number` 추가. Prisma 쿼리를 `include: { report: true }` → `report: { select: { id: true, createdAt: true, totalScore: true } }` 로 변경해 over-fetching 방지 (PR 리뷰 반영). `sessionsWithReport`에서 가장 최근 리포트를 reduce로 찾아 `latestScore`로 반환. 리포트 없을 때 spread 패턴으로 키 자체 생략.
 
 **`src/app/report/page.tsx`**
 `RadarChart` import + `scoreEntries` 8축 데이터 변환 후 ScoreGauge 헤더와 progress bar 사이에 삽입.
