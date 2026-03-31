@@ -149,6 +149,7 @@ export type DashboardResumeItem = {
   hasDiagnosis: boolean
   inProgressSessionId: string | null
   reports: { id: string; sessionId: string; createdAt: string }[]
+  latestScore?: number
 }
 
 export type DashboardResponse = {

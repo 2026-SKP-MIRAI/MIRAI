@@ -6,6 +6,7 @@ import type { ResumeFeedbackResponse, FeedbackScores } from '@/lib/types'
 import { getGrade } from '@/lib/grade'
 import Spinner from '@/components/Spinner'
 import ScoreGauge from '@/components/ScoreGauge'
+import RadarChart from '@/components/RadarChart'
 
 const SCORE_LABEL_MAP: Record<keyof FeedbackScores, string> = {
   specificity: '서술의 구체성',
@@ -101,6 +102,13 @@ function DiagnosisContent() {
               <p className="text-xs text-gray-500 mt-2">등급 {grade.label} · 5개 항목 평균</p>
             </div>
           </div>
+
+          <RadarChart
+            data={scoreEntries.map(([key, score]) => ({
+              label: SCORE_LABEL_MAP[key] ?? key,
+              score,
+            }))}
+          />
 
           {/* 항목별 점수 바 */}
           <div className="space-y-4">

@@ -26,7 +26,7 @@ const mockResumes = [
         id: 'session-1',
         sessionComplete: true,
         updatedAt: new Date('2026-01-01T10:00:00Z'),
-        report: { id: 'report-1', createdAt: new Date('2026-01-01T11:00:00Z') },
+        report: { id: 'report-1', createdAt: new Date('2026-01-01T11:00:00Z'), totalScore: 82 },
       },
     ],
   },
@@ -87,6 +87,7 @@ describe('GET /api/dashboard', () => {
     expect(body.resumes[0].fileName).toBe('backend_resume.pdf')
     expect(body.resumes[0].reports).toHaveLength(1)
     expect(body.resumes[0].reports[0].id).toBe('report-1')
+    expect(body.resumes[0].latestScore).toBe(82)
     expect(body.resumes[0].inProgressSessionId).toBeNull()
 
     // resume-2: 세션 없음
@@ -96,6 +97,7 @@ describe('GET /api/dashboard', () => {
     expect(body.resumes[1].reportId).toBeNull()
     expect(body.resumes[1].hasDiagnosis).toBe(false)
     expect(body.resumes[1].reports).toHaveLength(0)
+    expect(body.resumes[1].latestScore).toBeUndefined()
     expect(body.resumes[1].inProgressSessionId).toBeNull()
     // fileName null → 폴백 문자열 생성 확인
     expect(body.resumes[1].fileName).toMatch(/^자소서/)
@@ -121,7 +123,7 @@ describe('GET /api/dashboard', () => {
             id: 'session-3',
             sessionComplete: false,
             updatedAt: new Date('2026-01-04T09:00:00Z'),
-            report: { id: 'report-2', createdAt: new Date('2026-01-04T10:00:00Z') },
+            report: { id: 'report-2', createdAt: new Date('2026-01-04T10:00:00Z'), totalScore: 65 },
           },
         ],
       },

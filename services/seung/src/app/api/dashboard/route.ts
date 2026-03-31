@@ -6,7 +6,7 @@ type SessionWithReport = {
   id: string
   sessionComplete: boolean
   updatedAt: Date
-  report: { id: string; createdAt: Date } | null
+  report: { id: string; createdAt: Date; totalScore: number } | null
 }
 
 type ResumeWithSessions = {
@@ -58,6 +58,10 @@ export async function GET() {
       .filter((s) => !s.sessionComplete)
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]
 
+    const latestSession = sessionsWithReport.length > 0
+      ? sessionsWithReport.reduce((a, b) => b.report.createdAt > a.report.createdAt ? b : a)
+      : null
+
     return {
       id: resume.id,
       createdAt: resume.createdAt.toISOString(),
@@ -68,6 +72,7 @@ export async function GET() {
       hasDiagnosis: resume.diagnosisResult !== null,
       inProgressSessionId: inProgressSession?.id ?? null,
       reports,
+      ...(latestSession !== null && { latestScore: latestSession.report.totalScore }),
     }
   })
 
