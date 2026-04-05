@@ -1,8 +1,10 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getUserCoins } from "@/lib/credit";
 import { cookies } from "next/headers";
 import { Mic } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { InterviewHistoryCard } from "@/components/interview/InterviewHistoryCard";
+import { CreditBadge } from "@/components/credit/CreditBadge";
 import Link from "next/link";
 
 interface InterviewRecord {
@@ -28,17 +30,22 @@ export default async function InterviewPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let history: InterviewRecord[] = [];
+  let coins: number | null = null;
 
   if (user) {
-    // 로그인: user_id 기준 쿼리
-    const { data } = await supabase
-      .from("interview_sessions")
-      .select("id, created_at, job_category, reports(total_score)")
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .order("created_at", { ascending: false });
+    // 로그인: user_id 기준 쿼리 (두 쿼리 병렬 실행)
+    const [{ data }, userCoins] = await Promise.all([
+      supabase
+        .from("interview_sessions")
+        .select("id, created_at, job_category, reports(total_score)")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false }),
+      getUserCoins(user.id),
+    ]);
 
     history = toHistory(data as SessionRow[]);
+    coins = userCoins;
   } else {
     // 비로그인: anon_id 기준 (service client, RLS 우회)
     const cookieStore = await cookies();
@@ -63,9 +70,12 @@ export default async function InterviewPage() {
       <header className="h-14 pl-5 flex items-center justify-between bg-[--color-surface] border-b border-[--color-border] sticky top-0 z-40">
         <div className="w-9" />
         <span className="text-base font-semibold text-[--color-foreground]">내 면접 기록</span>
-        <Link href="/onboarding" className="text-sm font-bold text-[#0D9488] whitespace-nowrap pr-5">
-          + 새 면접
-        </Link>
+        <div className="flex items-center gap-3 pr-5">
+          {coins !== null && <CreditBadge coins={coins} />}
+          <Link href="/onboarding" className="text-sm font-bold text-[#0D9488] whitespace-nowrap">
+            + 새 면접
+          </Link>
+        </div>
       </header>
       <main className="flex-1 px-5 py-5 pb-24">
         <div className="flex items-center justify-between mb-5">
