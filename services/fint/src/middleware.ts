@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 10;
-const WINDOW_MS = 60 * 1000;
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis/cloudflare";
 
 function getClientIP(request: NextRequest): string {
   return (
@@ -13,29 +11,48 @@ function getClientIP(request: NextRequest): string {
   );
 }
 
+let ratelimit: Ratelimit | null = null;
+
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+  });
+} else if (process.env.NODE_ENV === "production") {
+  console.error(
+    "[middleware] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN 미설정 — rate limit 비활성화됨 (보안 위험)"
+  );
+} else {
+  console.warn("[middleware] Upstash 환경변수 미설정 — rate limit 비활성화 (개발 환경)");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Rate limit (API routes only)
-  if (pathname.startsWith("/api/interview/") || pathname.startsWith("/api/resume/")) {
+  if (
+    ratelimit &&
+    (pathname.startsWith("/api/interview/") || pathname.startsWith("/api/resume/"))
+  ) {
     const ip = getClientIP(request);
-    const now = Date.now();
-    const key = `${ip}:${pathname.split("/").slice(0, 4).join("/")}`;
-    const current = rateLimitMap.get(key);
-    if (!current || now > current.resetTime) {
-      rateLimitMap.set(key, { count: 1, resetTime: now + WINDOW_MS });
-    } else if (current.count >= RATE_LIMIT) {
-      return NextResponse.json(
-        { message: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(Math.ceil((current.resetTime - Date.now()) / 1000)),
-          },
-        }
-      );
-    } else {
-      current.count++;
+    const routePrefix = pathname.split("/").slice(0, 4).join("/");
+    const key = `${ip}:${routePrefix}`;
+
+    try {
+      const { success, reset } = await ratelimit.limit(key);
+      if (!success) {
+        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+        return NextResponse.json(
+          { message: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+          {
+            status: 429,
+            headers: { "Retry-After": String(retryAfter) },
+          }
+        );
+      }
+    } catch (err) {
+      // fail-open: Redis 장애 시 서비스 가용성 우선
+      console.error("[middleware] Redis rate limit 오류 (fail-open)", err);
     }
   }
 
