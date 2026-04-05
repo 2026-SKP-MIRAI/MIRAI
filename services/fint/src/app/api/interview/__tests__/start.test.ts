@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// engineFetch mock
 vi.mock("@/lib/engine-client", () => ({
   engineFetch: vi.fn(),
 }));
@@ -12,7 +11,10 @@ vi.mock("@/lib/anon-cookie", () => ({
   getAnonId: vi.fn().mockResolvedValue("test-anon-uuid"),
 }));
 
-// supabase/server mock (createClient, createServiceClient)
+const { mockMaybeSingle } = vi.hoisted(() => ({
+  mockMaybeSingle: vi.fn().mockResolvedValue({ data: null }),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: vi.fn().mockReturnValue({
     from: vi.fn().mockReturnValue({
@@ -20,6 +22,11 @@ vi.mock("@/lib/supabase/server", () => ({
       update: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }),
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: mockMaybeSingle,
         }),
       }),
     }),
@@ -32,9 +39,11 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 import { engineFetch } from "@/lib/engine-client";
+import { createServiceClient } from "@/lib/supabase/server";
 import { POST } from "../start/route";
 
 const mockEngFetch = vi.mocked(engineFetch);
+const mockCreateServiceClient = vi.mocked(createServiceClient);
 
 describe("POST /api/interview/start", () => {
   beforeEach(() => {
@@ -109,5 +118,58 @@ describe("POST /api/interview/start", () => {
         body: expect.stringContaining("직군: IT/개발, 마케팅"),
       }),
     );
+  });
+
+  it("자소서 없는 비로그인 유저는 직군 기반 resumeText를 사용한다", async () => {
+    mockEngFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ firstQuestion: { question: "Q", persona: "hr" }, questionsQueue: [] }),
+    } as Response);
+
+    const request = new Request("http://localhost/api/interview/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobCategories: ["IT/개발"], careerStage: "면접 준비 중" }),
+    });
+
+    await POST(request);
+
+    const call = mockEngFetch.mock.calls[0];
+    const bodyStr = call[1]?.body as string;
+    expect(bodyStr).toContain("직군: IT/개발");
+    expect(bodyStr).not.toContain("[자소서]");
+  });
+
+  it("자소서 있는 로그인 유저는 resumeText에 [자소서] 내용을 포함한다", async () => {
+    const { createClient } = await import("@/lib/supabase/server");
+    vi.mocked(createClient).mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-with-resume" } },
+        }),
+      },
+    } as never);
+
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { resume_text: "저는 열정적인 개발자입니다." },
+    });
+
+    mockEngFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ firstQuestion: { question: "Q", persona: "hr" }, questionsQueue: [] }),
+    } as Response);
+
+    const request = new Request("http://localhost/api/interview/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobCategories: ["IT/개발"], careerStage: "면접 준비 중" }),
+    });
+
+    await POST(request);
+
+    const call = mockEngFetch.mock.calls[0];
+    const bodyStr = call[1]?.body as string;
+    expect(bodyStr).toContain("[자소서]");
+    expect(bodyStr).toContain("열정적인 개발자");
   });
 });

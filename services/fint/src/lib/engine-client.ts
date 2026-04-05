@@ -4,6 +4,7 @@ const ALLOWED_PATHS = [
   "/api/report/generate",
   "/api/resume/questions",
   "/api/resume/feedback",
+  "/api/resume/parse",
 ] as const;
 
 type AllowedPath = typeof ALLOWED_PATHS[number];

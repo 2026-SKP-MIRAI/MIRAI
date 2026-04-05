@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UploadState, QuestionsResponse } from "@/lib/types";
 
-// 외부에서 상태를 주입하는 레거시 인터페이스
 interface UploadFormControlledProps {
   onUpload: (file: File) => void;
   state: UploadState;
@@ -14,7 +13,6 @@ interface UploadFormControlledProps {
   onComplete?: never;
 }
 
-// 테스트 계약: onComplete만 받고 내부 상태 관리
 interface UploadFormSelfContainedProps {
   onComplete: (data: QuestionsResponse) => void;
   onUpload?: never;
@@ -29,7 +27,6 @@ function UploadForm(props: UploadFormProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // 자체 상태 관리 (self-contained 모드)
   const [internalState, setInternalState] = useState<UploadState>("idle");
   const [internalError, setInternalError] = useState<string | undefined>(undefined);
 
@@ -42,15 +39,14 @@ function UploadForm(props: UploadFormProps) {
       alert("PDF 파일만 업로드할 수 있어요.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("10MB 이하 파일만 업로드할 수 있어요.");
+    if (file.size > 5 * 1024 * 1024) {
+      alert("5MB 이하 파일만 업로드할 수 있어요.");
       return;
     }
     setSelectedFile(file);
     if (!isSelfContained) {
       props.onUpload(file);
     }
-    // self-contained: 파일 선택만 하고 버튼 클릭으로 submit
   };
 
   const handleSubmit = async () => {
@@ -60,7 +56,7 @@ function UploadForm(props: UploadFormProps) {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const res = await fetch("/api/resume/questions", { method: "POST", body: formData });
+      const res = await fetch("/api/resume/upload", { method: "POST", body: formData });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message ?? "업로드 실패");
@@ -93,7 +89,6 @@ function UploadForm(props: UploadFormProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 업로드 영역 */}
       <div
         className={cn(
           "group relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center gap-4 cursor-pointer transition-all duration-200",
@@ -121,7 +116,6 @@ function UploadForm(props: UploadFormProps) {
           }}
         />
 
-        {/* 아이콘 영역 */}
         {state === "done" ? (
           <CheckCircle className="w-11 h-11 text-[#0D9488]" />
         ) : state === "error" ? (
@@ -134,7 +128,6 @@ function UploadForm(props: UploadFormProps) {
           <Upload className={cn("w-11 h-11 text-gray-400 transition-transform", isIdle && "animate-bounce")} />
         )}
 
-        {/* 텍스트 영역 */}
         <div className="text-center flex flex-col items-center gap-1">
           {state === "done" ? (
             <p className="text-sm font-semibold text-[#0D9488]">업로드 완료!</p>
@@ -148,7 +141,6 @@ function UploadForm(props: UploadFormProps) {
               {state === "uploading" ? "업로드 중..." : "맞춤 질문 생성 중..."}
             </p>
           ) : selectedFile ? (
-            /* 파일 선택됨: pill badge 스타일 */
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-sm font-medium text-[#0D9488]">
               <FileText className="w-3.5 h-3.5" />
               {selectedFile.name}
@@ -159,7 +151,7 @@ function UploadForm(props: UploadFormProps) {
                 자소서 PDF를 업로드하세요
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
-                PDF · 최대 10MB · 파일 앱에서 선택 가능
+                PDF · 최대 5MB · 파일 앱에서 선택 가능
               </p>
             </>
           )}
@@ -178,7 +170,6 @@ function UploadForm(props: UploadFormProps) {
         )}
       </div>
 
-      {/* self-contained 모드: 질문 생성 버튼 */}
       {isSelfContained && (
         <Button
           onClick={handleSubmit}
@@ -189,7 +180,6 @@ function UploadForm(props: UploadFormProps) {
         </Button>
       )}
 
-      {/* 에러 재시도 버튼 */}
       {state === "error" && (
         <Button
           variant="outline"
