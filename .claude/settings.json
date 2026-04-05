@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/secret-filter.sh"
+            "command": "bash -c 'bash \"$(git rev-parse --show-toplevel)/.claude/hooks/secret-filter.sh\"'"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/skill-activation-prompt.sh"
+            "command": "bash -c 'bash \"$(git rev-parse --show-toplevel)/.claude/hooks/skill-activation-prompt.sh\"'"
           }
         ]
       }
