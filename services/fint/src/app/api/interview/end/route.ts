@@ -3,6 +3,7 @@ import { engineFetch } from "@/lib/engine-client";
 import { getAnonId } from "@/lib/anon-cookie";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCurrentUserId } from "@/lib/supabase/get-current-user-id";
+import { awardInterviewCoin } from "@/lib/credit";
 
 export const runtime = "nodejs";
 export const maxDuration = 110;
@@ -86,6 +87,12 @@ export async function POST(request: Request) {
         .eq("id", sessionId)
         .eq("anonymous_id", anonymousId);
       if (sessionUpdateErr) console.error("[end] interview_sessions UPDATE 실패 (non-fatal):", sessionUpdateErr);
+      // 코인 지급 — non-fatal, fire-and-forget (응답 지연 없음)
+      if (userId) {
+        awardInterviewCoin(userId, sessionId).then(({ awarded, reason }) => {
+          if (!awarded) console.warn("[end] coin award skipped:", reason);
+        });
+      }
     }
 
     return Response.json({ report });
