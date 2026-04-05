@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         axis_scores: report.axisScores,
         axis_feedbacks: report.axisFeedbacks,
         summary: report.summary,
+        is_public: true,
       })
       .select("id")
       .single();
