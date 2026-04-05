@@ -26,8 +26,23 @@ export async function POST(request: Request) {
   }
 
   const { jobCategories, careerStage } = parsed.data;
-  const resumeText = `직군: ${jobCategories.join(", ")} / 취준 단계: ${careerStage}`;
+  const baseResumeText = `직군: ${jobCategories.join(", ")} / 취준 단계: ${careerStage}`;
   const sessionId = crypto.randomUUID();
+
+  // 로그인 유저의 자소서가 있으면 resumeText에 포함 (없으면 직군 기반 기본값 사용)
+  const userId = await getCurrentUserId();
+  let resumeText = baseResumeText;
+  if (userId) {
+    const serviceClient = createServiceClient();
+    const { data: resumeRow } = await serviceClient
+      .from("resumes")
+      .select("resume_text")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (resumeRow?.resume_text) {
+      resumeText = `${baseResumeText}\n\n[자소서]\n${resumeRow.resume_text}`;
+    }
+  }
 
   try {
     const resp = await engineFetch("/api/interview/start", {
@@ -44,12 +59,11 @@ export async function POST(request: Request) {
     const data = await resp.json();
     // MVP: 5문항 제한 (첫 질문 1 + 큐 4)
     const { anonymousId, isNew } = await getOrCreateAnonId();
-    const userId = await getCurrentUserId();
     const supabase = createServiceClient();
     const { error: dbError } = await supabase.from("interview_sessions").insert({
       id: sessionId,
       anonymous_id: anonymousId,
-      user_id: userId,        // ← 추가 (로그인이면 auth.uid(), 아니면 null)
+      user_id: userId,
       job_category: jobCategories.join(", "),
       questions: [data.firstQuestion, ...(data.questionsQueue ?? []).slice(0, 4)],
       history: [],
