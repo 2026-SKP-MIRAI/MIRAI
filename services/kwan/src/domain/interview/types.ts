@@ -98,3 +98,31 @@ export interface PracticeFeedback {
   improvedAnswerGuide: string
   comparisonDelta?: ComparisonDelta | null
 }
+
+export type DashboardResumeItem = {
+  id: string
+  createdAt: string
+  fileName: string
+  sessionCount: number
+  hasReport: boolean
+  reportId: string | null
+  hasDiagnosis: boolean
+  inProgressSessionId: string | null
+  reports: { id: string; sessionId: string; createdAt: string }[]
+}
+
+export type DashboardResponse = {
+  resumes: DashboardResumeItem[]
+}
+
+export type UserProgressItem = {
+  round: number
+  sessionId: string
+  totalScore: number
+  scores: AxisScores
+  createdAt: string
+}
+
+export type UserProgressResponse = {
+  items: UserProgressItem[]
+}

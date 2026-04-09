@@ -1,11 +1,17 @@
 import { callEngineResumeFeedback } from '@/lib/engine-client'
 import { prisma } from '@/lib/db'
 import { ResumeFeedbackResponseSchema } from '@/domain/interview/schemas'
+import { getAuthContext } from '@/lib/auth-context'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
 
 export async function POST(req: Request) {
+  const { user, userId, isGuest } = await getAuthContext()
+  if (!user && !isGuest) {
+    return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { resumeId?: string; targetRole?: string }
   try {
     body = await req.json()
@@ -18,7 +24,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'resumeId가 필요합니다.' }, { status: 400 })
   }
 
-  let resume: { resumeText: string; inferredTargetRole: string | null } | null
+  let resume: { resumeText: string; inferredTargetRole: string | null; userId: string | null } | null
   try {
     resume = await prisma.resume.findUnique({ where: { id: resumeId } })
   } catch (err) {
@@ -28,6 +34,9 @@ export async function POST(req: Request) {
 
   if (!resume) {
     return Response.json({ error: '자소서를 찾을 수 없습니다.' }, { status: 404 })
+  }
+  if (resume.userId && resume.userId !== userId) {
+    return Response.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   const effectiveTargetRole =

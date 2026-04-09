@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import ScoreGauge from '@/components/ScoreGauge'
 import type { AxisScores, AxisFeedback } from '@/domain/interview/types'
 
 interface ReportData {
@@ -24,29 +25,27 @@ const AXIS_LABELS: Record<keyof AxisScores, string> = {
   sincerity: '성실성',
 }
 
-function ScoreBar({ label, score }: { label: string; score: number | null }) {
+function ScoreTile({ label, score }: { label: string; score: number | null }) {
   if (score === null) {
     return (
-      <div className="flex flex-col gap-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-700">{label}</span>
-          <span className="font-semibold text-gray-400">미평가</span>
+      <div className="score-tile">
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--kwan-text-2)' }}>{label}</p>
+        <p className="score-tile-value" style={{ color: 'var(--kwan-text-muted)', fontSize: '1.5rem' }}>—</p>
+        <div className="score-tile-bar-track">
+          <div className="score-tile-bar-fill" style={{ width: '0%' }} />
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2" />
       </div>
     )
   }
-  const color =
-    score >= 80 ? 'bg-indigo-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-400'
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between text-sm">
-        <span className="text-gray-700">{label}</span>
-        <span className="font-semibold text-gray-900">{score}</span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
+    <div className="score-tile">
+      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--kwan-text-2)' }}>{label}</p>
+      <p className="score-tile-value" style={{ color: score >= 80 ? 'var(--kwan-teal)' : score >= 60 ? 'var(--kwan-amber)' : 'var(--kwan-error)' }}>
+        {score}
+      </p>
+      <div className="score-tile-bar-track">
         <div
-          className={`h-2 rounded-full ${color} transition-all`}
+          className={`score-tile-bar-fill ${score >= 80 ? 'high' : score >= 60 ? 'mid' : 'low'}`}
           style={{ width: `${score}%` }}
         />
       </div>
@@ -65,7 +64,7 @@ function ReportPageInner() {
 
   useEffect(() => {
     if (!reportId) {
-      router.replace('/')
+      router.replace('/dashboard')
       return
     }
 
@@ -84,20 +83,20 @@ function ReportPageInner() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: 'var(--kwan-bg)' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--kwan-teal)' }} className="animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
       </main>
     )
   }
 
   if (error || !report) {
     return (
-      <main className="min-h-screen bg-white flex flex-col items-center py-16 px-4">
+      <main className="min-h-screen flex flex-col items-center py-16 px-4" style={{ background: 'var(--kwan-bg)' }}>
         <div className="w-full max-w-xl">
-          <p className="text-sm text-red-600 mb-4">{error ?? '리포트를 찾을 수 없습니다.'}</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--kwan-error)', marginBottom: '1rem' }}>{error ?? '리포트를 찾을 수 없습니다.'}</p>
           <button
-            onClick={() => router.replace('/')}
-            className="text-sm text-gray-500 underline hover:text-gray-700"
+            onClick={() => router.replace('/dashboard')}
+            style={{ fontSize: '0.875rem', color: 'var(--kwan-text-2)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             처음으로
           </button>
@@ -111,42 +110,45 @@ function ReportPageInner() {
   const notEvaluatedFeedbacks = report.axisFeedbacks.filter((f) => f.type === 'not_evaluated')
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center py-16 px-4">
+    <main className="min-h-screen flex flex-col items-center py-16 px-4" style={{ background: 'var(--kwan-bg)' }}>
       <div className="w-full max-w-xl flex flex-col gap-8">
-        <h1 className="text-2xl font-bold text-gray-900">8축 역량 리포트</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--kwan-text)' }}>8축 역량 리포트</h1>
 
-        {/* 총점 */}
-        <section className="flex flex-col items-center gap-2 py-6 bg-indigo-50 rounded-xl">
-          <p className="text-sm text-indigo-600 font-medium">종합 점수</p>
-          <p className="text-6xl font-bold text-indigo-700">{report.totalScore}</p>
-          <p className="text-sm text-indigo-500">/ 100</p>
+        {/* 총점 — ScoreGauge */}
+        <section className="matte-card p-6 flex flex-col items-center gap-2">
+          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--kwan-teal)' }}>종합 점수</p>
+          <ScoreGauge score={report.totalScore} />
         </section>
 
-        {/* 8축 점수 바 */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-bold text-gray-700">축별 점수</h2>
-          {(Object.keys(AXIS_LABELS) as (keyof AxisScores)[]).map((key) => (
-            <ScoreBar key={key} label={AXIS_LABELS[key]} score={report.scores[key]} />
-          ))}
+        {/* 8축 점수 — Bento Score Tiles */}
+        <section>
+          <p className="section-label mb-3">축별 점수</p>
+          <div className="matte-card p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(Object.keys(AXIS_LABELS) as (keyof AxisScores)[]).map((key) => (
+                <ScoreTile key={key} label={AXIS_LABELS[key]} score={report.scores[key]} />
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* 종합 요약 */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-base font-bold text-gray-700">종합 평가</h2>
-          <p className="text-sm text-gray-700 leading-relaxed">{report.summary}</p>
+        <section className="matte-card p-6 flex flex-col gap-2">
+          <p className="section-label mb-1">종합 평가</p>
+          <p style={{ fontSize: '0.9375rem', color: 'var(--kwan-text-2)', lineHeight: 1.75 }}>{report.summary}</p>
         </section>
 
         {/* 강점 피드백 */}
         {strengthFeedbacks.length > 0 && (
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-bold text-gray-700">강점 영역</h2>
+            <p className="section-label">강점 영역</p>
             {strengthFeedbacks.map((f, i) => (
-              <div key={i} className="p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-green-800">{f.axisLabel}</p>
-                  <span className="text-xs text-green-600 font-medium">{f.score != null ? `${f.score}점` : '-'}</span>
+              <div key={i} className="feedback-card success">
+                <div className="flex items-center justify-between mb-1">
+                  <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--kwan-success)' }}>{f.axisLabel}</p>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--kwan-success)', fontWeight: 600 }}>{f.score != null ? `${f.score}점` : '-'}</span>
                 </div>
-                <p className="text-sm text-green-700">{f.feedback}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--kwan-text-2)', lineHeight: 1.65 }}>{f.feedback}</p>
               </div>
             ))}
           </section>
@@ -155,14 +157,14 @@ function ReportPageInner() {
         {/* 개선 피드백 */}
         {improveFeedbacks.length > 0 && (
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-bold text-gray-700">개선 영역</h2>
+            <p className="section-label">개선 영역</p>
             {improveFeedbacks.map((f, i) => (
-              <div key={i} className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-amber-800">{f.axisLabel}</p>
-                  <span className="text-xs text-amber-600 font-medium">{f.score != null ? `${f.score}점` : '-'}</span>
+              <div key={i} className="feedback-card warning">
+                <div className="flex items-center justify-between mb-1">
+                  <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--kwan-amber)' }}>{f.axisLabel}</p>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--kwan-amber)', fontWeight: 600 }}>{f.score != null ? `${f.score}점` : '-'}</span>
                 </div>
-                <p className="text-sm text-amber-700">{f.feedback}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--kwan-text-2)', lineHeight: 1.65 }}>{f.feedback}</p>
               </div>
             ))}
           </section>
@@ -171,24 +173,25 @@ function ReportPageInner() {
         {/* 미평가 영역 */}
         {notEvaluatedFeedbacks.length > 0 && (
           <section className="flex flex-col gap-3">
-            <h2 className="text-base font-bold text-gray-700">미평가 영역</h2>
+            <p className="section-label">미평가 영역</p>
             {notEvaluatedFeedbacks.map((f, i) => (
-              <div key={i} className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-700">{f.axisLabel}</p>
-                  <span className="text-xs text-gray-400 font-medium">미평가</span>
+              <div key={i} className="feedback-card muted">
+                <div className="flex items-center justify-between mb-1">
+                  <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--kwan-text)' }}>{f.axisLabel}</p>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--kwan-text-muted)', fontWeight: 600 }}>미평가</span>
                 </div>
-                <p className="text-sm text-gray-600">{f.feedback}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--kwan-text-2)', lineHeight: 1.65 }}>{f.feedback}</p>
               </div>
             ))}
           </section>
         )}
 
         <button
-          onClick={() => router.replace('/')}
-          className="py-2 px-6 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors self-start"
+          onClick={() => router.replace('/dashboard')}
+          className="btn-outline"
+          style={{ padding: '0.75rem 1.5rem', fontSize: '0.9375rem', alignSelf: 'flex-start' }}
         >
-          처음으로
+          대시보드로
         </button>
       </div>
     </main>
@@ -198,8 +201,8 @@ function ReportPageInner() {
 export default function ReportPage() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm text-indigo-600 animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: 'var(--kwan-bg)' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--kwan-teal)' }} className="animate-pulse">리포트 생성 중... (약 30~60초 소요)</p>
       </main>
     }>
       <ReportPageInner />

@@ -9,7 +9,9 @@ test.describe('kwan Phase 3 전체 플로우', () => {
     test.setTimeout(1_200_000) // 20분 — LLM 질문당 ~70s, 최대 10문항
 
     // ── 1. 메인 페이지 진입 ──────────────────────────────────
-    await page.goto('http://localhost:3000')
+    // E2E 인증 우회 쿠키 설정 (미들웨어 /upload 보호 경로 우회)
+    await page.context().addCookies([{ name: '__e2e_bypass', value: '1', url: 'http://localhost:3000' }])
+    await page.goto('http://localhost:3000/upload')
     await expect(page).toHaveTitle(/kwan|MirAI|면접/i, { timeout: 10_000 })
 
     // ── 2. PDF 업로드 ─────────────────────────────────────────
@@ -105,7 +107,8 @@ test.describe('kwan Phase 3 전체 플로우', () => {
   test('PDF 업로드 → 질문 생성 → 자소서 진단 → 면접 → 리포트', async ({ page }) => {
 
     // ── 1. 메인 페이지 진입 ──────────────────────────────────
-    await page.goto('http://localhost:3000')
+    await page.context().addCookies([{ name: '__e2e_bypass', value: '1', url: 'http://localhost:3000' }])
+    await page.goto('http://localhost:3000/upload')
     await expect(page).toHaveTitle(/kwan|MirAI|면접/i, { timeout: 10_000 })
 
     // ── 2. PDF 업로드 ─────────────────────────────────────────

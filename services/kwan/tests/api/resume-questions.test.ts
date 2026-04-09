@@ -1,10 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCallEngineAnalyze, mockCallEngineQuestions, mockPrisma, mockUploadResumePdf } = vi.hoisted(() => ({
+const { mockCallEngineAnalyze, mockCallEngineQuestions, mockPrisma, mockUploadResumePdf, mockCreateClient, mockCookies } = vi.hoisted(() => ({
   mockCallEngineAnalyze: vi.fn(),
   mockCallEngineQuestions: vi.fn(),
   mockUploadResumePdf: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
   mockPrisma: {
     resume: {
       create: vi.fn(),
@@ -25,6 +27,9 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/resume-storage', () => ({
   uploadResumePdf: mockUploadResumePdf,
 }))
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { POST } from '@/app/api/resume/questions/route'
 
@@ -56,6 +61,14 @@ const DEFAULT_META = { extractedLength: 1000, categoriesUsed: ['직무 역량'] 
 describe('POST /api/resume/questions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockCallEngineAnalyze.mockResolvedValue(
       makeMockResponse(true, 200, { resumeText: '안녕하세요. 저는 소프트웨어 엔지니어입니다.', extractedLength: 100, targetRole: '백엔드 엔지니어' })
     )
@@ -65,6 +78,8 @@ describe('POST /api/resume/questions', () => {
     mockPrisma.resume.create.mockResolvedValue({ id: 'resume-1' })
     mockPrisma.resume.update.mockResolvedValue({})
     mockUploadResumePdf.mockResolvedValue('uploads/uuid.pdf')
+    // 기본: 게스트 쿠키 없음
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('파일 없음 → 400', async () => {
@@ -242,6 +257,44 @@ describe('POST /api/resume/questions', () => {
     await Promise.resolve()
     expect(mockPrisma.resume.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { storageKey: 'uploads/test-uuid.pdf' } })
+    )
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const res = await POST(makeRequest(makePdfFile()))
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('비회원 모드(__guest=1): 인증 없이 업로드 → 200', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    })
+    mockCookies.mockResolvedValueOnce({ get: vi.fn().mockReturnValue({ value: '1' }) })
+
+    const res = await POST(makeRequest(makePdfFile()))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.questions).toHaveLength(1)
+  })
+
+  it('비회원 모드: resume create 시 userId=null로 저장', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    })
+    mockCookies.mockResolvedValueOnce({ get: vi.fn().mockReturnValue({ value: '1' }) })
+
+    await POST(makeRequest(makePdfFile()))
+    expect(mockPrisma.resume.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: null }),
+      })
     )
   })
 })

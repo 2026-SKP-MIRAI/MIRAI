@@ -241,7 +241,7 @@ describe('InterviewChat', () => {
     fireEvent.click(screen.getByRole('button', { name: /답변 제출/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/면접이 완료되었습니다/i)).toBeInTheDocument()
+      expect(screen.getByText(/면접 완료/i)).toBeInTheDocument()
     })
   })
 

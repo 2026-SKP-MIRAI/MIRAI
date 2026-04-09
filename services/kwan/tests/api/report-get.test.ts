@@ -1,13 +1,17 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
   mockPrisma: {
     report: { findUnique: vi.fn() },
   },
 }))
 
 vi.mock('@/lib/db', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { GET } from '@/app/api/report/route'
 
@@ -20,6 +24,7 @@ function makeRequest(reportId?: string): Request {
 
 const MOCK_REPORT = {
   id: 'report-1',
+  userId: 'user-1',
   sessionId: 'session-1',
   totalScore: 82,
   scores: { communication: 85, problemSolving: 80, logicalThinking: 88, jobExpertise: 75, cultureFit: 82, leadership: 78, creativity: 83, sincerity: 90 },
@@ -31,7 +36,16 @@ const MOCK_REPORT = {
 describe('GET /api/report', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockPrisma.report.findUnique.mockResolvedValue(MOCK_REPORT)
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('reportId 누락 → 400', async () => {
@@ -67,5 +81,28 @@ describe('GET /api/report', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBeTruthy()
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const res = await GET(makeRequest('report-1'))
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('should return 403 when accessing other user data', async () => {
+    mockPrisma.report.findUnique.mockResolvedValueOnce({
+      ...MOCK_REPORT,
+      userId: 'other-user',
+    })
+    const res = await GET(makeRequest('report-1'))
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

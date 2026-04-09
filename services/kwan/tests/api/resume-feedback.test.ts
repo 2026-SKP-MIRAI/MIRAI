@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCallEngineResumeFeedback, mockPrisma } = vi.hoisted(() => ({
+const { mockCallEngineResumeFeedback, mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
   mockCallEngineResumeFeedback: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
   mockPrisma: {
     resume: { findUnique: vi.fn(), update: vi.fn() },
   },
@@ -10,6 +12,8 @@ const { mockCallEngineResumeFeedback, mockPrisma } = vi.hoisted(() => ({
 
 vi.mock('@/lib/engine-client', () => ({ callEngineResumeFeedback: mockCallEngineResumeFeedback }))
 vi.mock('@/lib/db', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { POST } from '@/app/api/resume/feedback/route'
 
@@ -34,6 +38,7 @@ const DEFAULT_FEEDBACK = {
 
 const MOCK_RESUME = {
   id: 'resume-1',
+  userId: 'user-1',
   resumeText: '안녕하세요. 백엔드 엔지니어입니다.',
   inferredTargetRole: '백엔드 엔지니어',
 }
@@ -41,11 +46,20 @@ const MOCK_RESUME = {
 describe('POST /api/resume/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockPrisma.resume.findUnique.mockResolvedValue(MOCK_RESUME)
     mockCallEngineResumeFeedback.mockResolvedValue(
       makeMockResponse(true, 200, DEFAULT_FEEDBACK)
     )
     mockPrisma.resume.update.mockResolvedValue({})
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('resumeId 누락 → 400', async () => {
@@ -162,5 +176,34 @@ describe('POST /api/resume/feedback', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBeTruthy()
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const req = {
+      json: async () => ({ resumeId: 'resume-1' }),
+    } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('should return 403 when accessing other user data', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      ...MOCK_RESUME,
+      userId: 'other-user',
+    })
+    const req = {
+      json: async () => ({ resumeId: 'resume-1' }),
+    } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

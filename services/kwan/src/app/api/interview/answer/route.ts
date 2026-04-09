@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { callEngineAnswer } from '@/lib/engine-client'
 import { HistoryItemSchema, QueueItemSchema, EngineAnswerResponseSchema } from '@/domain/interview/schemas'
 import type { PersonaType, HistoryItem } from '@/domain/interview/types'
+import { getAuthContext } from '@/lib/auth-context'
 
 // TODO(#9): engine 성공 → DB 실패 시 재시도하면 엔진 중복 호출 발생 (맥락 꼬임)
 // 수정 시점: 실사용자 오픈 전 QA 단계. 해결책: pendingResult 컬럼으로 엔진 응답 임시 저장 후 재시도 감지
@@ -10,6 +11,11 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 export async function POST(req: Request) {
+  const { user, userId, isGuest } = await getAuthContext()
+  if (!user && !isGuest) {
+    return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { sessionId?: string; answer?: string }
   try {
     body = await req.json()
@@ -36,6 +42,9 @@ export async function POST(req: Request) {
   }
   if (!session) {
     return Response.json({ error: '세션을 찾을 수 없습니다.' }, { status: 404 })
+  }
+  if (session.userId && session.userId !== userId) {
+    return Response.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   if (session.sessionComplete) {

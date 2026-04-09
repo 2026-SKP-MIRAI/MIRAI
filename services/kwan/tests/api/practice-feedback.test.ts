@@ -1,13 +1,16 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCallEnginePracticeFeedback } = vi.hoisted(() => ({
+const { mockCallEnginePracticeFeedback, mockCreateClient } = vi.hoisted(() => ({
   mockCallEnginePracticeFeedback: vi.fn(),
+  mockCreateClient: vi.fn(),
 }))
 
 vi.mock('@/lib/engine-client', () => ({
   callEnginePracticeFeedback: mockCallEnginePracticeFeedback,
 }))
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
 
 import { POST } from '@/app/api/practice/feedback/route'
 
@@ -29,6 +32,14 @@ const DEFAULT_FEEDBACK = {
 describe('POST /api/practice/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockCallEnginePracticeFeedback.mockResolvedValue(
       makeMockResponse(true, 200, DEFAULT_FEEDBACK)
     )
@@ -129,5 +140,20 @@ describe('POST /api/practice/feedback', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBe('요청 시간이 초과됐습니다. 잠시 후 다시 시도해주세요.')
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const req = {
+      json: async () => ({ question: '질문', answer: '답변' }),
+    } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
   })
 })

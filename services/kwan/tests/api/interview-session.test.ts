@@ -1,19 +1,28 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/db', () => ({
-  prisma: {
+const { mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
+  mockPrisma: {
     interviewSession: {
       findUnique: vi.fn(),
     },
   },
 }))
 
+vi.mock('@/lib/db', () => ({
+  prisma: mockPrisma,
+}))
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
+
 import { GET } from '@/app/api/interview/session/route'
-import { prisma } from '@/lib/db'
 
 const MOCK_SESSION = {
   id: 'session-id-123',
+  userId: 'user-1',
   resumeId: 'resume-id-456',
   history: [{ persona: 'hr', personaLabel: 'HR 담당자', question: '자기소개', answer: '안녕하세요', questionType: 'main' }],
   currentQuestion: '지원 동기가 무엇인가요?',
@@ -37,6 +46,15 @@ function makeRequest(sessionId?: string): Request {
 describe('GET /api/interview/session', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('sessionId 없음 → 400', async () => {
@@ -47,7 +65,7 @@ describe('GET /api/interview/session', () => {
   })
 
   it('sessionId가 DB에 없음 → 404', async () => {
-    vi.mocked(prisma.interviewSession.findUnique).mockResolvedValueOnce(null)
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(null)
     const res = await GET(makeRequest('non-existent-id'))
     expect(res.status).toBe(404)
     const body = await res.json()
@@ -55,9 +73,7 @@ describe('GET /api/interview/session', () => {
   })
 
   it('정상 흐름: 세션 상태 전체 반환', async () => {
-    vi.mocked(prisma.interviewSession.findUnique).mockResolvedValueOnce(
-      MOCK_SESSION as ReturnType<typeof prisma.interviewSession.findUnique> extends Promise<infer T> ? T : never
-    )
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(MOCK_SESSION)
     const res = await GET(makeRequest('session-id-123'))
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -72,7 +88,7 @@ describe('GET /api/interview/session', () => {
   })
 
   it('DB lookup 실패 → 500', async () => {
-    vi.mocked(prisma.interviewSession.findUnique).mockRejectedValueOnce(new Error('DB connection failed'))
+    mockPrisma.interviewSession.findUnique.mockRejectedValueOnce(new Error('DB connection failed'))
     const res = await GET(makeRequest('session-id-123'))
     expect(res.status).toBe(500)
     const body = await res.json()
@@ -80,12 +96,35 @@ describe('GET /api/interview/session', () => {
   })
 
   it('sessionComplete=true 세션 → 완료 상태 반환', async () => {
-    vi.mocked(prisma.interviewSession.findUnique).mockResolvedValueOnce(
-      { ...MOCK_SESSION, sessionComplete: true, currentQuestion: '' } as ReturnType<typeof prisma.interviewSession.findUnique> extends Promise<infer T> ? T : never
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce(
+      { ...MOCK_SESSION, sessionComplete: true, currentQuestion: '' }
     )
     const res = await GET(makeRequest('session-id-123'))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.sessionComplete).toBe(true)
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const res = await GET(makeRequest('session-id-123'))
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('should return 403 when accessing other user session', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce({
+      ...MOCK_SESSION,
+      userId: 'other-user',
+    })
+    const res = await GET(makeRequest('session-id-123'))
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

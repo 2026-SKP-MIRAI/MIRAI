@@ -1,11 +1,17 @@
 import { prisma } from '@/lib/db'
 import { callEngineStart } from '@/lib/engine-client'
 import { EngineStartResponseSchema } from '@/domain/interview/schemas'
+import { getAuthContext } from '@/lib/auth-context'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
 
 export async function POST(req: Request) {
+  const { user, userId, isGuest } = await getAuthContext()
+  if (!user && !isGuest) {
+    return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { resumeId?: string; mode?: string }
   try {
     body = await req.json()
@@ -18,7 +24,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'resumeId가 필요합니다.' }, { status: 400 })
   }
 
-  let resume: { resumeText: string } | null
+  let resume: { resumeText: string; userId: string | null } | null
   try {
     resume = await prisma.resume.findUnique({ where: { id: resumeId } })
   } catch (err) {
@@ -28,6 +34,10 @@ export async function POST(req: Request) {
 
   if (!resume) {
     return Response.json({ error: '자소서를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  if (resume.userId && resume.userId !== userId) {
+    return Response.json({ error: '접근 권한이 없습니다.' }, { status: 403 })
   }
 
   let engineRes: Response
@@ -65,6 +75,7 @@ export async function POST(req: Request) {
   try {
     session = await prisma.interviewSession.create({
       data: {
+        userId: userId,
         resumeId,
         questionsQueue: questionsQueue as object[],
         history: [],
@@ -81,5 +92,5 @@ export async function POST(req: Request) {
     return Response.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 })
   }
 
-  return Response.json({ sessionId: session.id, firstQuestion }, { status: 200 })
+  return Response.json({ sessionId: session.id, firstQuestion, totalQuestions: questionsQueue.length + 1 }, { status: 200 })
 }

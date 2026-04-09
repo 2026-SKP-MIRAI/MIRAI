@@ -2,11 +2,17 @@ import { callEngineAnalyze, callEngineQuestions } from '@/lib/engine-client'
 import { uploadResumePdf } from '@/lib/resume-storage'
 import { prisma } from '@/lib/db'
 import { EngineAnalyzeResponseSchema, EngineQuestionsResponseSchema } from '@/domain/interview/schemas'
+import { getAuthContext } from '@/lib/auth-context'
 
 export const runtime = 'nodejs'
 export const maxDuration = 70
 
 export async function POST(req: Request) {
+  const { user, userId, isGuest } = await getAuthContext()
+  if (!user && !isGuest) {
+    return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let formData: FormData
   try {
     formData = await req.formData()
@@ -40,7 +46,7 @@ export async function POST(req: Request) {
         const qParse = qRaw ? EngineQuestionsResponseSchema.safeParse(qRaw) : null
         if (qParse?.success) {
           void prisma.resume
-            .update({ where: { id: existingResumeId }, data: { questions: qParse.data as object } })
+            .update({ where: { id: existingResumeId }, data: { userId: userId, questions: qParse.data as object } })
             .catch(() => {})
         }
       }
@@ -98,6 +104,8 @@ export async function POST(req: Request) {
       callEngineQuestions(resumeText, effectiveTargetRole),
       prisma.resume.create({
         data: {
+          userId: userId,
+          fileName: file.name,
           resumeText,
           questions: [],
           inferredTargetRole: effectiveTargetRole || null,

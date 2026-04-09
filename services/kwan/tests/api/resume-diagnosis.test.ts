@@ -1,13 +1,17 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
   mockPrisma: {
     resume: { findUnique: vi.fn() },
   },
 }))
 
 vi.mock('@/lib/db', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { GET } from '@/app/api/resume/diagnosis/route'
 
@@ -28,10 +32,20 @@ const MOCK_DIAGNOSIS = {
 describe('GET /api/resume/diagnosis', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockPrisma.resume.findUnique.mockResolvedValue({
       id: 'resume-1',
+      userId: 'user-1',
       diagnosisResult: MOCK_DIAGNOSIS,
     })
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('resumeId 누락 → 400', async () => {
@@ -71,5 +85,29 @@ describe('GET /api/resume/diagnosis', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBeTruthy()
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const res = await GET(makeRequest('resume-1'))
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('should return 403 when accessing other user data', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      id: 'resume-1',
+      userId: 'other-user',
+      diagnosisResult: MOCK_DIAGNOSIS,
+    })
+    const res = await GET(makeRequest('resume-1'))
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

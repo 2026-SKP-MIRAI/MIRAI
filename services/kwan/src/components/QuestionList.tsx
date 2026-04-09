@@ -29,6 +29,10 @@ export default function QuestionList({ questions, resumeId, onReset }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeId }),
       })
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
       const data = await res.json()
       if (!res.ok) {
         setErrorMsg(data.error ?? '면접 시작 중 오류가 발생했습니다.')

@@ -1,26 +1,369 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Core palette ── */
+  --kwan-bg:          #0F1724;
+  --kwan-surface:     #1A2332;
+  --kwan-elevated:    #243044;
+  --kwan-navbar:      #111C2D;
+
+  /* ── Text ── */
+  --kwan-text:        #E8ECF1;
+  --kwan-text-2:      #8B97A8;
+  --kwan-text-muted:  #5A6A7E;
+
+  /* ── Accent ── */
+  --kwan-teal:        #2DD4BF;
+  --kwan-teal-dim:    rgba(45,212,191,0.12);
+  --kwan-teal-glow:   rgba(45,212,191,0.20);
+  --kwan-amber:       #F59E0B;
+  --kwan-amber-dim:   rgba(245,158,11,0.12);
+
+  /* ── Semantic ── */
+  --kwan-success:     #34D399;
+  --kwan-warning:     #FBBF24;
+  --kwan-error:       #F87171;
+
+  /* ── Structure ── */
+  --kwan-border:      rgba(255,255,255,0.08);
+  --kwan-border-hover:rgba(45,212,191,0.30);
+  --kwan-radius:      0.875rem;
+  --kwan-radius-sm:   0.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--kwan-bg);
+  color: var(--kwan-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Matte Card (replaces glass-card) ── */
+.matte-card {
+  background: var(--kwan-surface);
+  border: 1px solid var(--kwan-border);
+  border-radius: var(--kwan-radius);
+}
+
+.matte-card-hover {
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.matte-card-hover:hover {
+  background: var(--kwan-elevated);
+  border-color: var(--kwan-border-hover);
+  cursor: pointer;
+}
+
+.matte-elevated {
+  background: var(--kwan-elevated);
+  border: 1px solid var(--kwan-border);
+  border-radius: var(--kwan-radius-sm);
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--kwan-teal);
+  color: var(--kwan-bg);
+  font-weight: 700;
+  border-radius: var(--kwan-radius-sm);
+  border: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #4FE0CE; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--kwan-teal);
+  font-weight: 600;
+  border-radius: var(--kwan-radius-sm);
+  border: 1.5px solid var(--kwan-teal);
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+.btn-outline:hover { background: var(--kwan-teal-dim); }
+.btn-outline:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Pill Tab Nav ── */
+.pill-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--kwan-text-2);
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+}
+.pill-tab:hover { color: var(--kwan-text); background: var(--kwan-elevated); }
+.pill-tab.active {
+  background: var(--kwan-teal-dim);
+  color: var(--kwan-teal);
+  font-weight: 600;
+}
+
+/* ── Input fields ── */
+.input-dark {
+  background: var(--kwan-elevated);
+  border: 1px solid var(--kwan-border);
+  border-radius: var(--kwan-radius-sm);
+  color: var(--kwan-text);
+  font-size: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.input-dark::placeholder { color: var(--kwan-text-muted); }
+.input-dark:focus { border-color: var(--kwan-teal); }
+
+/* ── Tags / badges ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.tag-teal { background: var(--kwan-teal-dim); color: var(--kwan-teal); }
+.tag-amber { background: var(--kwan-amber-dim); color: var(--kwan-amber); }
+.tag-success { background: rgba(52,211,153,0.12); color: var(--kwan-success); }
+.tag-error { background: rgba(248,113,113,0.12); color: var(--kwan-error); }
+.tag-muted { background: var(--kwan-elevated); color: var(--kwan-text-2); border: 1px solid var(--kwan-border); }
+.tag-blue { background: rgba(59,130,246,0.12); color: #60A5FA; }
+.tag-green { background: rgba(52,211,153,0.12); color: var(--kwan-success); }
+
+/* ── Bento Score Tile ── */
+.score-tile {
+  background: var(--kwan-elevated);
+  border-radius: var(--kwan-radius-sm);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.score-tile-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.score-tile-bar-track {
+  height: 6px;
+  background: var(--kwan-surface);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.score-tile-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.6s ease;
+}
+.score-tile-bar-fill.high  { background: var(--kwan-teal); }
+.score-tile-bar-fill.mid   { background: var(--kwan-amber); }
+.score-tile-bar-fill.low   { background: var(--kwan-error); }
+
+/* ── Axis Row (legacy compat, also used in some places) ── */
+.axis-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.axis-label { font-size: 0.8125rem; color: var(--kwan-text-2); min-width: 80px; }
+.axis-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--kwan-elevated);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.axis-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+.axis-bar-fill.high  { background: var(--kwan-teal); }
+.axis-bar-fill.mid   { background: var(--kwan-amber); }
+.axis-bar-fill.low   { background: var(--kwan-error); }
+.axis-score { font-size: 0.8125rem; font-weight: 700; color: var(--kwan-text); min-width: 28px; text-align: right; }
+
+/* ── Feedback card accent strips ── */
+.feedback-card {
+  background: var(--kwan-surface);
+  border: 1px solid var(--kwan-border);
+  border-radius: var(--kwan-radius);
+  padding: 1rem 1rem 1rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+.feedback-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+.feedback-card.success::before { background: var(--kwan-success); }
+.feedback-card.warning::before { background: var(--kwan-amber); }
+.feedback-card.error::before   { background: var(--kwan-error); }
+.feedback-card.teal::before    { background: var(--kwan-teal); }
+.feedback-card.muted::before   { background: var(--kwan-text-muted); }
+
+/* ── Skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--kwan-surface) 25%, var(--kwan-elevated) 50%, var(--kwan-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--kwan-radius-sm);
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── FadeIn animation ── */
+@keyframes fadeScaleIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.fade-in {
+  animation: fadeScaleIn 0.3s ease forwards;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--kwan-bg); }
+::-webkit-scrollbar-thumb { background: var(--kwan-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--kwan-teal); }
+
+/* ── Section label ── */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kwan-teal);
+}
+
+/* ── Persona left-strip cards ── */
+.persona-card {
+  background: var(--kwan-surface);
+  border: 1px solid var(--kwan-border);
+  border-radius: var(--kwan-radius);
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.18s, background 0.18s;
+}
+.persona-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.persona-card.blue::before   { background: #60A5FA; }
+.persona-card.green::before  { background: var(--kwan-success); }
+.persona-card.amber::before  { background: var(--kwan-amber); }
+
+/* ── Glass card (kept for backward compat) ── */
+.glass-card { background: var(--kwan-surface); border: 1px solid var(--kwan-border); border-radius: var(--kwan-radius); }
+.glass-card-hover { transition: background 0.18s, border-color 0.18s; }
+.glass-card-hover:hover { background: var(--kwan-elevated); border-color: var(--kwan-border-hover); }
+
+/* ── Gradient text (kept for compat, now uses teal) ── */
+.gradient-text { color: var(--kwan-teal); }
+
+/* ── Layered card (not used in dark bento but kept) ── */
+.layered-card-wrapper { position: relative; }
+
+/* ── Responsive layout utilities (replaces md: Tailwind variants) ── */
+.nav-links {
+  display: none;
+}
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Hero: 2fr 1fr on desktop, stacked on mobile */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  min-height: 520px;
+}
+@media (min-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* 3-column grid on desktop, 1-column on mobile */
+.grid-3-md {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .grid-3-md {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 2-column grid on desktop, 1-column on mobile */
+.grid-2-md {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .grid-2-md {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 2-column on mobile → 4-column on desktop */
+.grid-2-4-md {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+@media (min-width: 768px) {
+  .grid-2-4-md {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Footer row: column on mobile → row on desktop */
+.footer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .footer-row {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }

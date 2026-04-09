@@ -3,7 +3,9 @@ import path from 'path'
 
 test.describe('패널 면접 e2e 플로우', () => {
   test('PDF 업로드 → 질문 생성 → 면접 시작 → 완료', async ({ page }) => {
-    await page.goto('http://localhost:3000')
+    // E2E 인증 우회 쿠키 설정
+    await page.context().addCookies([{ name: '__e2e_bypass', value: '1', url: 'http://localhost:3000' }])
+    await page.goto('http://localhost:3000/upload')
 
     // 1. PDF 업로드
     const fileInput = page.locator('input[type="file"]')

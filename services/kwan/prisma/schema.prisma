@@ -10,6 +10,8 @@ datasource db {
 
 model Resume {
   id                 String             @id @default(cuid())
+  userId             String?
+  fileName           String?
   resumeText         String
   questions          Json
   storageKey         String?
@@ -18,11 +20,13 @@ model Resume {
   createdAt          DateTime           @default(now())
   sessions           InterviewSession[]
 
+  @@index([userId])
   @@map("resumes")
 }
 
 model InterviewSession {
   id                  String   @id @default(cuid())
+  userId              String?
   resumeId            String
   resume              Resume   @relation(fields: [resumeId], references: [id])
   questionsQueue      Json
@@ -42,6 +46,7 @@ model InterviewSession {
 
 model Report {
   id            String           @id @default(cuid())
+  userId        String?
   sessionId     String           @unique
   session       InterviewSession @relation(fields: [sessionId], references: [id])
   totalScore    Int

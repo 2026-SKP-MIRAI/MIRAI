@@ -2,12 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import mockStartResponse from '../fixtures/input/mock_interview_start_response.json'
 
-vi.mock('@/lib/engine-client', () => ({
-  callEngineStart: vi.fn(),
-}))
-
-vi.mock('@/lib/db', () => ({
-  prisma: {
+const { mockCallEngineStart, mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
+  mockCallEngineStart: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
+  mockPrisma: {
     resume: {
       findUnique: vi.fn(),
     },
@@ -17,11 +16,18 @@ vi.mock('@/lib/db', () => ({
   },
 }))
 
-import { POST } from '@/app/api/interview/start/route'
-import { callEngineStart } from '@/lib/engine-client'
-import { prisma } from '@/lib/db'
+vi.mock('@/lib/engine-client', () => ({
+  callEngineStart: mockCallEngineStart,
+}))
 
-const mockCallStart = vi.mocked(callEngineStart)
+vi.mock('@/lib/db', () => ({
+  prisma: mockPrisma,
+}))
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
+
+import { POST } from '@/app/api/interview/start/route'
 
 const MOCK_RESUME = {
   id: 'resume-123',
@@ -53,6 +59,16 @@ function makeRequest(body: object): Request {
 describe('POST /api/interview/start', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
+    // 기본: 게스트 쿠키 없음
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('resumeId 없음 → 400', async () => {
@@ -64,18 +80,18 @@ describe('POST /api/interview/start', () => {
   })
 
   it('resumeId가 DB에 없음 → 404', async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(null)
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(null)
     const req = makeRequest({ resumeId: 'nonexistent' })
     const res = await POST(req)
     expect(res.status).toBe(404)
   })
 
   it('정상 흐름: resumeId 있음 → session 생성 + firstQuestion 반환', async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as ReturnType<typeof prisma.resume.findUnique> extends Promise<infer T> ? T : never)
-    mockCallStart.mockResolvedValueOnce(
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
       new Response(JSON.stringify(mockStartResponse), { status: 200 })
     )
-    vi.mocked(prisma.interviewSession.create).mockResolvedValueOnce(MOCK_SESSION as ReturnType<typeof prisma.interviewSession.create> extends Promise<infer T> ? T : never)
+    mockPrisma.interviewSession.create.mockResolvedValueOnce(MOCK_SESSION)
 
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
@@ -87,7 +103,7 @@ describe('POST /api/interview/start', () => {
   })
 
   it('DB lookup 실패 → 500', async () => {
-    vi.mocked(prisma.resume.findUnique).mockRejectedValueOnce(new Error('DB connection failed'))
+    mockPrisma.resume.findUnique.mockRejectedValueOnce(new Error('DB connection failed'))
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
     expect(res.status).toBe(500)
@@ -96,11 +112,11 @@ describe('POST /api/interview/start', () => {
   })
 
   it('DB session create 실패 → 500', async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
-    mockCallStart.mockResolvedValueOnce(
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
       new Response(JSON.stringify(mockStartResponse), { status: 200 })
     )
-    vi.mocked(prisma.interviewSession.create).mockRejectedValueOnce(new Error('DB connection failed'))
+    mockPrisma.interviewSession.create.mockRejectedValueOnce(new Error('DB connection failed'))
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
     expect(res.status).toBe(500)
@@ -109,16 +125,16 @@ describe('POST /api/interview/start', () => {
   })
 
   it('엔진 호출 실패 → 500', async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as ReturnType<typeof prisma.resume.findUnique> extends Promise<infer T> ? T : never)
-    mockCallStart.mockRejectedValueOnce(new Error('engine down'))
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockRejectedValueOnce(new Error('engine down'))
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
     expect(res.status).toBe(500)
   })
 
   it('엔진 500 응답 → 500 전달', async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as ReturnType<typeof prisma.resume.findUnique> extends Promise<infer T> ? T : never)
-    mockCallStart.mockResolvedValueOnce(
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
       new Response(JSON.stringify({ detail: 'LLM 오류' }), { status: 500 })
     )
     const req = makeRequest({ resumeId: 'resume-123' })
@@ -127,19 +143,19 @@ describe('POST /api/interview/start', () => {
   })
 
   it("mode='practice' → interviewMode='practice' 저장", async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
-    mockCallStart.mockResolvedValueOnce(
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
       new Response(JSON.stringify(mockStartResponse), { status: 200 })
     )
-    vi.mocked(prisma.interviewSession.create).mockResolvedValueOnce({
+    mockPrisma.interviewSession.create.mockResolvedValueOnce({
       ...MOCK_SESSION,
       interviewMode: 'practice',
-    } as any)
+    })
 
     const req = makeRequest({ resumeId: 'resume-123', mode: 'practice' })
     const res = await POST(req)
     expect(res.status).toBe(200)
-    expect(vi.mocked(prisma.interviewSession.create)).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ interviewMode: 'practice' }),
       })
@@ -147,19 +163,96 @@ describe('POST /api/interview/start', () => {
   })
 
   it("mode 미제공 → interviewMode='real' 기본값", async () => {
-    vi.mocked(prisma.resume.findUnique).mockResolvedValueOnce(MOCK_RESUME as any)
-    mockCallStart.mockResolvedValueOnce(
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
       new Response(JSON.stringify(mockStartResponse), { status: 200 })
     )
-    vi.mocked(prisma.interviewSession.create).mockResolvedValueOnce(MOCK_SESSION as any)
+    mockPrisma.interviewSession.create.mockResolvedValueOnce(MOCK_SESSION)
 
     const req = makeRequest({ resumeId: 'resume-123' })
     const res = await POST(req)
     expect(res.status).toBe(200)
-    expect(vi.mocked(prisma.interviewSession.create)).toHaveBeenCalledWith(
+    expect(mockPrisma.interviewSession.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ interviewMode: 'real' }),
       })
     )
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('비회원 모드(__guest=1): 인증 없이 면접 시작 → 200', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    })
+    mockCookies.mockResolvedValueOnce({ get: vi.fn().mockReturnValue({ value: '1' }) })
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({ ...MOCK_RESUME, userId: null })
+    mockCallEngineStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    mockPrisma.interviewSession.create.mockResolvedValueOnce(MOCK_SESSION)
+
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.sessionId).toBe('session-456')
+  })
+
+  it('비회원 모드: session create 시 userId=null로 저장', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    })
+    mockCookies.mockResolvedValueOnce({ get: vi.fn().mockReturnValue({ value: '1' }) })
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({ ...MOCK_RESUME, userId: null })
+    mockCallEngineStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    mockPrisma.interviewSession.create.mockResolvedValueOnce(MOCK_SESSION)
+
+    const req = makeRequest({ resumeId: 'resume-123' })
+    await POST(req)
+    expect(mockPrisma.interviewSession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: null }),
+      })
+    )
+  })
+
+  it('totalQuestions 반환 확인', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce(MOCK_RESUME)
+    mockCallEngineStart.mockResolvedValueOnce(
+      new Response(JSON.stringify(mockStartResponse), { status: 200 })
+    )
+    mockPrisma.interviewSession.create.mockResolvedValueOnce(MOCK_SESSION)
+
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    const body = await res.json()
+    expect(typeof body.totalQuestions).toBe('number')
+    expect(body.totalQuestions).toBe(mockStartResponse.questionsQueue.length + 1)
+  })
+
+  it('should return 403 when resume belongs to another user', async () => {
+    mockPrisma.resume.findUnique.mockResolvedValueOnce({
+      ...MOCK_RESUME,
+      userId: 'other-user',
+    })
+    const req = makeRequest({ resumeId: 'resume-123' })
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

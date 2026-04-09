@@ -2,8 +2,8 @@
 set -e
 
 # 필수 환경변수 확인
-if [ -z "$DATABASE_URL" ] || [ -z "$DIRECT_URL" ] || [ -z "$ENGINE_BASE_URL" ]; then
-  echo "ERROR: DATABASE_URL, DIRECT_URL, and ENGINE_BASE_URL must be set" >&2
+if [ -z "$DATABASE_URL" ] || [ -z "$DIRECT_URL" ] || [ -z "$ENGINE_BASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+  echo "ERROR: DATABASE_URL, DIRECT_URL, ENGINE_BASE_URL, and SUPABASE_ANON_KEY must be set" >&2
   exit 1
 fi
 

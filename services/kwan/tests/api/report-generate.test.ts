@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCallEngineReportGenerate, mockPrisma } = vi.hoisted(() => ({
+const { mockCallEngineReportGenerate, mockPrisma, mockCreateClient, mockCookies } = vi.hoisted(() => ({
   mockCallEngineReportGenerate: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockCookies: vi.fn(),
   mockPrisma: {
     interviewSession: { findUnique: vi.fn() },
     report: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
@@ -11,6 +13,8 @@ const { mockCallEngineReportGenerate, mockPrisma } = vi.hoisted(() => ({
 
 vi.mock('@/lib/engine-client', () => ({ callEngineReportGenerate: mockCallEngineReportGenerate }))
 vi.mock('@/lib/db', () => ({ prisma: mockPrisma }))
+vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { POST } from '@/app/api/report/generate/route'
 
@@ -62,12 +66,21 @@ const MOCK_SESSION = {
 describe('POST /api/report/generate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+    })
     mockPrisma.interviewSession.findUnique.mockResolvedValue(MOCK_SESSION)
     mockPrisma.report.findFirst.mockResolvedValue(null)
     mockCallEngineReportGenerate.mockResolvedValue(
       makeMockResponse(true, 200, DEFAULT_REPORT)
     )
     mockPrisma.report.create.mockResolvedValue({ id: 'report-1', ...DEFAULT_REPORT })
+    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(undefined) })
   })
 
   it('sessionId 누락 → 400', async () => {
@@ -253,5 +266,30 @@ describe('POST /api/report/generate', () => {
     expect(res.status).toBe(422)
     const body = await res.json()
     expect(body.error).toBe('답변 부족') // engine detail 그대로 전달
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
+    })
+    const req = { json: async () => ({ sessionId: 'session-1' }) } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('로그인이 필요합니다.')
+  })
+
+  it('should return 403 when session belongs to another user', async () => {
+    mockPrisma.interviewSession.findUnique.mockResolvedValueOnce({
+      ...MOCK_SESSION,
+      userId: 'other-user',
+    })
+    const req = { json: async () => ({ sessionId: 'session-1' }) } as unknown as Request
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('접근 권한이 없습니다.')
   })
 })

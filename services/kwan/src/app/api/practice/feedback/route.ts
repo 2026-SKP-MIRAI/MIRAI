@@ -1,10 +1,17 @@
 import { callEnginePracticeFeedback } from '@/lib/engine-client'
 import { PracticeFeedbackResponseSchema } from '@/domain/interview/schemas'
+import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 45
 
 export async function POST(req: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  }
+
   let body: { question?: string; answer?: string; previousAnswer?: string }
   try {
     body = await req.json()

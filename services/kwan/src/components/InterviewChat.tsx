@@ -10,13 +10,14 @@ interface Props {
   initialHistory?: HistoryItem[]
   initialComplete?: boolean
   interviewMode?: 'real' | 'practice'
+  totalQuestions?: number
   onComplete: () => void
 }
 
-const PERSONA_COLORS: Record<PersonaType, { bg: string; text: string; label: string }> = {
-  hr: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'HR 담당자' },
-  tech_lead: { bg: 'bg-green-100', text: 'text-green-800', label: '기술팀장' },
-  executive: { bg: 'bg-purple-100', text: 'text-purple-800', label: '경영진' },
+const PERSONA_STYLES: Record<PersonaType, { pillBg: string; pillText: string; label: string }> = {
+  hr:        { pillBg: '#142447', pillText: '#3b82f6', label: 'HR 담당자' },
+  tech_lead: { pillBg: '#142e1e', pillText: '#34d399', label: '기술팀장' },
+  executive: { pillBg: '#2c2010', pillText: '#f59e0b', label: '경영진' },
 }
 
 export default function InterviewChat({
@@ -25,6 +26,7 @@ export default function InterviewChat({
   initialHistory = [],
   initialComplete = false,
   interviewMode = 'real',
+  totalQuestions,
   onComplete,
 }: Props) {
   const router = useRouter()
@@ -44,6 +46,12 @@ export default function InterviewChat({
   const [lastAnswer, setLastAnswer] = useState<string>('')
   const [pendingNextQuestion, setPendingNextQuestion] = useState<QuestionWithPersona | null>(null)
   const [pendingComplete, setPendingComplete] = useState(false)
+
+  const currentIdx = history.length + 1
+  const total = totalQuestions ?? 9
+  const progress = Math.min((history.length / total) * 100, 100)
+  const persona = PERSONA_STYLES[currentQuestion.persona] ?? PERSONA_STYLES.hr
+  const lastHistoryItem = history[history.length - 1] ?? null
 
   async function handleGenerateReport() {
     setIsGeneratingReport(true)
@@ -91,10 +99,8 @@ export default function InterviewChat({
       setLastAnswer(answer)
 
       if (interviewMode === 'practice' && !data.sessionComplete) {
-        // 연습 모드: 다음 질문 보류, practice/feedback 호출
         setPendingNextQuestion(data.nextQuestion ?? null)
         setPendingComplete(!!data.sessionComplete)
-        setLastAnswer(answer)
 
         const feedbackRes = await fetch('/api/practice/feedback', {
           method: 'POST',
@@ -108,15 +114,12 @@ export default function InterviewChat({
         const feedbackData = await feedbackRes.json()
         if (feedbackRes.ok) {
           setPracticeFeedback(feedbackData)
-          // previousAnswer가 설정돼 있으면 재답변 → retry-feedback, 아니면 first-feedback
           setPracticePhase(previousAnswer !== undefined ? 'retry-feedback' : 'first-feedback')
         } else {
-          // 피드백 실패 시 그냥 다음 질문으로 진행
           advanceToNext(data, answer)
         }
         setAnswerInput('')
       } else {
-        // 실전 모드 또는 면접 완료
         advanceToNext(data, answer)
         setAnswerInput('')
       }
@@ -171,47 +174,62 @@ export default function InterviewChat({
     }
   }
 
+  /* ── 면접 완료 화면 ── */
   if (sessionComplete) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="p-6 bg-green-50 rounded-lg text-center">
-          <h2 className="text-xl font-bold text-green-800 mb-2">면접이 완료되었습니다!</h2>
-          <p className="text-sm text-green-600">총 {history.length}개의 질문에 답변하셨습니다.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* 완료 카드 */}
+        <div
+          className="matte-card"
+          style={{ padding: '2rem', textAlign: 'center', borderColor: 'rgba(45,212,191,0.3)', background: 'var(--kwan-teal-dim)' }}
+        >
+          <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--kwan-teal)', marginBottom: '0.5rem' }}>면접 완료</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--kwan-text-2)' }}>총 {history.length}개의 질문에 답변하셨습니다.</p>
         </div>
-        <div className="flex flex-col gap-3">
-          <h3 className="text-base font-bold text-gray-700">면접 요약</h3>
+
+        {/* 요약 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {history.map((item, i) => {
-            const colors = PERSONA_COLORS[item.persona] ?? PERSONA_COLORS.hr
+            const s = PERSONA_STYLES[item.persona] ?? PERSONA_STYLES.hr
             return (
-              <div key={i} className="flex flex-col gap-1">
-                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg ${colors.bg}`}>
-                  <span className={`text-xs font-semibold ${colors.text}`}>{item.personaLabel}</span>
+              <div key={i} className="matte-card" style={{ padding: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+                  <span
+                    style={{
+                      fontSize: '0.75rem', fontWeight: 600, padding: '0.125rem 0.5rem',
+                      borderRadius: '999px', background: s.pillBg, color: s.pillText,
+                    }}
+                  >
+                    {item.personaLabel}
+                  </span>
                   {item.questionType === 'follow_up' && (
-                    <span className={`text-xs ${colors.text} opacity-60`}>(꼬리질문)</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--kwan-teal)' }}>꼬리질문</span>
                   )}
-                  <p className={`text-sm ${colors.text}`}>{item.question}</p>
                 </div>
-                <p className="text-sm text-gray-700 px-3 py-2 bg-gray-50 rounded-lg ml-4">
-                  {item.answer}
-                </p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--kwan-text)', marginBottom: '0.5rem', fontWeight: 600 }}>{item.question}</p>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--kwan-text-2)', lineHeight: 1.6 }}>{item.answer}</p>
               </div>
             )
           })}
         </div>
+
         {reportError && (
-          <p className="text-sm text-red-600" role="alert">{reportError}</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--kwan-error)' }} role="alert">{reportError}</p>
         )}
-        <div className="flex gap-3">
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={handleGenerateReport}
             disabled={isGeneratingReport}
-            className="py-2 px-6 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="btn-primary"
+            style={{ padding: '0.875rem 2rem', fontSize: '0.9375rem', flex: 1 }}
           >
-            {isGeneratingReport ? '생성 중...' : '리포트 생성'}
+            {isGeneratingReport ? '생성 중...' : '리포트 생성 →'}
           </button>
           <button
             onClick={onComplete}
-            className="mt-2 py-2 px-6 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            className="btn-outline"
+            style={{ padding: '0.875rem 1.5rem', fontSize: '0.9375rem' }}
           >
             처음으로
           </button>
@@ -220,121 +238,176 @@ export default function InterviewChat({
     )
   }
 
-  const colors = PERSONA_COLORS[currentQuestion.persona] ?? PERSONA_COLORS.hr
-
+  /* ── 면접 진행 화면 ── */
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        {history.map((item, i) => {
-          const hColors = PERSONA_COLORS[item.persona] ?? PERSONA_COLORS.hr
-          return (
-            <div key={i} className="flex flex-col gap-1">
-              <div className={`px-3 py-2 rounded-lg ${hColors.bg}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${hColors.text}`}>{item.personaLabel}</span>
-                  {item.questionType === 'follow_up' && (
-                    <span className={`text-xs ${hColors.text} opacity-60`}>(꼬리질문)</span>
-                  )}
-                </div>
-                <p className={`text-sm ${hColors.text} mt-1`}>{item.question}</p>
-              </div>
-              <p className="text-sm text-gray-700 px-3 py-2 bg-gray-50 rounded-lg ml-4">
-                {item.answer}
-              </p>
-            </div>
-          )
-        })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-        <div className={`px-3 py-2 rounded-lg ${colors.bg}`} data-testid="current-question">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold ${colors.text}`}>{currentQuestion.personaLabel}</span>
-            {currentQuestion.type === 'follow_up' && (
-              <span className={`text-xs ${colors.text} opacity-60`}>(꼬리질문)</span>
-            )}
-          </div>
-          <p className={`text-sm ${colors.text} mt-1`}>{currentQuestion.question}</p>
-        </div>
+      {/* 진행 상태 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--kwan-text-2)' }}>
+          면접 진행 중&nbsp;&nbsp;·&nbsp;&nbsp;
+          <span style={{ color: 'var(--kwan-teal)' }}>{currentIdx}</span>
+          <span style={{ color: 'var(--kwan-text-muted)' }}> / {total} 질문</span>
+        </span>
+        <button
+          onClick={onComplete}
+          style={{
+            fontSize: '0.8125rem', fontWeight: 500, color: 'var(--kwan-error)',
+            background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
+            borderRadius: '0.5rem', padding: '0.25rem 0.875rem', cursor: 'pointer',
+          }}
+        >
+          나가기
+        </button>
       </div>
 
-      {errorMsg && (
-        <p className="text-sm text-red-600" role="alert">{errorMsg}</p>
+      {/* 진행률 바 */}
+      <div style={{ height: 6, borderRadius: 3, background: 'var(--kwan-elevated)', overflow: 'hidden' }}>
+        <div
+          style={{
+            height: '100%', borderRadius: 3,
+            background: 'var(--kwan-teal)',
+            width: `${progress}%`,
+            transition: 'width 0.4s ease',
+          }}
+        />
+      </div>
+
+      {/* 질문 카드 */}
+      <div className="matte-card" style={{ padding: '1.5rem' }} data-testid="current-question">
+        {/* 페르소나 pill */}
+        <span
+          style={{
+            display: 'inline-block', fontSize: '0.75rem', fontWeight: 600,
+            padding: '0.25rem 0.75rem', borderRadius: '999px',
+            background: persona.pillBg, color: persona.pillText,
+            marginBottom: '0.875rem',
+          }}
+        >
+          {currentQuestion.personaLabel}
+        </span>
+
+        {/* 질문 텍스트 */}
+        <p style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--kwan-text)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+          {currentQuestion.question}
+        </p>
+
+        {/* 서브텍스트 */}
+        <p style={{ fontSize: '0.75rem', color: 'var(--kwan-text-muted)' }}>
+          질문 {currentIdx}/{total}
+          {lastHistoryItem && `  ·  이전 질문: ${lastHistoryItem.question.slice(0, 30)}${lastHistoryItem.question.length > 30 ? '...' : ''}`}
+        </p>
+      </div>
+
+      {/* 꼬리질문 표시 */}
+      {currentQuestion.type === 'follow_up' && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            background: 'var(--kwan-teal-dim)',
+            borderRadius: 'var(--kwan-radius)',
+            fontSize: '0.8125rem', fontWeight: 600, color: 'var(--kwan-teal)',
+          }}
+        >
+          💬 꼬리질문 — 이전 답변을 바탕으로 한 추가 질문입니다
+        </div>
       )}
 
-      {/* 연습 모드 피드백 패널 */}
+      {errorMsg && (
+        <p style={{ fontSize: '0.875rem', color: 'var(--kwan-error)' }} role="alert">{errorMsg}</p>
+      )}
+
+      {/* 연습 모드 피드백 */}
       {practiceFeedback && (practicePhase === 'first-feedback' || practicePhase === 'retry-feedback') && (
-        <div className="p-4 border border-indigo-200 bg-indigo-50 rounded-lg flex flex-col gap-3" data-testid="practice-feedback">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-indigo-800">즉각 피드백</h3>
-            <span className="text-lg font-bold text-indigo-700">{practiceFeedback.score}점</span>
+        <div
+          className="matte-card"
+          style={{ padding: '1.25rem', borderColor: 'rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.06)' }}
+          data-testid="practice-feedback"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--kwan-amber)' }}>📝 연습 모드 피드백</span>
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--kwan-amber)' }}>{practiceFeedback.score}점</span>
           </div>
+
           {practiceFeedback.comparisonDelta != null && (
-            <p className="text-xs text-indigo-600">
+            <p style={{ fontSize: '0.75rem', color: 'var(--kwan-text-2)', marginBottom: '0.5rem' }}>
               이전 답변 대비 {practiceFeedback.comparisonDelta.scoreDelta > 0 ? '+' : ''}{practiceFeedback.comparisonDelta.scoreDelta}점
             </p>
           )}
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-semibold text-green-700">잘한 점</p>
-            <ul className="flex flex-col gap-0.5">
-              {practiceFeedback.feedback.good.map((item, i) => (
-                <li key={i} className="text-sm text-gray-700">• {item}</li>
-              ))}
-            </ul>
+
+          <div style={{ marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#34d399', marginBottom: '0.25rem' }}>잘한 점</p>
+            {practiceFeedback.feedback.good.map((item, i) => (
+              <p key={i} style={{ fontSize: '0.8125rem', color: 'var(--kwan-text-2)' }}>• {item}</p>
+            ))}
           </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-semibold text-amber-700">개선할 점</p>
-            <ul className="flex flex-col gap-0.5">
-              {practiceFeedback.feedback.improve.map((item, i) => (
-                <li key={i} className="text-sm text-gray-700">• {item}</li>
-              ))}
-            </ul>
+
+          <div style={{ marginBottom: '0.75rem' }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--kwan-amber)', marginBottom: '0.25rem' }}>개선할 점</p>
+            {practiceFeedback.feedback.improve.map((item, i) => (
+              <p key={i} style={{ fontSize: '0.8125rem', color: 'var(--kwan-text-2)' }}>• {item}</p>
+            ))}
           </div>
+
           {practiceFeedback.keywords.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
               {practiceFeedback.keywords.map((kw, i) => (
-                <span key={i} className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">{kw}</span>
+                <span key={i} className="tag tag-amber">{kw}</span>
               ))}
             </div>
           )}
-          <p className="text-xs text-gray-500 italic">{practiceFeedback.improvedAnswerGuide}</p>
-          <div className="flex gap-2 pt-1">
+
+          <p style={{ fontSize: '0.75rem', color: 'var(--kwan-text-muted)', fontStyle: 'italic', marginBottom: '0.875rem' }}>
+            {practiceFeedback.improvedAnswerGuide}
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             {practicePhase === 'first-feedback' && (
-              <button
-                onClick={handleRetry}
-                className="py-1.5 px-4 border border-indigo-400 text-indigo-700 text-sm rounded-lg hover:bg-indigo-100 transition-colors"
-              >
+              <button onClick={handleRetry} className="btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>
                 다시 답변하기
               </button>
             )}
-            <button
-              onClick={handleNextQuestion}
-              className="py-1.5 px-4 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              다음 질문
+            <button onClick={handleNextQuestion} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>
+              다음 질문 →
             </button>
           </div>
         </div>
       )}
 
+      {/* 답변 입력 */}
       {practicePhase === 'idle' && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <textarea
-            value={answerInput}
-            onChange={(e) => setAnswerInput(e.target.value)}
-            placeholder="답변을 입력하세요..."
-            rows={4}
-            className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-            disabled={isLoading}
-            aria-label="답변 입력"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !answerInput.trim()}
-            className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors self-end"
-          >
-            {isLoading ? '처리 중...' : '답변 제출'}
-          </button>
+        <form onSubmit={handleSubmit}>
+          <div className="matte-card" style={{ padding: '1rem' }}>
+            <textarea
+              value={answerInput}
+              onChange={(e) => setAnswerInput(e.target.value)}
+              placeholder="답변을 입력하세요..."
+              rows={5}
+              disabled={isLoading}
+              aria-label="답변 입력"
+              style={{
+                width: '100%', background: 'transparent', border: 'none', outline: 'none',
+                fontSize: '0.9375rem', color: 'var(--kwan-text)', resize: 'none',
+                lineHeight: 1.7, fontFamily: 'inherit',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+              <button
+                type="submit"
+                disabled={isLoading || !answerInput.trim()}
+                className="btn-primary"
+                style={{ padding: '0.75rem 1.75rem', fontSize: '0.9375rem' }}
+              >
+                {isLoading ? '처리 중...' : '답변 제출 →'}
+              </button>
+            </div>
+          </div>
         </form>
       )}
+
+      <p style={{ fontSize: '0.6875rem', color: 'var(--kwan-text-muted)', textAlign: 'center' }}>
+        {interviewMode === 'practice' ? '연습 모드 — 답변마다 즉각 피드백 제공' : '실전 모드 — 모든 질문 완료 후 리포트 생성'}
+      </p>
     </div>
   )
 }
